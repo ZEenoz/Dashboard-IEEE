@@ -1,0 +1,26 @@
+{
+    "alertThresholds": {
+        "waterLevel": 3,
+        "pressureLow": 0.5,
+        "pressureHigh": 10
+    },
+    "data_source": {
+        "type": "postgres and google sheets",
+        "google_sheets": {
+            "spreadsheetId": "YOUR_SPREADSHEET_ID",
+            "credentials_path": "./service-account.json"
+        }
+    },
+    "stations": {
+        "test-hel-v3": {
+            "name": "Float Station",
+            "lat": 14.046209,
+            "lng": 100.747424
+        },
+        "test-hel-v3-n2": {
+            "name": "Static Station 1",
+            "lat": 14.420291834261935,
+            "lng": 100.38903440597402
+        }
+    }
+}

@@ -8,10 +8,7 @@ build
 backend/config/database.js
 backend/service-account.json
 backend/.env
-backend/settings.json # Maybe settings.json too if it has sensitive data, but user asked for keys specifically. Settings has spreadsheetId which is borderline. I'll ignore it to be safe if I make an example. *Wait, I didn't make settings.example.json*. I'll check settings.json again. 
-# Re-checking settings.json content... it has spreadsheetId and credentials_path. Credentials path is fine. spreadsheetId is fine. I'll keep settings.json.
-
-# Frontend Secrets
+backend/settings.json
 frontend/.env.local
 frontend/.env.production
 frontend/.env.development

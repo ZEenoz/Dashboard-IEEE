@@ -1,0 +1,34 @@
+version: '3.8'
+services:
+  mosquitto:
+    image: eclipse-mosquitto
+    container_name: mosquitto_broker
+    ports:
+      - "1883:1883" # พอร์ตสำหรับรับส่งข้อมูลปกติ
+      - "9001:9001" # พอร์ตสำหรับ Web (ถ้าจำเป็น)
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    # คำสั่งด้านล่างนี้เพื่อสร้างไฟล์ config แบบง่ายๆ อัตโนมัติ โดยอนุญาตให้ใครก็ได้เชื่อมต่อ (สำหรับการทดสอบ)
+    command: >
+      sh -c "echo 'persistence true' > /mosquitto/config/mosquitto.conf &&
+             echo 'listener 1883' >> /mosquitto/config/mosquitto.conf &&
+             echo 'allow_anonymous true' >> /mosquitto/config/mosquitto.conf &&
+             /usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf"
+
+  postgres:
+    image: postgres:15
+    container_name: postgres_db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Waterretention1
+      TZ: Asia/Bangkok
+      POSTGRES_DB: water_monitoring
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

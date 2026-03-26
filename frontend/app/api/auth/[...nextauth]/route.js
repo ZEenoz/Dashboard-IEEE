@@ -2,14 +2,16 @@ import NextAuth from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { Pool } from "pg"
 
-// Reuse a single pool instance for auth queries
-const authPool = new Pool({
-    user: 'postgres',
-    host: 'localhost',
-    password: 'Waterretention1',
-    port: 5432,
-    database: 'water_monitoring'
-});
+// PostgreSQL Configuration (Supports DATABASE_URL or individual vars)
+const authPool = process.env.DATABASE_URL 
+    ? new Pool({ connectionString: process.env.DATABASE_URL })
+    : new Pool({
+        user: process.env.DB_USER || 'postgres',
+        host: process.env.DB_HOST || 'localhost',
+        password: process.env.DB_PASSWORD || 'Waterretention1',
+        port: parseInt(process.env.DB_PORT || '5432'),
+        database: process.env.DB_NAME || 'water_monitoring'
+    });
 
 const handler = NextAuth({
     providers: [

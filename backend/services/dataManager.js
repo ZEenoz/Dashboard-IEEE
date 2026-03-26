@@ -121,7 +121,7 @@ async function getHistory(hours = 48) {
                 console.log("✅ History loaded from Postgres");
                 return history;
             } catch (e) {
-                console.error("⚠️ SQL History Load Error:", e.message);
+                console.error("⚠️ SQL History Load Error:", e.message || e);
                 // Fallback to sheets if SQL fails?
             }
         }

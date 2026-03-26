@@ -1,14 +1,16 @@
 const { Pool } = require('pg');
 const fs = require('fs');
 
-// PostgreSQL Configuration (Supports Railway defaults and custom DB_* variables)
-const dbConfig = {
-    user: process.env.DB_USER || process.env.PGUSER || 'postgres',
-    host: process.env.DB_HOST || process.env.PGHOST || 'localhost',
-    password: process.env.DB_PASSWORD || process.env.PGPASSWORD || 'Waterretention1',
-    port: parseInt(process.env.DB_PORT || process.env.PGPORT || '5432'),
-    database: process.env.DB_NAME || process.env.PGDATABASE || 'water_monitoring'
-};
+// PostgreSQL Configuration (Supports Railway defaults and DATABASE_URL)
+const dbConfig = process.env.DATABASE_URL 
+    ? { connectionString: process.env.DATABASE_URL }
+    : {
+        user: process.env.DB_USER || process.env.PGUSER || 'postgres',
+        host: process.env.DB_HOST || process.env.PGHOST || 'localhost',
+        password: process.env.DB_PASSWORD || process.env.PGPASSWORD || 'Waterretention1',
+        port: parseInt(process.env.DB_PORT || process.env.PGPORT || '5432'),
+        database: process.env.DB_NAME || process.env.PGDATABASE || 'water_monitoring'
+    };
 
 let pool;
 

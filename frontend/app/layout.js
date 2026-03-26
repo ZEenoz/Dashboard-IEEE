@@ -1,5 +1,5 @@
 import { Inter } from "next/font/google";
-import "../globals.css";
+import "./globals.css";
 import { SocketProvider } from "@/contexts/SocketContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Sidebar from "@/components/Sidebar";

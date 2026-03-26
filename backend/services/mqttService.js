@@ -1,10 +1,12 @@
+// ... (previous imports)
 const mqtt = require('mqtt');
+const http = require('http');
 const { saveReading } = require('./dataManager');
 const { getSettings } = require('../config/settings');
 
 const USE_SIMULATOR = false; // 🔴 false = TTI Cloud, 🟢 true = Simulator
 
-// MQTT Config
+// ... (MQTT Config and SENSOR_MAP remain same)
 const MQTT_LOCAL = "mqtt://localhost:1883";
 const TTI_HOST = "ieeew2025.as1.cloud.thethings.industries";
 const TTI_APP_ID = "ieee2025";
@@ -19,14 +21,47 @@ const SENSOR_MAP = {
 let mqttClient;
 let mqttOut;
 let stationHistory = {};
+let activeNodes = {}; // Store { deviceId: { lastSeen: Date, rssi, battery, waterLevel, ... } }
+let gatewayStatus = {}; // Store { gatewayId: { rssi, snr, lastSeen, count } }
+let alertCooldowns = {}; // Separate store for cooldown timestamps — NOT mixed into activeNodes
+
+// 🔔 Alert Log (in-memory, newest first, max 200 entries) - DEPRECATED
+// See alerts table in database instead
+const alertLog = [];
+
+/**
+ * Fire-and-forget HTTP POST to Flask LINE Bot.
+ * Silently ignores errors if Flask is not running.
+ */
+function pushToFlask(path, body) {
+    try {
+        const data = JSON.stringify(body);
+        const req = http.request({
+            hostname: 'localhost',
+            port: 5000,
+            path,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(data)
+            }
+        });
+        req.on('error', (e) => {
+            console.error("⚠️ Failed to push to Flask Bot:", e.message);
+        });
+        req.write(data);
+        req.end();
+    } catch (e) {
+        console.error("⚠️ Flask Bot Request Error:", e.message);
+    }
+}
 
 function initMQTT(io) {
-    // 1. Setup Output Publisher (Local Mosquitto for legacy components)
+    // ... (connection setup remains same)
     mqttOut = mqtt.connect(MQTT_LOCAL);
     mqttOut.on("connect", () => console.log("📤 MQTT Publisher connected to local broker"));
     mqttOut.on("error", err => console.log("❌ MQTT Publisher error:", err.message));
 
-    // 2. Setup Input Consumer (Simulator or TTI)
     let mqttOptions;
     let TOPIC;
 
@@ -68,98 +103,224 @@ function initMQTT(io) {
 async function handleMessage(message, io) {
     try {
         const settings = getSettings();
-        // const pool = getPool(); // Removed
         const payload = JSON.parse(message.toString());
 
-        const uplink = payload.uplink_message || {};
-        const decoded = uplink.decoded_payload || {};
-        const deviceId = payload.end_device_ids?.device_id || "unknown";
+        const networkMode = settings.networkMode || 'TTN';
+
+        let deviceId, stationName, waterLevel, isFloat, sensorType, rawLevel;
+        let finalLat = 13.7563, finalLng = 100.5018, locationSource = "Default";
+        let rssi = -999, snr = 0, battery = 0, batteryVoltage = 0, dataRateStr = 0;
+        let gateways = [];
 
         const STATIONS_CONFIG = settings.stations || {};
-        const stationName = STATIONS_CONFIG[deviceId]?.name || deviceId;
 
-        // Determine Sensor Category
-        const isFloat = stationName.toLowerCase().includes("float") || deviceId.includes("hel-v3") || deviceId === "ST001";
-        const sensorType = isFloat ? "Float" : "Static";
+        if (networkMode === 'CHIRPSTACK') {
+            deviceId = payload.deviceInfo?.devEui || "unknown";
+            stationName = STATIONS_CONFIG[deviceId]?.name || deviceId;
 
-        let pressure = parseFloat(decoded.pressure || decoded.Pressure || 0);
+            const obj = payload.object || {};
 
-        // 1. Universal Water Level Extraction (Handle camelCase, snake_case, PascalCase)
-        let rawLevel = parseFloat(decoded.waterLevel || decoded.waterlevel || decoded.water_level || decoded.Level || 0);
+            isFloat = obj.type === 'Float' || stationName.toLowerCase().includes("float") || deviceId.toLowerCase().includes("float") || deviceId.includes("hel-v3") || deviceId === "ST001";
+            sensorType = isFloat ? "Float" : "Static";
 
-        // 2. Universal Unit Conversion (Heuristic: If > 10, assume cm and convert to m)
-        // This handles "124cm" -> "1.24m" for both Static and Float nodes automatically
-        if (rawLevel > 10) {
+            rawLevel = parseFloat(obj.waterLevel || obj.waterlevel || obj.water_level || obj.Level || 0);
+
+            if (payload.location) {
+                finalLat = payload.location.latitude;
+                finalLng = payload.location.longitude;
+                locationSource = "GPS Sensor";
+            } else if (STATIONS_CONFIG[deviceId]) {
+                finalLat = STATIONS_CONFIG[deviceId].lat;
+                finalLng = STATIONS_CONFIG[deviceId].lng;
+                locationSource = "Config File";
+            }
+
+            if (payload.rxInfo && payload.rxInfo.length > 0) {
+                rssi = payload.rxInfo[0].rssi || -999;
+                snr = payload.rxInfo[0].snr || 0;
+                gateways = payload.rxInfo.map(gw => ({
+                    gateway_id: gw.gatewayId || "unknown-gateway",
+                    rssi: gw.rssi,
+                    snr: gw.snr
+                }));
+            }
+
+            dataRateStr = payload.txInfo?.modulation?.lora?.spreadingFactor ? `SF${payload.txInfo.modulation.lora.spreadingFactor}BW${payload.txInfo.modulation.lora.bandwidth / 1000}` : 0;
+            battery = parseFloat(obj.battery_percentage !== undefined ? obj.battery_percentage : (obj.battery || obj.bat || obj.Battery || 0));
+            batteryVoltage = parseFloat(obj.battery_voltage !== undefined ? obj.battery_voltage : 0);
+
+        } else {
+            // TTN Mode
+            const uplink = payload.uplink_message || {};
+            const decoded = uplink.decoded_payload || {};
+            deviceId = payload.end_device_ids?.device_id || "unknown";
+
+            stationName = STATIONS_CONFIG[deviceId]?.name || deviceId;
+
+            isFloat = decoded.type === 'Float' || stationName.toLowerCase().includes("float") || deviceId.toLowerCase().includes("float") || deviceId.includes("hel-v3") || deviceId === "ST001";
+            sensorType = isFloat ? "Float" : "Static";
+
+            rawLevel = parseFloat(decoded.waterLevel || decoded.waterlevel || decoded.water_level || decoded.Level || 0);
+
+            if (decoded.latitude !== undefined && decoded.longitude !== undefined) {
+                finalLat = parseFloat(decoded.latitude);
+                finalLng = parseFloat(decoded.longitude);
+                locationSource = "GPS Sensor";
+            } else {
+                // Recursive search for TTN payload latitude/longitude
+                const findGPS = (obj, depth = 0) => {
+                    if (!obj || typeof obj !== 'object' || depth > 5) return null;
+                    if (obj.latitude !== undefined && obj.longitude !== undefined) {
+                        return { lat: obj.latitude, lng: obj.longitude };
+                    }
+                    if (obj.lat !== undefined && obj.lng !== undefined) {
+                        return { lat: obj.lat, lng: obj.lng };
+                    }
+                    for (let key in obj) {
+                        const res = findGPS(obj[key], depth + 1);
+                        if (res) return res;
+                    }
+                    return null;
+                };
+
+                const gpsPos = findGPS(decoded);
+                if (gpsPos) {
+                    finalLat = parseFloat(gpsPos.lat);
+                    finalLng = parseFloat(gpsPos.lng);
+                    locationSource = "GPS Sensor (Decoded)";
+                } else if (uplink.locations) {
+                    // Search in uplink.locations (e.g. frm-payload or user)
+                    const locKeys = Object.keys(uplink.locations);
+                    let foundLoc = false;
+                    for (let key of locKeys) {
+                        if (uplink.locations[key] && uplink.locations[key].latitude !== undefined) {
+                            finalLat = parseFloat(uplink.locations[key].latitude);
+                            finalLng = parseFloat(uplink.locations[key].longitude);
+                            locationSource = `TTN Location (${key})`;
+                            foundLoc = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!foundLoc && STATIONS_CONFIG[deviceId] && STATIONS_CONFIG[deviceId].lat !== undefined) {
+                        finalLat = parseFloat(STATIONS_CONFIG[deviceId].lat);
+                        finalLng = parseFloat(STATIONS_CONFIG[deviceId].lng);
+                        locationSource = "Config File";
+                    }
+                } else if (STATIONS_CONFIG[deviceId] && STATIONS_CONFIG[deviceId].lat !== undefined) {
+                    finalLat = parseFloat(STATIONS_CONFIG[deviceId].lat);
+                    finalLng = parseFloat(STATIONS_CONFIG[deviceId].lng);
+                    locationSource = "Config File";
+                }
+            }
+
+            if (uplink.rx_metadata && uplink.rx_metadata.length > 0) {
+                rssi = uplink.rx_metadata[0].rssi || -999;
+                snr = uplink.rx_metadata[0].snr || 0;
+                gateways = uplink.rx_metadata.map(gw => ({
+                    gateway_id: gw.gateway_ids?.gateway_id || "unknown-gateway",
+                    rssi: gw.rssi,
+                    snr: gw.snr
+                }));
+            }
+
+            dataRateStr = uplink.settings?.data_rate?.index || 0;
+            if (uplink.settings?.data_rate?.lora) {
+                const lora = uplink.settings.data_rate.lora;
+                dataRateStr = `SF${lora.spreading_factor}BW${lora.bandwidth / 1000}`;
+            }
+            battery = parseFloat(decoded.battery_percentage !== undefined ? decoded.battery_percentage : (decoded.battery || decoded.bat || decoded.Battery || 0));
+            batteryVoltage = parseFloat(decoded.battery_voltage !== undefined ? decoded.battery_voltage : 0);
+        }
+
+        if (rawLevel > 4) {
             rawLevel = rawLevel / 100;
         }
 
-        let waterLevel = rawLevel;
-
-        // Fallback: Only calculate from pressure if NO water level is found in payload
-        if (waterLevel === 0 && pressure > 0) {
-            // P = rho * g * h  =>  h = P / (rho * g)
-            // Approx: 1 bar = 10.197 meters of water head.
-            waterLevel = pressure * 10.197;
+        // Apply Offset configured in Settings
+        let offset = 0;
+        if (STATIONS_CONFIG[deviceId] && STATIONS_CONFIG[deviceId].offset !== undefined) {
+            offset = parseFloat(STATIONS_CONFIG[deviceId].offset) || 0;
         }
+        waterLevel = parseFloat((rawLevel + offset).toFixed(3));
 
-        // Mapping
+
         const stationId =
             deviceId === "test-hel-v3" ? "ST001" :
                 deviceId === "test-hel-wifilora32" ? "ST002" :
                     deviceId;
 
-        // Logic Location
-        let finalLat = 13.7563;
-        let finalLng = 100.5018;
-        let locationSource = "Default";
-
-        if (decoded.latitude && decoded.longitude) {
-            finalLat = parseFloat(decoded.latitude);
-            finalLng = parseFloat(decoded.longitude);
-            locationSource = "GPS Sensor";
-        } else if (uplink.locations && uplink.locations['user']) {
-            finalLat = uplink.locations['user'].latitude;
-            finalLng = uplink.locations['user'].longitude;
-            locationSource = "TTN Console";
-        } else if (STATIONS_CONFIG[deviceId]) {
-            finalLat = STATIONS_CONFIG[deviceId].lat;
-            finalLng = STATIONS_CONFIG[deviceId].lng;
-            locationSource = "Config File";
-        }
-
-        // History Management
+        // --- History Management ---
         if (!stationHistory[deviceId]) stationHistory[deviceId] = [];
         const history = stationHistory[deviceId];
 
-        let trend = 'stable';
-        if (history.length > 0) {
-            const lastVal = history[history.length - 1].waterLevel;
-            if (waterLevel > lastVal) trend = 'up';
-            else if (waterLevel < lastVal) trend = 'down';
+        // --- 🔔 Calculate Alert Level First ---
+        const alertThresholds = settings.alertThresholds || {};
+        let warningLevel = alertThresholds.warningLevel || 1.8;
+        let criticalLevel = alertThresholds.criticalLevel || 2.7;
+
+        try {
+            const pool = require('../config/database').getPool();
+            if (pool) {
+                const cfgRes = await pool.query(
+                    'SELECT warning_level, critical_level FROM station_configs WHERE station_id = $1 LIMIT 1',
+                    [deviceId]
+                );
+                if (cfgRes.rows.length > 0) {
+                    warningLevel = parseFloat(cfgRes.rows[0].warning_level) || warningLevel;
+                    criticalLevel = parseFloat(cfgRes.rows[0].critical_level) || criticalLevel;
+                }
+            }
+        } catch (_) { /* use global fallback */ }
+
+        let alertLevel = 'normal';
+        if (waterLevel >= criticalLevel) {
+            alertLevel = 'dangerous';
+        } else if (waterLevel >= warningLevel) {
+            alertLevel = 'warning';
         }
 
-        const rssi = (uplink.rx_metadata && uplink.rx_metadata[0]) ? uplink.rx_metadata[0].rssi : -999;
-        const snr = (uplink.rx_metadata && uplink.rx_metadata[0]) ? uplink.rx_metadata[0].snr : 0;
 
-        // Try to get a readable data rate string (e.g. SF7BW125)
-        let dataRateStr = uplink.settings?.data_rate?.index || 0;
-        if (uplink.settings?.data_rate?.lora) {
-            const lora = uplink.settings.data_rate.lora;
-            dataRateStr = `SF${lora.spreading_factor}BW${lora.bandwidth / 1000}`;
+        activeNodes[deviceId] = {
+            stationId: deviceId, // Use 'stationId' for consistent naming in frontend
+            name: stationName,   // Include name
+            lastSeen: new Date(),
+            rssi,
+            snr,
+            battery,
+            batteryVoltage,
+            waterLevel: waterLevel, // Include current reading
+            sensorType: sensorType, // Add explicitly for frontend map coloring
+            alertLevel: alertLevel, // Track current severity status
+            status: "Online"
+        };
+
+        // Update Gateway Status
+        if (gateways && gateways.length > 0) {
+            gateways.forEach(gw => {
+                const gwId = gw.gateway_id || "unknown-gateway";
+                if (!gatewayStatus[gwId]) {
+                    gatewayStatus[gwId] = { count: 0 };
+                }
+                gatewayStatus[gwId] = {
+                    id: gwId,
+                    rssi: gw.rssi,
+                    snr: gw.snr,
+                    lastSeen: new Date(),
+                    lastNode: deviceId,
+                    count: gatewayStatus[gwId].count + 1
+                };
+            });
         }
-
-        const battery = parseFloat(decoded.battery || decoded.bat || decoded.Battery || 0);
-
-        // const sensorType = stationName.toLowerCase().includes("float") ? "Float" : "Static"; // Moved up
 
         const newData = {
             time: new Date().toLocaleTimeString('th-TH'),
             waterLevel,
-            pressure,
             dataRate: dataRateStr,
             rssi,
             snr,
             battery,
+            batteryVoltage,
             sensorType,
             rawTimestamp: new Date()
         };
@@ -172,34 +333,136 @@ async function handleMessage(message, io) {
             displayId: stationId,
             stationName: stationName,
             waterLevel,
-            pressure,
             lat: finalLat,
             lng: finalLng,
             src: locationSource,
             timestamp: new Date(),
-            history,
-            trend,
             dataRate: dataRateStr,
             rssi,
             snr,
             battery,
-            sensorType
+            batteryVoltage,
+            sensorType,
+            alertLevel
         };
 
-        console.log(`📡 ${stationName} | water_level: ${waterLevel.toFixed(2)} | Data rate: ${dataRateStr} | SNR: ${snr} | RSSI: ${rssi}`);
 
-        // Emit to Frontend
+        console.log(`📡 ${stationName} | water: ${waterLevel.toFixed(2)}m | RSSI: ${rssi} | Level: ${alertLevel.toUpperCase()} | GWs: ${Object.keys(gatewayStatus).length}`);
+
         io.emit('sensor-update', dataToSend);
-
-        // Save via DataManager (Postgres + Google Sheets)
         await saveReading(dataToSend);
 
-        // Publish to Legacy Mosquitto
+        // ─────────────────────────────────────────────
+        // 📡 Phase 1: Push real water data to Flask Bot
+        // ─────────────────────────────────────────────
+        pushToFlask('/internal/water-update', {
+            stationId: deviceId,
+            stationName,
+            waterLevel,
+            sensorType,
+            battery,
+            batteryVoltage,
+            rssi,
+            timestamp: new Date().toISOString()
+        });
+
+        // --- 🔔 2-Tier Alert Logic (Warning + Dangerous) ---
+
+        let warningCooldown = (alertThresholds.warningCooldownMin || 60) * 60 * 1000;
+        let dangerousCooldown = (alertThresholds.dangerousCooldownMin || 15) * 60 * 1000;
+
+        // 🟢 By-pass cooldown in Simulator mode for easier testing
+        if (USE_SIMULATOR) {
+            warningCooldown = 0;
+            dangerousCooldown = 0;
+        }
+
+        const now = Date.now();
+        const cooldownState = alertCooldowns[deviceId] || {};
+        const lastWarnNotified = cooldownState.lastWarnNotified || 0;
+        const lastDangerNotified = cooldownState.lastDangerNotified || 0;
+
+        if (alertLevel !== 'normal') {
+            const isCooldownPassed = alertLevel === 'dangerous'
+                ? (now - lastDangerNotified > dangerousCooldown)
+                : (now - lastWarnNotified > warningCooldown);
+
+            if (isCooldownPassed) {
+                const threshold = alertLevel === 'dangerous' ? criticalLevel : warningLevel;
+                console.log(`${alertLevel === 'dangerous' ? '🚨' : '⚠️'} ${alertLevel.toUpperCase()} Alert: ${stationName} | ${waterLevel.toFixed(2)}m >= ${threshold}m`);
+
+                // ─────────────────────────────────────────────
+                // 📋 Add to Alert Log (for Alerts page) -> NOW IN POSTGRES
+                // ─────────────────────────────────────────────
+                const alertEntry = {
+                    id: `alert-${Date.now()}`,
+                    timestamp: new Date().toISOString(),
+                    stationId: deviceId,
+                    stationName,
+                    waterLevel,
+                    threshold,
+                    warningThreshold: warningLevel,
+                    criticalThreshold: criticalLevel,
+                    alertLevel,       // 'warning' | 'dangerous'
+                    battery,
+                    rssi,
+                    sensorType,
+                    lineStatus: 'sent_to_bot'
+                };
+
+                // 📨 Push to Flask Bot
+                if (settings.lineBot?.active !== false) {
+                    pushToFlask('/trigger-alert', alertEntry);
+                } else {
+                    console.log("🔕 LINE Bot alert swallowed (LINE Bot is disabled in settings)");
+                }
+
+                // 📲 Send LINE Notify with level-specific message
+                const { sendAlertByLevel } = require('./notificationService');
+                sendAlertByLevel(alertEntry);
+
+                // Save to PostgreSQL
+                try {
+                    const pool = require('../config/database').getPool();
+                    if (pool) {
+                        const insertQuery = `
+                            INSERT INTO alerts (station_id, alert_level, water_level, threshold, battery, rssi, line_status)
+                            VALUES ($1, $2, $3, $4, $5, $6, $7)
+                            RETURNING id, created_at
+                        `;
+                        const res = await pool.query(insertQuery, [deviceId, alertLevel, waterLevel, threshold, battery, rssi, 'sent_to_bot']);
+
+                        // Emit real-time alert to frontend
+                        if (res.rows.length > 0) {
+                            alertEntry.id = res.rows[0].id;
+                            alertEntry.timestamp = res.rows[0].created_at;
+                            io.emit('new-alert', alertEntry);
+                        } else {
+                            io.emit('new-alert', alertEntry);
+                        }
+                    } else {
+                        io.emit('new-alert', alertEntry);
+                    }
+                } catch (e) {
+                    console.error("⚠️ Failed to save alert to DB:", e.message);
+                    io.emit('new-alert', alertEntry); // Still emit even if DB fails
+                }
+
+                // Update cooldown timestamps (separate from node data)
+                if (!alertCooldowns[deviceId]) alertCooldowns[deviceId] = {};
+                if (alertLevel === 'dangerous') {
+                    alertCooldowns[deviceId].lastDangerNotified = now;
+                } else {
+                    alertCooldowns[deviceId].lastWarnNotified = now;
+                }
+            }
+        }
+
+        // ... (MQTT Publish to Legacy remains same)
         const sensors = SENSOR_MAP[deviceId] || [];
         for (let sensorId of sensors) {
             let value = 0;
             if (sensorId === "SEN001" || sensorId === "SEN003") value = waterLevel;
-            else if (sensorId === "SEN002") value = pressure;
 
             if (mqttOut && mqttOut.connected) {
                 mqttOut.publish(`water/${stationId}/${sensorId}`, JSON.stringify({ value }));
@@ -219,8 +482,50 @@ function updateStationHistory(id, historyData) {
     stationHistory[id] = historyData;
 }
 
+function getAlertLog() {
+    return alertLog;
+}
+
+// System Health Helpers
+function getMQTTStatus() {
+    return {
+        connected: mqttClient ? mqttClient.connected : false,
+        broker: USE_SIMULATOR ? 'Local Simulator' : 'TTI Cloud',
+        topic: USE_SIMULATOR ? "v3/+/devices/+/up" : "v3/+/devices/+/up"
+    };
+}
+
+function getGatewayStatus() {
+    // Return detailed list of gateways
+    const gateways = Object.values(gatewayStatus).sort((a, b) => b.lastSeen - a.lastSeen);
+
+    // If using simulator and no gateways found (yet), add a mock one for testing UI
+    if (USE_SIMULATOR && gateways.length === 0) {
+        return {
+            type: 'Simulator (Mock)',
+            gateways: [
+                { id: 'sim-gateway-01', rssi: -45, snr: 9, lastSeen: new Date(), lastNode: 'test-node', count: 124 },
+                { id: 'sim-gateway-02', rssi: -110, snr: -2, lastSeen: new Date(Date.now() - 60000), lastNode: 'test-node', count: 5 }
+            ]
+        };
+    }
+
+    return {
+        type: 'TTI/LoRaWAN',
+        gateways: gateways
+    };
+}
+
+function getActiveNodes() {
+    return Object.values(activeNodes).sort((a, b) => b.lastSeen - a.lastSeen);
+}
+
 module.exports = {
     initMQTT,
     getStationHistory,
-    updateStationHistory
+    updateStationHistory,
+    getAlertLog,
+    getMQTTStatus,
+    getGatewayStatus,
+    getActiveNodes
 };

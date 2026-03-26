@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ลงทะเบียนจุดวัดน้ำ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #06C755;
+            /* สีเขียว LINE */
+            --bg-color: #F2F5F8;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            color: var(--text-color);
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        h2 {
+            text-align: center;
+            color: #1a1a1a;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        p.subtitle {
+            text-align: center;
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        /* --- Style สำหรับการ์ดเลือก (Checkbox แบบซ่อน) --- */
+        .station-option {
+            margin-bottom: 15px;
+        }
+
+        /* ซ่อน Checkbox ตัวจริง */
+        .station-option input[type="checkbox"] {
+            display: none;
+        }
+
+        /* สร้างกล่อง Label แทน */
+        .station-card {
+            display: flex;
+            align-items: center;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            border: 2px solid transparent;
+            /* ขอบใส */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        /* ไอคอนด้านหน้า */
+        .icon {
+            font-size: 24px;
+            margin-right: 15px;
+            background: #f0f0f0;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+
+        .info {
+            flex-grow: 1;
+        }
+
+        .info h4 {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .info span {
+            font-size: 12px;
+            color: #999;
+        }
+
+        /* ตัวติ๊กถูก (Checkmark) */
+        .checkmark {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: all 0.2s;
+        }
+
+        /* --- Effect เมื่อถูกเลือก (Checked) --- */
+        /* เมื่อ checkbox ถูกติ๊ก ให้เปลี่ยนสีกล่องที่อยู่ติดกัน */
+        input[type="checkbox"]:checked+.station-card {
+            border-color: var(--primary-color);
+            background-color: #F0FFF4;
+            /* สีเขียวอ่อน */
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(6, 199, 85, 0.2);
+        }
+
+        input[type="checkbox"]:checked+.station-card .checkmark {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        input[type="checkbox"]:checked+.station-card .checkmark::after {
+            content: '✓';
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        input[type="checkbox"]:checked+.station-card .icon {
+            background-color: white;
+            color: var(--primary-color);
+        }
+
+        /* ปุ่มบันทึก */
+        .btn-save {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 16px;
+            border-radius: 50px;
+            /* ปุ่มมน */
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(6, 199, 85, 0.3);
+            transition: transform 0.1s;
+        }
+
+        .btn-save:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>Water Level Monitoring Register</h2>
+        <p class="subtitle">เลือกสถานีที่ต้องการรับการแจ้งเตือน</p>
+
+        <form id="monitorForm">
+
+            {% for station in stations %}
+            <div class="station-option">
+                <input type="checkbox" id="s_{{ station.id }}" value="{{ station.id }}" class="station-checkbox">
+                <label for="s_{{ station.id }}" class="station-card">
+                    <div class="icon">
+                        {% if 'Float' in station.name or 'float' in station.name|lower %}
+                        🌊
+                        {% elif 'Static' in station.name or 'static' in station.name|lower %}
+                        🌾
+                        {% else %}
+                        💧
+                        {% endif %}
+                    </div>
+                    <div class="info">
+                        <h4>{{ station.name }}</h4>
+                        <span>{{ station.location }}</span>
+                    </div>
+                    <div class="checkmark"></div>
+                </label>
+            </div>
+            {% endfor %}
+
+            <button type="button" class="btn-save" onclick="submitData()">บันทึกการตั้งค่า</button>
+        </form>
+    </div>
+
+    <script>
+        // ⚠️ อย่าลืมใส่ LIFF ID ของคุณที่นี่
+        const MY_LIFF_ID = "2008748947-KDSlBUc4";
+
+        async function main() {
+            try {
+                await liff.init({ liffId: MY_LIFF_ID });
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                }
+            } catch (err) {
+                console.error("LIFF Init Failed", err);
+            }
+        }
+        main();
+
+        async function submitData() {
+            // โชว์ Loading นิดนึง (เปลี่ยนข้อความปุ่ม)
+            const btn = document.querySelector('.btn-save');
+            btn.innerText = "กำลังบันทึก...";
+            btn.disabled = true;
+
+            try {
+                const profile = await liff.getProfile();
+                const userId = profile.userId;
+
+                const stations = [];
+                const checkboxes = document.querySelectorAll('.station-checkbox:checked');
+                checkboxes.forEach((cb) => stations.push(cb.value));
+
+                // ยิง API
+                await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: userId, stations: stations })
+                });
+
+                // ปิดหน้าจอเมื่อเสร็จ
+                liff.closeWindow();
+
+            } catch (error) {
+                alert("เกิดข้อผิดพลาด: " + error.message);
+                btn.innerText = "บันทึกการตั้งค่า";
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+
+</html>

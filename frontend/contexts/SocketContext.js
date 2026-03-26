@@ -3,6 +3,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io } from "socket.io-client";
 
+const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL.replace('/api', '') : 'http://localhost:4000';
+
 const SocketContext = createContext();
 
 export const useSocket = () => useContext(SocketContext);
@@ -15,7 +17,7 @@ export const SocketProvider = ({ children }) => {
     const socketRef = React.useRef(null);
 
     useEffect(() => {
-        const socket = io("http://localhost:4000");
+        const socket = io(SOCKET_URL);
         socketRef.current = socket;
 
         socket.on("sensor-update", (newData) => {
@@ -73,6 +75,7 @@ export const SocketProvider = ({ children }) => {
                     if (rawTime > twentyFourHoursAgo) {
                         combinedHistory.push({
                             ...entry,
+                            timestamp: entry.timestamp || entry.time, // 🟢 Fix: Ensure timestamp exists
                             rawTimestamp: rawTime
                         });
                     }
@@ -82,6 +85,40 @@ export const SocketProvider = ({ children }) => {
             // Sort by time
             combinedHistory.sort((a, b) => a.rawTimestamp - b.rawTimestamp);
             setHistory(combinedHistory);
+
+            // 🟢 Hydrate 'stations' state with the latest data from history
+            const latestStations = {};
+            Object.keys(fullHistory).forEach(stationId => {
+                const stationData = fullHistory[stationId];
+                if (stationData && stationData.length > 0) {
+                    // Get the last entry (assuming sorted or we just take the last one pushed)
+                    // The backend likely sends them in order, but let's be safe and sort specifically for this
+                    const sorted = [...stationData].sort((a, b) => {
+                        const timeA = new Date(a.rawTimestamp || a.timestamp).getTime();
+                        const timeB = new Date(b.rawTimestamp || b.timestamp).getTime();
+                        return timeA - timeB;
+                    });
+
+                    const latest = sorted[sorted.length - 1];
+                    const now = new Date(latest.rawTimestamp || latest.timestamp);
+
+                    // Convert Water Level from cm to m if needed (heuristic or backend logic)
+                    // Backend sends mixed units sometimes, so we ensure consistency here if needed
+                    // But assuming 'latest' is raw from backend, we apply same enrichment
+                    const waterLevelMeters = latest.waterLevel ? latest.waterLevel : 0;
+
+                    latestStations[stationId] = {
+                        ...latest,
+                        waterLevel: waterLevelMeters,
+                        stationId: stationId, // Ensure ID is present
+                        timestamp: now.toLocaleTimeString(),
+                        fullDate: now.toISOString(),
+                        rawTimestamp: now.getTime()
+                    };
+                }
+            });
+
+            setStations(prev => ({ ...prev, ...latestStations }));
         });
 
         socket.on("line-notification", (notification) => {

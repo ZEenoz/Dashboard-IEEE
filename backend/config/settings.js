@@ -4,8 +4,15 @@ const SETTINGS_FILE = './settings.json';
 
 // Default Settings
 let settings = {
-    alertThresholds: { waterLevel: 3.0, pressureLow: 0.5, pressureHigh: 10.0 },
-    lineNotify: { token: 'default_token' },
+    networkMode: 'TTN',
+    alertThresholds: {
+        warningLevel: 1.8,
+        criticalLevel: 2.7,
+        warningCooldownMin: 60,
+        dangerousCooldownMin: 15
+    },
+    lineNotify: { token: '', active: false },
+    lineBot: { active: true },
     stations: {
         "test-hel-v3": { name: "Float Station", lat: 14.422328, lng: 100.387755 },
         "test-hel-v3-n2": { name: "Static Station 1", lat: 14.420291, lng: 100.389034 },
@@ -29,6 +36,41 @@ function saveSettings(newSettings) {
     settings = newSettings;
     fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
     console.log("💾 Settings saved!");
+
+    // Concurrently save to PostgreSQL without blocking
+    try {
+        const { getPool } = require('./database');
+        const pool = getPool();
+        if (pool) {
+            pool.query(`
+                INSERT INTO system_settings (setting_key, setting_value)
+                VALUES ('global_config', $1)
+                ON CONFLICT (setting_key) DO UPDATE 
+                SET setting_value = EXCLUDED.setting_value, updated_at = CURRENT_TIMESTAMP
+            `, [JSON.stringify(settings)])
+                .then(() => console.log("💾 Settings synced to PostgreSQL!"))
+                .catch(e => console.error("⚠️ Failed to sync settings to PG:", e.message));
+        }
+    } catch (e) {
+        console.error("⚠️ Could not load database pool during settings save");
+    }
+}
+
+async function loadSettingsFromDB() {
+    try {
+        const { getPool } = require('./database');
+        const pool = getPool();
+        if (pool) {
+            const res = await pool.query("SELECT setting_value FROM system_settings WHERE setting_key = 'global_config'");
+            if (res.rowCount > 0) {
+                settings = { ...settings, ...res.rows[0].setting_value };
+                fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+                console.log("⚙️ Overrode settings.json with data loaded from PostgreSQL global_config");
+            }
+        }
+    } catch (e) {
+        console.error("⚠️ Failed to load settings from DB:", e.message);
+    }
 }
 
 function getSettings() {
@@ -41,5 +83,6 @@ loadSettings();
 module.exports = {
     getSettings,
     saveSettings,
-    loadSettings
+    loadSettings,
+    loadSettingsFromDB
 };

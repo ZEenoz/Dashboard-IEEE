@@ -46,11 +46,11 @@ async function saveReading(data) {
                 // Insert Reading
                 // Insert Reading
                 await pool.query(`
-                    INSERT INTO readings (station_id, water_level, pressure, data_rate, rssi, snr, battery, sensor_type, timestamp)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
-                `, [data.stationId, data.waterLevel, data.pressure, data.dataRate, data.rssi, data.snr, data.battery, data.sensorType]);
+                    INSERT INTO readings (station_id, water_level, data_rate, rssi, snr, battery, battery_voltage, sensor_type, latitude, longitude, location_source, timestamp)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+                `, [data.stationId, data.waterLevel, data.dataRate, data.rssi, data.snr, data.battery, data.batteryVoltage, data.sensorType, data.lat, data.lng, data.src]);
 
-                console.log(`💾 Saved to DB: ${data.stationId} | L=${data.waterLevel} | P=${data.pressure}`);
+                console.log(`💾 Saved to DB: ${data.stationId} | L=${data.waterLevel}`);
             } catch (err) {
                 console.error(`⚠️ DB Save Error: ${err.message}`);
             }
@@ -72,10 +72,24 @@ async function getHistory(hours = 48) {
             try {
                 console.log("🔄 Loading history from PostgreSQL...");
                 const sql = `
-                    SELECT station_id, to_char(timestamp, 'YYYY-MM-DD HH24:MI:SS') as raw_time_str, water_level, pressure 
-                    FROM readings 
-                    WHERE timestamp > NOW() - INTERVAL '${hours} HOURS'
-                    ORDER BY timestamp ASC
+                    SELECT 
+                        r.station_id, 
+                        to_char(r.timestamp, 'YYYY-MM-DD HH24:MI:SS') as raw_time_str, 
+                        r.water_level, 
+                        r.battery,
+                        r.battery_voltage,
+                        r.rssi,
+                        r.snr,
+                        r.data_rate,
+                        r.sensor_type,
+                        s.name as station_name,
+                        r.latitude,
+                        r.longitude,
+                        r.location_source
+                    FROM readings r
+                    LEFT JOIN stations s ON r.station_id = s.station_id
+                    WHERE r.timestamp > NOW() - INTERVAL '${hours} HOURS'
+                    ORDER BY r.timestamp ASC
                 `;
                 const res = await pool.query(sql);
 
@@ -88,9 +102,20 @@ async function getHistory(hours = 48) {
 
                     history[deviceId].push({
                         time: new Date(row.raw_time_str).toLocaleTimeString('th-TH'),
-                        rawTimestamp: new Date(row.raw_time_str),
-                        waterLevel: row.water_level,
-                        pressure: row.pressure
+                        rawTimestamp: new Date(row.raw_time_str).getTime(), // Ensure standardized format
+                        timestamp: new Date(row.raw_time_str).toLocaleTimeString('th-TH'), // Add timestamp field for frontend
+                        waterLevel: parseFloat(row.water_level),
+                        battery: parseFloat(row.battery || 0),
+                        batteryVoltage: parseFloat(row.battery_voltage || 0),
+                        rssi: parseInt(row.rssi || 0),
+                        snr: parseFloat(row.snr || 0),
+                        dataRate: row.data_rate,
+                        sensorType: row.sensor_type,
+                        stationName: row.station_name || deviceId,
+                        lat: parseFloat(row.latitude || 0),
+                        lng: parseFloat(row.longitude || 0),
+                        src: row.location_source || 'Unknown',
+                        stationId: deviceId
                     });
                 });
                 console.log("✅ History loaded from Postgres");

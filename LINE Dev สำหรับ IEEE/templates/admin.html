@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Station Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .nav-pills .nav-link.active {
+            background-color: #0d6efd;
+            border-radius: 10px;
+        }
+
+        .nav-pills .nav-link {
+            color: #495057;
+        }
+
+        .action-btn {
+            cursor: pointer;
+        }
+
+        .station-img {
+            width: 100px;
+            height: 70px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container py-4">
+        <h2 class="mb-4 fw-bold text-primary">Admin Dashboard 🛠️</h2>
+
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-pills mb-4" id="pills-tab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="pills-overview-tab" data-bs-toggle="pill"
+                    data-bs-target="#pills-overview" type="button">📊 Overview</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="pills-stations-tab" data-bs-toggle="pill" data-bs-target="#pills-stations"
+                    type="button">📍 Station Management</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="pills-broadcast-tab" data-bs-toggle="pill"
+                    data-bs-target="#pills-broadcast" type="button">📢 Broadcast</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="pills-outbound-tab" data-bs-toggle="pill" data-bs-target="#pills-outbound"
+                    type="button">📤 Bot Logs</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="pills-tabContent">
+
+            <!-- 1. Overview Tab -->
+            <div class="tab-pane fade show active" id="pills-overview">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="card p-4">
+                            <h5 class="text-muted">Total Users</h5>
+                            <h1 class="display-4 fw-bold text-success" id="userCount">...</h1>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card p-4">
+                            <h5 class="text-muted">Active Stations</h5>
+                            <h1 class="display-4 fw-bold text-info" id="stationCount">...</h1>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Station Management Tab -->
+            <div class="tab-pane fade" id="pills-stations">
+                <div class="card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>List of Stations</h4>
+                        <button class="btn btn-primary" onclick="openAddModal()">+ Add New Station</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Image</th>
+                                    <th>Name</th>
+                                    <th>Location</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stationTableBody">
+                                <!-- Stations will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Broadcast Tab -->
+            <div class="tab-pane fade" id="pills-broadcast">
+                <div class="card p-4">
+                    <h4>Broadcast Message</h4>
+                    <p class="text-muted">Send a message to all registered LINE users.</p>
+                    <div class="mb-3">
+                        <textarea class="form-control" id="broadcastMessage" rows="5"
+                            placeholder="Enter your message here..."></textarea>
+                    </div>
+                    <button class="btn btn-warning text-white w-100 fw-bold" onclick="sendBroadcast()">🚀 Send
+                        Broadcast</button>
+                </div>
+            </div>
+
+            <!-- 4. Outbound Logs Tab -->
+            <div class="tab-pane fade" id="pills-outbound">
+                <div class="card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>Bot Logs (Outbound)</h4>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="loadOutboundLogs()">🔄
+                            Refresh</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Target(s)</th>
+                                    <th>Type</th>
+                                    <th>Message Sent</th>
+                                </tr>
+                            </thead>
+                            <tbody id="outboundTableBody">
+                                <!-- Logs -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Station Modal -->
+    <div class="modal fade" id="stationModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Add Station</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Station ID (from TTN / Node.js)</label>
+                        <input type="text" class="form-control" id="stationId" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Station Name</label>
+                        <input type="text" class="form-control" id="stationName" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Location (Description)</label>
+                        <input type="text" class="form-control" id="stationLocation"
+                            placeholder="เช่น บริเวณหน้าเขื่อน">
+                        <small class="text-muted">Enter a custom human-readable location description (replaces
+                            Lat/Lng).</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Custom Image URL</label>
+                        <input type="url" class="form-control" id="stationImage" placeholder="https://..." required>
+                        <small class="text-muted">Enter a direct link to an image to override the default.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveStation()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        const API_BASE = '/api';
+        let stationModal;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            stationModal = new bootstrap.Modal(document.getElementById('stationModal'));
+            loadStats();
+            loadStations();
+            loadMessages();
+            loadOutboundLogs();
+        });
+
+        async function loadStats() {
+            try {
+                const res = await fetch(`${API_BASE}/stats`);
+                const data = await res.json();
+                document.getElementById('userCount').innerText = data.user_count;
+                document.getElementById('stationCount').innerText = data.station_count;
+            } catch (err) { console.error(err); }
+        }
+
+        async function loadStations() {
+            try {
+                const res = await fetch(`${API_BASE}/stations`);
+                const stations = await res.json();
+                const tbody = document.getElementById('stationTableBody');
+                tbody.innerHTML = '';
+                stations.forEach(s => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><img src="${s.image_url}" class="station-img"></td>
+                            <td>
+                                <strong>${s.name}</strong><br>
+                                <span class="badge bg-secondary">${s.id}</span>
+                            </td>
+                            <td>${s.location}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-warning me-1" onclick='openEditModal(${JSON.stringify(s)})'>Edit Info</button>
+                                <!-- Hiding delete button as structure comes from Node.js config -->
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (err) { console.error(err); }
+        }
+
+        function openAddModal() {
+            // Disabled since TTN syncs auto
+            Swal.fire('Info', 'Stations are automatically synced from Node.js (Settings & TTN). You can only edit their images here.', 'info');
+        }
+
+        function openEditModal(station) {
+            document.getElementById('modalTitle').innerText = "Update Station Info";
+            document.getElementById('stationId').value = station.id;
+            document.getElementById('stationName').value = station.name;
+            document.getElementById('stationLocation').value = station.location;
+            document.getElementById('stationImage').value = station.image_url;
+            stationModal.show();
+        }
+
+        async function saveStation() {
+            const id = document.getElementById('stationId').value;
+            const payload = {
+                id: id,
+                name: document.getElementById('stationName').value,
+                location: document.getElementById('stationLocation').value,
+                image_url: document.getElementById('stationImage').value
+            };
+
+            const method = 'POST'; // UPSERT
+            const url = `${API_BASE}/stations`;
+
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    stationModal.hide();
+                    loadStations();
+                    loadStats();
+                    Swal.fire('Success', 'Saved successfully!', 'success');
+                } else {
+                    Swal.fire('Error', 'Failed to save', 'error');
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        async function deleteStation(id) {
+            if (!confirm('Are you sure?')) return;
+            try {
+                const res = await fetch(`${API_BASE}/stations/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    loadStations();
+                    loadStats();
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        async function sendBroadcast() {
+            const message = document.getElementById('broadcastMessage').value;
+            if (!message) return alert("Please enter a message");
+
+            try {
+                const res = await fetch('/broadcast', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                if (res.ok) Swal.fire('Sent', 'Broadcast sent successfully!', 'success');
+                else Swal.fire('Error', 'Failed to send broadcast', 'error');
+            } catch (err) { console.error(err); }
+        }
+
+        async function loadMessages() {
+            try {
+                const res = await fetch(`${API_BASE}/messages`);
+                const messages = await res.json();
+                const tbody = document.getElementById('inboxTableBody');
+                tbody.innerHTML = '';
+                messages.forEach(m => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td class="text-muted small">${m.timestamp}</td>
+                            <td>${m.user_id.substring(0, 10)}...</td>
+                            <td>${m.message}</td>
+                        </tr>
+                    `;
+                });
+            } catch (err) { console.error(err); }
+        }
+
+        async function loadOutboundLogs() {
+            try {
+                const res = await fetch(`${API_BASE}/outbound-logs`);
+                const logs = await res.json();
+                const tbody = document.getElementById('outboundTableBody');
+                tbody.innerHTML = '';
+                logs.forEach(log => {
+                    let badgeColor = 'bg-primary';
+                    if (log.message_type === 'push-alert') badgeColor = 'bg-danger';
+                    if (log.message_type === 'broadcast') badgeColor = 'bg-warning text-dark';
+
+                    // Parse the "Target(s)" python list string to look cleaner
+                    let targetDisplay = log.target_users;
+                    let fullTargetList = log.target_users;
+
+                    if (targetDisplay !== 'ALL_USERS' && targetDisplay.startsWith('[')) {
+                        try {
+                            // Convert python list string "['U...', 'U...']" to JS array if possible
+                            // Simplified parsing: just strip brackets and quotes and split by comma
+                            const cleaned = targetDisplay.replace(/[\[\]']/g, '');
+                            const usersArr = cleaned.split(',').map(s => s.trim()).filter(s => s);
+
+                            if (usersArr.length > 0) {
+                                // Just show the first user ID cleanly
+                                const firstUser = usersArr[0].length > 15 ? usersArr[0].substring(0, 15) + '...' : usersArr[0];
+
+                                if (usersArr.length > 1) {
+                                    targetDisplay = `${firstUser} <span class="badge bg-secondary ms-1">+${usersArr.length - 1}</span>`;
+                                } else {
+                                    targetDisplay = firstUser;
+                                }
+                                fullTargetList = usersArr.join('\\n');
+                            }
+                        } catch (e) {
+                            // Fallback to substring if parsing fails
+                            if (targetDisplay.length > 20) {
+                                targetDisplay = targetDisplay.substring(0, 20) + '...';
+                            }
+                        }
+                    } else if (targetDisplay.length > 20) {
+                        targetDisplay = targetDisplay.substring(0, 20) + '...';
+                    }
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td class="text-muted small">${log.timestamp}</td>
+                            <td><small title="${fullTargetList}">${targetDisplay}</small></td>
+                            <td><span class="badge ${badgeColor}">${log.message_type}</span></td>
+                            <td>${log.message.replace(/\n/g, '<br/>')}</td>
+                        </tr>
+                    `;
+                });
+            } catch (err) { console.error(err); }
+        }
+
+        // Auto Refresh Inbox and Bot Logs every 3 seconds
+        setInterval(() => {
+            loadMessages();
+            if (document.getElementById('pills-outbound-tab').classList.contains('active')) {
+                loadOutboundLogs();
+            }
+        }, 3000);
+    </script>
+</body>
+
+</html>

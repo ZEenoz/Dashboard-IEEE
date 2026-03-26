@@ -5,6 +5,7 @@ build
 *.log
 
 # Secrets
+backend/service-account.json
 backend/.env
 backend/settings.json
 frontend/.env.local

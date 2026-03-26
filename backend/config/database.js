@@ -13,7 +13,13 @@ const dbConfig = {
 let pool;
 
 async function initDatabase() {
+    // Check if configuration is missing
+    if (!process.env.DB_HOST && !process.env.DATABASE_URL) {
+        console.warn("⚠️ Database configuration (DB_HOST/DATABASE_URL) is missing. Using defaults (localhost).");
+    }
+
     // 1. Check & Create 'water_monitoring' database
+    // Note: If using a managed DB like Railway Postgres, this might fail, which is fine if it already exists.
     const tempPool = new Pool({ ...dbConfig, database: 'postgres' });
     try {
         const res = await tempPool.query("SELECT 1 FROM pg_database WHERE datname = 'water_monitoring'");
@@ -23,7 +29,7 @@ async function initDatabase() {
             console.log("✅ Database 'water_monitoring' created.");
         }
     } catch (e) {
-        console.error("❌ Init DB Error:", e.message);
+        console.error("❌ Init DB (Database Check) Error:", e.message || e);
     } finally {
         await tempPool.end();
     }
@@ -203,7 +209,7 @@ async function initDatabase() {
 
 
     } catch (err) {
-        console.error("❌ Schema Init Error:", err.message);
+        console.error("❌ Schema Init Error:", err.message || err);
     }
 }
 

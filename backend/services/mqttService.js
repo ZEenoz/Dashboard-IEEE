@@ -7,11 +7,13 @@ const { getSettings } = require('../config/settings');
 const USE_SIMULATOR = false; // 🔴 false = TTI Cloud, 🟢 true = Simulator
 
 // ... (MQTT Config and SENSOR_MAP remain same)
-const MQTT_LOCAL = "mqtt://localhost:1883";
-const TTI_HOST = "ieeew2025.as1.cloud.thethings.industries";
-const TTI_APP_ID = "ieee2025";
-const TTI_TENANT_ID = "ieeew2025";
-const TTI_API_KEY = "NNSXS.ENUINHN3B3EJ5RM4V7NH3SYS4TCYD4E2S6LQSHQ.UX2QZA5IJRIJSMGOLKKYUSQDSBGK4Z5OG4LXZG46IK6NBUT7MCUQ";
+const MQTT_LOCAL = process.env.MQTT_LOCAL_URL || "mqtt://localhost:1883";
+const TTI_HOST = process.env.TTI_HOST || "ieeew2025.as1.cloud.thethings.industries";
+const TTI_APP_ID = process.env.TTI_APP_ID || "ieee2025";
+const TTI_TENANT_ID = process.env.TTI_TENANT_ID || "ieeew2025";
+const TTI_API_KEY = process.env.TTI_API_KEY || "NNSXS.ENUINHN3B3EJ5RM4V7NH3SYS4TCYD4E2S6LQSHQ.UX2QZA5IJRIJSMGOLKKYUSQDSBGK4Z5OG4LXZG46IK6NBUT7MCUQ";
+
+const FLASK_BOT_URL = process.env.FLASK_BOT_URL || 'http://localhost:5000';
 
 const SENSOR_MAP = {
     "test-hel-v3": ["SEN001", "SEN002"],
@@ -35,11 +37,9 @@ const alertLog = [];
  */
 function pushToFlask(path, body) {
     try {
+        const url = new URL(path, FLASK_BOT_URL);
         const data = JSON.stringify(body);
-        const req = http.request({
-            hostname: 'localhost',
-            port: 5000,
-            path,
+        const req = http.request(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -47,12 +47,12 @@ function pushToFlask(path, body) {
             }
         });
         req.on('error', (e) => {
-            console.error("⚠️ Failed to push to Flask Bot:", e.message);
+            console.error("⚠️ Failed to push to Flask Bot:", e.message || e);
         });
         req.write(data);
         req.end();
     } catch (e) {
-        console.error("⚠️ Flask Bot Request Error:", e.message);
+        console.error("⚠️ Flask Bot Request Error:", e.message || e);
     }
 }
 

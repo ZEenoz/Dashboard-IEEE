@@ -7,11 +7,20 @@ def create_dashboard_flex_dict(selected_ids, all_stations=None):
     if all_stations:
         for s in all_stations:
             # ใช้ str() เพื่อรองรับทั้งตัวเลขจาก SQLite เก่า และ String จาก Node.js
+            # ใช้รูปสำรองหากไม่มีรูปใน DB
+            img_url = s.get('image_url')
+            if not img_url or str(img_url).lower() == 'none' or str(img_url).strip() == '':
+                img_url = "https://img1.pic.in.th/images/Gemini_Generated_Image_cxndnqcxndnqcxnd.png"
+            
+            # บังคับเป็น string
+            img_url = str(img_url)
+                
             station_db[str(s['id'])] = {
                 "name": s['name'],
                 "location": s['location'],
-                "image": s['image_url']
+                "image": img_url
             }
+            # print(f"DEBUG utils: station {s['id']} image = {img_url}")
     else:
         # Fallback (Old Hardcoded) - เผื่อกรณีไม่ได้ส่งค่ามา
         station_db = {

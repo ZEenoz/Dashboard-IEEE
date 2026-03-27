@@ -222,16 +222,23 @@
                 checkboxes.forEach((cb) => stations.push(cb.value));
 
                 // ยิง API
-                await fetch('/api/register', {
+                const response = await fetch('/api/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userId: userId, stations: stations })
                 });
 
-                // ปิดหน้าจอเมื่อเสร็จ
-                liff.closeWindow();
+                const result = await response.json();
+
+                if (response.ok) {
+                    // ปิดหน้าจอเมื่อเสร็จ
+                    liff.closeWindow();
+                } else {
+                    throw new Error(result.message || "เซิร์ฟเวอร์ตอบกลับด้วยข้อผิดพลาด");
+                }
 
             } catch (error) {
+                console.error("Submit Error:", error);
                 alert("เกิดข้อผิดพลาด: " + error.message);
                 btn.innerText = "บันทึกการตั้งค่า";
                 btn.disabled = false;

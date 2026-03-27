@@ -45,9 +45,13 @@ def get_live_stations():
     """ Helper to fetch live stations from Node.js backend. """
     stations = []
     try:
+        # Normalize NODE_API_URL to ensure it doesn't have a trailing slash
+        base_url = NODE_API_URL.rstrip('/')
+        
         # 1. Fetch config from settings API
-        print(f"DEBUG: Calling Backend API -> {NODE_API_URL}/settings")
-        settings_res = requests.get(f'{NODE_API_URL}/settings', timeout=5)
+        api_url = f'{base_url}/settings'
+        print(f"DEBUG: Calling Backend API -> {api_url}")
+        settings_res = requests.get(api_url, timeout=5)
         
         if settings_res.status_code == 200:
             try:
@@ -102,14 +106,19 @@ def get_live_stations():
         print("⚠️ No stations found via API. Falling back to database...")
         stations = get_all_stations()
 
-    # 4. Override images and locations with Admin-saved custom data
+    # 4. Override images and locationsกับ Admin-saved custom data
     try:
         db_stations = {str(s['id']): s for s in get_all_stations()}
         for st in stations:
-            if str(st['id']) in db_stations:
-                saved = db_stations[str(st['id'])]
+            st_id_str = str(st['id'])
+            if st_id_str in db_stations:
+                saved = db_stations[st_id_str]
                 if saved.get('location'): st['location'] = saved['location']
                 if saved.get('image_url'): st['image_url'] = saved['image_url']
+            
+            # Final check to ensure image_url is NEVER None
+            if not st.get('image_url'):
+                st['image_url'] = "https://img1.pic.in.th/images/Gemini_Generated_Image_cxndnqcxndnqcxnd.png"
     except Exception as e:
         print(f"⚠️ Error overriding custom data: {e}")
 
@@ -155,22 +164,32 @@ def register_station():
         names_str = ", ".join(selected_names) if selected_names else "0 สถานี"
         summary_text = f"ลงทะเบียนสถานี {names_str} เรียบร้อยครับ 😊"
 
+        print(f"DEBUG: Attempting to push message to {user_id}")
+        
         # ส่ง Push Message ด้วย V3 SDK
-        with ApiClient(configuration) as api_client:
-            line_bot_api = MessagingApi(api_client)
-            line_bot_api.push_message(
-                PushMessageRequest(
-                    to=user_id,
-                    messages=[
-                        FlexMessage(alt_text="ผลการลงทะเบียน", contents=flex_container),
-                        TextMessage(text=summary_text)
-                    ]
+        try:
+            with ApiClient(configuration) as api_client:
+                line_bot_api = MessagingApi(api_client)
+                push_res = line_bot_api.push_message(
+                    PushMessageRequest(
+                        to=user_id,
+                        messages=[
+                            FlexMessage(alt_text="ผลการลงทะเบียน", contents=flex_container),
+                            TextMessage(text=summary_text)
+                        ]
+                    )
                 )
-            )
+                print(f"✅ Push Message Success: {push_res}")
+        except Exception as push_err:
+            print(f"❌ Push Message Failed: {push_err}")
+            # Even if push fails, we saved the settings to DB, so we return 500 to let frontend know
+            return jsonify({"status": "error", "message": f"Saved settings but failed to send LINE message: {str(push_err)}"}), 500
 
         return jsonify({"status": "success", "message": "Registered and Pushed"}), 200
     except Exception as e:
-        print(f"Register Error: {e}")
+        print(f"❌ Register Script Error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"status": "error", "message": str(e)}), 500
 
 # 4. Admin Dashboard Routes

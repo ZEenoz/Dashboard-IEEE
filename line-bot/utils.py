@@ -12,12 +12,15 @@ def create_dashboard_flex_dict(selected_ids, all_stations=None):
             if not img_url or str(img_url).lower() == 'none' or str(img_url).strip() == '':
                 img_url = "https://img1.pic.in.th/images/Gemini_Generated_Image_cxndnqcxndnqcxnd.png"
             
-            # บังคับเป็น string
+            # บังคับเป็น string และห้ามว่าง (LINE Requirement)
             img_url = str(img_url)
+            st_name = str(s.get('name') or f"สถานี {s.get('id')}")
+            st_loc = str(s.get('location') or "ไม่ระบุตำแหน่ง")
+            if st_loc.strip() == '': st_loc = "ไม่ระบุตำแหน่ง"
                 
             station_db[str(s['id'])] = {
-                "name": s['name'],
-                "location": s['location'],
+                "name": st_name,
+                "location": st_loc,
                 "image": img_url
             }
             # print(f"DEBUG utils: station {s['id']} image = {img_url}")

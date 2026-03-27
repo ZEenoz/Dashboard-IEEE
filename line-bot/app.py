@@ -45,8 +45,10 @@ def get_live_stations():
     """ Helper to fetch live stations from Node.js backend. """
     stations = []
     try:
-        # Normalize NODE_API_URL to ensure it doesn't have a trailing slash
-        base_url = NODE_API_URL.rstrip('/')
+        # Normalize NODE_API_URL: ensure it ends with /api and no trailing slash
+        base_url = NODE_API_URL.strip().rstrip('/')
+        if not base_url.endswith('/api') and 'railway.app' in base_url:
+            base_url += '/api'
         
         # 1. Fetch config from settings API
         api_url = f'{base_url}/settings'
@@ -59,9 +61,9 @@ def get_live_stations():
                 for st_id, data in config_stations.items():
                     stations.append({
                         'id': st_id,
-                        'name': data.get('name', st_id),
-                        'location': f"Lat: {data.get('lat', '')}, Lng: {data.get('lng', '')}",
-                        'image_url': 'https://karn.tv/wp-content/uploads/2022/10/Water-Level.jpg' # generic image
+                        'name': data.get('name') or f"สถานี {st_id}",
+                        'location': f"Lat: {data.get('lat', '')}, Lng: {data.get('lng', '')}" if data.get('lat') else "ระบุพิกัดใน Settings",
+                        'image_url': 'https://img1.pic.in.th/images/Gemini_Generated_Image_cxndnqcxndnqcxnd.png' # default
                     })
                 print(f"✅ Fetched {len(stations)} stations from Node.js API")
             except Exception as json_err:
@@ -116,8 +118,14 @@ def get_live_stations():
                 if saved.get('location'): st['location'] = saved['location']
                 if saved.get('image_url'): st['image_url'] = saved['image_url']
             
-            # Final check to ensure image_url is NEVER None
-            if not st.get('image_url'):
+            # Final check to ensure NO field is empty (LINE requires non-empty strings)
+            if not st.get('name'):
+                st['name'] = f"Station {st.get('id', 'Unknown')}"
+                
+            if not st.get('location') or str(st['location']).strip() == '':
+                st['location'] = "ไม่ระบุตำแหน่ง"
+                
+            if not st.get('image_url') or str(st['image_url']).strip() == '' or str(st['image_url']).lower() == 'none':
                 st['image_url'] = "https://img1.pic.in.th/images/Gemini_Generated_Image_cxndnqcxndnqcxnd.png"
     except Exception as e:
         print(f"⚠️ Error overriding custom data: {e}")

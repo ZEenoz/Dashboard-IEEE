@@ -342,15 +342,15 @@ def push_alert():
         print(e)
         return "Error", 500
 
+# --- Initialization ---
+try:
+    init_db()  # Ensure database schema is ready (Important for Gunicorn)
+    print("✅ Database initialized successfully.")
+except Exception as e:
+    print("--------------------------------------------------")
+    print("❌ DB INIT ERROR: Could not connect to PostgreSQL.")
+    print(f"Error Details: {e}")
+    print("--------------------------------------------------")
+
 if __name__ == "__main__":
-    try:
-        init_db() # สร้าง Database และ Table ใหม่
-        print("✅ Database initialized successfully.")
-    except Exception as e:
-        print("--------------------------------------------------")
-        print("❌ CRITICAL ERROR: Could not connect to the database.")
-        print("Please ensure your PostgreSQL Database (or Docker containers) is running.")
-        print(f"Error Details: {e}")
-        print("--------------------------------------------------")
-        
     app.run(port=5000, debug=True)

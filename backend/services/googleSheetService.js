@@ -1,6 +1,7 @@
 const { google } = require('googleapis');
 const { getSettings } = require('../config/settings');
 const path = require('path');
+const fs = require('fs');
 
 let sheetsService = null;
 let spreadsheetId = null;
@@ -12,7 +13,7 @@ async function initGoogleSheets() {
 
         // 1. Determine Spreadsheet ID (Env Var > Settings)
         spreadsheetId = process.env.GOOGLE_SHEET_ID || config.spreadsheetId;
-        
+
         if (!spreadsheetId) {
             console.log("⚠️ Google Sheets: Spreadsheet ID is missing (neither in Env nor Settings).");
             return false;

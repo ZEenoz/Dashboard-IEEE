@@ -39,13 +39,12 @@ async function initDatabase() {
     // 2. Connect to the actual database
     pool = new Pool(dbConfig);
 
-    // 3. Set Timezone for the session (important for Railway/production)
-    try {
-        await pool.query("SET TIME ZONE 'Asia/Bangkok'");
-        console.log("🌍 Database Session: Timezone set to Asia/Bangkok");
-    } catch (tzErr) {
-        console.warn("⚠️ Failed to set database timezone:", tzErr.message);
-    }
+    // 3. Ensure every new connection in the pool uses Bangkok timezone
+    // This is crucial for Railway/Production where the default is UTC.
+    pool.on('connect', (client) => {
+        client.query("SET TIME ZONE 'Asia/Bangkok'").catch(e => console.error("⚠️ Database TZ Error:", e.message));
+    });
+    console.log("🌍 Database Pool: Timezone handler set to Asia/Bangkok");
 
     // 4. Initialize Schema & Indexes
     try {

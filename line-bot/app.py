@@ -46,35 +46,55 @@ def get_live_stations():
     stations = []
     try:
         # 1. Fetch config from settings API
+        print(f"DEBUG: Calling Backend API -> {NODE_API_URL}/settings")
         settings_res = requests.get(f'{NODE_API_URL}/settings', timeout=5)
+        
         if settings_res.status_code == 200:
-            config_stations = settings_res.json().get('stations', {})
-            for st_id, data in config_stations.items():
-                stations.append({
-                    'id': st_id,
-                    'name': data.get('name', st_id),
-                    'location': f"Lat: {data.get('lat', '')}, Lng: {data.get('lng', '')}",
-                    'image_url': 'https://karn.tv/wp-content/uploads/2022/10/Water-Level.jpg' # generic image
-                })
+            try:
+                config_stations = settings_res.json().get('stations', {})
+                for st_id, data in config_stations.items():
+                    stations.append({
+                        'id': st_id,
+                        'name': data.get('name', st_id),
+                        'location': f"Lat: {data.get('lat', '')}, Lng: {data.get('lng', '')}",
+                        'image_url': 'https://karn.tv/wp-content/uploads/2022/10/Water-Level.jpg' # generic image
+                    })
+                print(f"✅ Fetched {len(stations)} stations from Node.js API")
+            except Exception as json_err:
+                print(f"⚠️ API returned invalid JSON for settings: {json_err}")
+                print(f"⚠️ Response content: {settings_res.text[:200]}")
+        else:
+            print(f"⚠️ Backend API for settings returned status {settings_res.status_code}")
         
         # 2. Add active physical nodes from system-health if they are not in config
+        print(f"DEBUG: Calling Backend API -> {NODE_API_URL}/system-health")
         health_res = requests.get(f'{NODE_API_URL}/system-health', timeout=5)
         if health_res.status_code == 200:
-            active_nodes = health_res.json().get('nodes', {}).get('active', [])
-            existing_ids = [s['id'] for s in stations]
-            
-            for node in active_nodes:
-                node_id = node.get('stationId') or node.get('displayId')
-                if node_id and node_id not in existing_ids:
-                    stations.append({
-                        'id': node_id,
-                        'name': node.get('name', f"Station {node_id}"),
-                        'location': 'Active Device Route',
-                        'image_url': 'https://s.isanook.com/ns/0/ud/1628/8144062/new-normal.jpg'
-                    })
+            try:
+                active_nodes = health_res.json().get('nodes', {}).get('active', [])
+                existing_ids = [s['id'] for s in stations]
+                
+                for node in active_nodes:
+                    node_id = node.get('stationId') or node.get('displayId')
+                    if node_id and node_id not in existing_ids:
+                        stations.append({
+                            'id': node_id,
+                            'name': node.get('name', f"Station {node_id}"),
+                            'location': 'Active Device Route',
+                            'image_url': 'https://s.isanook.com/ns/0/ud/1628/8144062/new-normal.jpg'
+                        })
+            except Exception as json_err:
+                print(f"⚠️ API returned invalid JSON for system-health: {json_err}")
+                print(f"⚠️ Response content: {health_res.text[:200]}")
+        else:
+            print(f"⚠️ Backend API for system-health returned status {health_res.status_code}")
+    except requests.exceptions.RequestException as req_err:
+        print(f"❌ Network/Request Error fetching live stations from API: {req_err}")
+        print("🔄 Falling back to database query...")
+        stations = get_all_stations()
     except Exception as e:
-        print(f"Error fetching live stations: {e}")
-        # Fallback to local SQLite if Node.js is down
+        print(f"❌ Unexpected Error fetching live stations from API: {e}")
+        print("🔄 Falling back to database query...")
         stations = get_all_stations()
         
     # 3. Override images and locations with Admin-saved custom data from SQLite

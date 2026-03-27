@@ -56,18 +56,32 @@ async function syncSettings() {
             );
         `);
 
-        // 4. Upsert settings
-        const query = `
+        // 4. Upsert global settings
+        const globalQuery = `
             INSERT INTO system_settings (setting_key, setting_value)
             VALUES ('global_config', $1)
             ON CONFLICT (setting_key) DO UPDATE 
             SET setting_value = EXCLUDED.setting_value, updated_at = CURRENT_TIMESTAMP
         `;
+        await pool.query(globalQuery, [JSON.stringify(settings)]);
+
+        // 5. Upsert Individual Stations (for LINE Bot visibility)
+        if (settings.stations) {
+            console.log("📡 Syncing individual stations to 'stations' table...");
+            for (const [id, data] of Object.entries(settings.stations)) {
+                await pool.query(`
+                    INSERT INTO stations (station_id, name, latitude, longitude, location_source)
+                    VALUES ($1, $2, $3, $4, 'Config')
+                    ON CONFLICT (station_id) DO UPDATE SET
+                    name = EXCLUDED.name,
+                    latitude = EXCLUDED.latitude,
+                    longitude = EXCLUDED.longitude
+                `, [id, data.name || id, data.lat || 0, data.lng || 0]);
+            }
+        }
         
-        await pool.query(query, [JSON.stringify(settings)]);
-        
-        console.log("🚀 SUCCESS: Settings synced to PostgreSQL!");
-        console.log("💡 The Railway backend will now use these settings on next restart or data refresh.");
+        console.log("🚀 SUCCESS: Settings & Stations synced to PostgreSQL!");
+        console.log("💡 The Railway backend and LINE Bot will now see these stations.");
 
     } catch (err) {
         console.error("❌ Database Error:", err.message);

@@ -97,30 +97,27 @@ def get_live_stations():
         print("🔄 Falling back to database query...")
         stations = get_all_stations()
         
-    # 3. Override images and locations with Admin-saved custom data from SQLite
+    # 3. Fallback to Database if no stations found via API
+    if not stations:
+        print("⚠️ No stations found via API. Falling back to database...")
+        stations = get_all_stations()
+
+    # 4. Override images and locations with Admin-saved custom data
     try:
         db_stations = {str(s['id']): s for s in get_all_stations()}
         for st in stations:
             if str(st['id']) in db_stations:
                 saved = db_stations[str(st['id'])]
-                
-                # Override Location if available and not empty
-                if saved.get('location'):
-                    st['location'] = saved['location']
-                
-                # Override Image
-                if saved.get('image_url'):
-                    st['image_url'] = saved['image_url']
+                if saved.get('location'): st['location'] = saved['location']
+                if saved.get('image_url'): st['image_url'] = saved['image_url']
     except Exception as e:
-        print(f"Error overriding custom data: {e}")
+        print(f"⚠️ Error overriding custom data: {e}")
 
-    # Sort stations: Static first, then Float, then others
+    # 5. Sort stations: Static first, then Float, then others
     def sort_key(s):
         name = s.get('name', '').lower()
-        if 'static' in name:
-            return (0, name)
-        elif 'float' in name:
-            return (1, name)
+        if 'static' in name: return (0, name)
+        elif 'float' in name: return (1, name)
         return (2, name)
 
     stations.sort(key=sort_key)

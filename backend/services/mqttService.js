@@ -4,7 +4,7 @@ const http = require('http');
 const { saveReading } = require('./dataManager');
 const { getSettings } = require('../config/settings');
 
-const USE_SIMULATOR = false; // 🔴 false = TTI Cloud, 🟢 true = Simulator
+const USE_SIMULATOR = (process.env.USE_SIMULATOR === 'true'); // 🔴 false = TTI Cloud, 🟢 true = Simulator
 
 // ... (MQTT Config and SENSOR_MAP remain same)
 const MQTT_LOCAL = process.env.MQTT_LOCAL_URL || "mqtt://localhost:1883";
@@ -12,6 +12,7 @@ const TTI_HOST = process.env.TTI_HOST || "ieeew2025.as1.cloud.thethings.industri
 const TTI_APP_ID = process.env.TTI_APP_ID || "ieee2025";
 const TTI_TENANT_ID = process.env.TTI_TENANT_ID || "ieeew2025";
 const TTI_API_KEY = process.env.TTI_API_KEY || "NNSXS.ENUINHN3B3EJ5RM4V7NH3SYS4TCYD4E2S6LQSHQ.UX2QZA5IJRIJSMGOLKKYUSQDSBGK4Z5OG4LXZG46IK6NBUT7MCUQ";
+const USE_SIMULATOR_ENV = process.env.USE_SIMULATOR === 'true'; // Allow override via env
 
 const FLASK_BOT_URL = process.env.FLASK_BOT_URL || 'http://localhost:5000';
 
@@ -57,13 +58,16 @@ function pushToFlask(path, body) {
 }
 
 function initMQTT(io) {
-    // ... (connection setup remains same)
-    mqttOut = mqtt.connect(MQTT_LOCAL);
-    mqttOut.on("connect", () => console.log("📤 MQTT Publisher connected to local broker"));
-    mqttOut.on("error", err => console.log("❌ MQTT Publisher error:", err.message));
-
     let mqttOptions;
     let TOPIC;
+
+    // --- 📤 LOCAL PUBLISHER (Only needed for simulator/local bridge) ---
+    if (USE_SIMULATOR) {
+        console.log("📤 Connecting to Local MQTT Broker...");
+        mqttOut = mqtt.connect(MQTT_LOCAL);
+        mqttOut.on("connect", () => console.log("📤 MQTT Publisher connected to local broker"));
+        mqttOut.on("error", err => console.log("❌ MQTT Publisher error (Local):", err.message));
+    }
 
     if (USE_SIMULATOR) {
         console.log("🟡 Mode: Using Simulator (Localhost)");
@@ -201,7 +205,7 @@ async function handleMessage(message, io) {
                             break;
                         }
                     }
-                    
+
                     if (!foundLoc && STATIONS_CONFIG[deviceId] && STATIONS_CONFIG[deviceId].lat !== undefined) {
                         finalLat = parseFloat(STATIONS_CONFIG[deviceId].lat);
                         finalLng = parseFloat(STATIONS_CONFIG[deviceId].lng);

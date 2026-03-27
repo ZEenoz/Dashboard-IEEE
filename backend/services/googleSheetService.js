@@ -8,19 +8,41 @@ let spreadsheetId = null;
 async function initGoogleSheets() {
     try {
         const settings = getSettings();
-        if (!settings.data_source || !settings.data_source.google_sheets) {
-            console.log("⚠️ Google Sheets configuration missing.");
+        const config = settings.data_source?.google_sheets || {};
+
+        // 1. Determine Spreadsheet ID (Env Var > Settings)
+        spreadsheetId = process.env.GOOGLE_SHEET_ID || config.spreadsheetId;
+        
+        if (!spreadsheetId) {
+            console.log("⚠️ Google Sheets: Spreadsheet ID is missing (neither in Env nor Settings).");
             return false;
         }
 
-        const config = settings.data_source.google_sheets;
-        spreadsheetId = config.spreadsheetId;
-        const keyFile = path.resolve(config.credentials_path || './service-account.json');
+        // 2. Prepare Auth
+        let auth;
+        const envCreds = process.env.GOOGLE_SERVICE_ACCOUNT;
 
-        const auth = new google.auth.GoogleAuth({
-            keyFile: keyFile,
-            scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-        });
+        if (envCreds) {
+            // Use JSON string from Environment Variable (Best for Railway/Production)
+            console.log("🔐 Google Sheets: Using credentials from GOOGLE_SERVICE_ACCOUNT environment variable.");
+            const credentials = JSON.parse(envCreds);
+            auth = new google.auth.GoogleAuth({
+                credentials,
+                scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+            });
+        } else {
+            // Fallback to Service Account File (Best for Local)
+            const keyFile = path.resolve(config.credentials_path || './service-account.json');
+            if (!fs.existsSync(keyFile)) {
+                console.log(`⚠️ Google Sheets: Credentials file not found at ${keyFile}`);
+                return false;
+            }
+            console.log(`🔐 Google Sheets: Using credentials from file: ${keyFile}`);
+            auth = new google.auth.GoogleAuth({
+                keyFile: keyFile,
+                scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+            });
+        }
 
         const authClient = await auth.getClient();
         sheetsService = google.sheets({ version: 'v4', auth: authClient });

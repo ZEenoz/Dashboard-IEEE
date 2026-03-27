@@ -73,8 +73,9 @@ def get_live_stations():
             print(f"⚠️ Backend API for settings returned status {settings_res.status_code}")
         
         # 2. Add active physical nodes from system-health if they are not in config
-        print(f"DEBUG: Calling Backend API -> {NODE_API_URL}/system-health")
-        health_res = requests.get(f'{NODE_API_URL}/system-health', timeout=5)
+        health_api_url = f'{base_url}/system-health'
+        print(f"DEBUG: Calling Backend API -> {health_api_url}")
+        health_res = requests.get(health_api_url, timeout=5)
         if health_res.status_code == 200:
             try:
                 active_nodes = health_res.json().get('nodes', {}).get('active', [])
@@ -115,8 +116,11 @@ def get_live_stations():
             st_id_str = str(st['id'])
             if st_id_str in db_stations:
                 saved = db_stations[st_id_str]
+                # Priority: 1. DB saved value, 2. API value
+                if saved.get('name'): st['name'] = saved['name']
                 if saved.get('location'): st['location'] = saved['location']
                 if saved.get('image_url'): st['image_url'] = saved['image_url']
+                # print(f"DEBUG: Syncing {st_id_str} from DB -> Name: {st['name']}, Image: {st['image_url'][:30]}...")
             
             # Final check to ensure NO field is empty (LINE requires non-empty strings)
             if not st.get('name'):

@@ -1,7 +1,10 @@
 import React from 'react';
 import { Droplets, Gauge, Info, ArrowRight } from 'lucide-react';
 
+import { useSocket } from '@/contexts/SocketContext';
+
 const StationCard = ({ station, onClick }) => {
+    const { displayMode } = useSocket();
     // --- Status Calculation ---
     const now = new Date();
     const rawTs = station.rawTimestamp || station.timestamp;
@@ -22,8 +25,8 @@ const StationCard = ({ station, onClick }) => {
 
     // Static classes to avoid Tailwind JIT purge issues with dynamic class names
     const textAccent = isFloat ? 'text-blue-400' : 'text-purple-400';
-    const bgAccentSoft = isFloat ? 'bg-blue-500/30' : 'bg-purple-500/30';
-    const borderAccent = isFloat ? 'border-blue-500' : 'border-purple-500';
+    const bgAccentSoft = isFloat ? 'bg-blue-900/40' : 'bg-purple-900/40';
+    const borderAccent = isFloat ? 'border-blue-400/40' : 'border-purple-400/40';
     const gradient = isFloat
         ? 'from-blue-900 via-blue-800 to-gray-900'
         : 'from-purple-900 via-purple-800 to-gray-900';
@@ -53,8 +56,12 @@ const StationCard = ({ station, onClick }) => {
     }
 
     // --- Safe display values ---
-    const waterLevelDisplay = station.waterLevel != null
-        ? Number(station.waterLevel).toFixed(2)
+    const waterLevelValue = displayMode === 'raw'
+        ? (station.rawLevel || station.waterLevel)
+        : station.waterLevel;
+
+    const waterLevelDisplay = waterLevelValue != null
+        ? Number(waterLevelValue).toFixed(3)
         : '--';
 
     const battery = station.battery;
@@ -108,8 +115,8 @@ const StationCard = ({ station, onClick }) => {
                 </div>
 
                 {/* Type badge — top left */}
-                <div className={`absolute top-3 left-3 px-2 py-0.5 rounded-full text-xs font-semibold z-10 ${bgAccentSoft} ${textAccent} flex items-center gap-1 backdrop-blur-sm`}>
-                    <Icon size={11} />
+                <div className={`absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-bold z-10 ${bgAccentSoft} text-white flex items-center gap-1.5 backdrop-blur-md border ${borderAccent} shadow-lg shadow-black/20 uppercase tracking-wider`}>
+                    <Icon size={10} strokeWidth={3} />
                     {typeLabel}
                 </div>
             </div>
@@ -135,22 +142,33 @@ const StationCard = ({ station, onClick }) => {
                 <div className="flex items-end justify-between border-t border-gray-700/70 pt-3 mt-2">
                     {/* Water Level */}
                     <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">
-                            ระดับน้ำ
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-1">
+                            Water Depth
                         </span>
                         <div className="flex items-baseline gap-1">
-                            <span className={`text-2xl font-bold tabular-nums ${textAccent}`}>
+                            <span className={`text-2xl font-bold tabular-nums tracking-tight ${textAccent}`}>
                                 {waterLevelDisplay}
                             </span>
-                            <span className="text-xs text-gray-400 font-medium">ม.</span>
+                            <span className="text-xs text-gray-500 font-medium ml-1">m</span>
                         </div>
+                        {displayMode === 'raw' ? (
+                            <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-tighter mt-0.5">
+                                Raw Data
+                            </span>
+                        ) : (
+                            station.offsetValue && station.offsetValue !== 0 ? (
+                                <span className={`text-[10px] font-mono font-medium ${station.offsetValue > 0 ? 'text-emerald-400' : 'text-red-400'} mt-0.5`}>
+                                    ({station.offsetValue > 0 ? '+' : ''}{station.offsetValue.toFixed(3)})
+                                </span>
+                            ) : null
+                        )}
                     </div>
 
                     {/* Right: Battery + View hint */}
                     <div className="flex flex-col items-end gap-1">
                         {battery != null && (
                             <div className="flex flex-col items-end">
-                                <span className="text-xs text-gray-400 mb-0.5">แบตเตอรี่</span>
+                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Battery</span>
                                 <span className={`text-sm font-bold tabular-nums ${batteryColor}`}>
                                     {battery}%
                                 </span>

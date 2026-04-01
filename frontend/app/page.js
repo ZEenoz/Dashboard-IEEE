@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import StationCard from "@/components/StationCard";
 // import MainChart from "@/components/MainChart";
-import { Activity, Droplets, Gauge, Wifi, Search, ArrowRight, Layers, Globe, MapPin } from "lucide-react";
+import { Activity, Droplets, Gauge, Wifi, Search, ArrowRight, Layers, Globe, MapPin, Database, ShieldCheck } from "lucide-react";
 import Map, { Marker, NavigationControl } from 'react-map-gl/maplibre';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -41,22 +41,27 @@ const getStatusTheme = (st, defaultType) => {
 };
 
 export default function Home() {
-  const { stations, history } = useSocket();
+  const { stations, history, displayMode, setDisplayMode } = useSocket();
   const router = useRouter();
   const mapRef = useRef(null);
   const [mapStyle, setMapStyle] = useState('dark'); // 'dark' | 'satellite'
   const [settings, setSettings] = useState(null); // Settings state
 
+  const handleToggleMode = (mode) => {
+    setDisplayMode(mode);
+    toast.success(`Switched to ${mode.toUpperCase()} view`);
+  };
+
   // Fetch Settings (to get images/names)
   useEffect(() => {
     fetch(`${API_URL}/settings`)
       .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch from backend');
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         return res.json();
       })
       .then(data => setSettings(data))
       .catch(err => {
-        console.error("Failed to fetch settings", err);
+        console.error("Failed to fetch settings:", err.message);
         toast.error("Failed to load global settings");
       });
   }, []);
@@ -86,16 +91,34 @@ export default function Home() {
   const mapData = useMemo(() => {
     const stationList = Object.values(stations);
 
-    // Apply Settings Overrides (Name, Image)
+    // Apply Settings Overrides (Name, Image, Offset)
     const enrichedStations = stationList.map(s => {
       const config = settings?.stations?.[s.stationId];
+      const offset = parseFloat(config?.offset) || 0;
+
+      // 1. Identify Raw Value: Prefer s.rawLevel from backend (true raw).
+      // If missing, calculate by subtracting offset from calibrated waterLevel.
+      const calibratedValue = parseFloat(s.waterLevel) || 0;
+      const rawValue = s.rawLevel !== undefined
+        ? parseFloat(s.rawLevel)
+        : (calibratedValue - offset);
+
+      // 2. Determine what to display
+      const displayWaterLevel = displayMode === 'raw'
+        ? rawValue
+        : calibratedValue;
+
       return {
         ...s,
         stationName: config?.name || s.stationName || s.stationId,
         imageUrl: config?.image || null,
         imagePosition: config?.imagePosition || null,
         description: config?.description || null,
-        type: config?.type || null
+        type: config?.type || null,
+        offsetValue: offset,
+        waterLevel: displayWaterLevel,
+        originalRawLevel: rawValue,
+        isRaw: displayMode === 'raw'
       };
     });
 
@@ -122,13 +145,37 @@ export default function Home() {
   const { floatNodes, staticNodes, mapStations } = mapData;
 
   return (
-    <div className="p-8 mb-20 space-y-6">
+    <div className="mb-20 space-y-6">
 
       {/* SECTION 1: Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start mb-8 gap-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6 px-1">
         <div className="flex flex-col">
-          <h1 className="text-3xl font-bold text-blue-400 mb-2">System Overview</h1>
-          <p className="text-gray-400 text-sm">Real-time monitoring of all water level stations.</p>
+          <h1 className="text-3xl font-bold text-white tracking-tight border-l-4 border-blue-500 pl-4">System Overview</h1>
+          <p className="text-gray-400 text-sm mt-1 max-w-lg">Monitoring all real-time water level stations and sensor.</p>
+        </div>
+
+        {/* Display Mode Toggle */}
+        <div className="flex flex-col items-start md:items-end gap-2 w-full md:w-auto">
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 md:mr-2">
+            Data Mode
+          </span>
+          <div className="mode-toggle-container w-full sm:w-auto" data-mode={displayMode}>
+            <div className="mode-toggle-active-bg" />
+            <button
+              onClick={() => handleToggleMode('calibrated')}
+              className={`mode-toggle-btn flex-1 sm:flex-none ${displayMode === 'calibrated' ? 'active' : ''}`}
+            >
+              <ShieldCheck size={14} className="shrink-0" />
+              <span>Calibrated</span>
+            </button>
+            <button
+              onClick={() => handleToggleMode('raw')}
+              className={`mode-toggle-btn flex-1 sm:flex-none ${displayMode === 'raw' ? 'active' : ''}`}
+            >
+              <Database size={14} className="shrink-0" />
+              <span>Raw Data</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -224,9 +271,15 @@ export default function Home() {
                       </span>
 
                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-1.5 bg-gray-900 border border-gray-700 text-white text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-xl whitespace-nowrap z-50 pointer-events-none">
-                        {st.stationName}
+                        <div className="flex flex-col gap-0.5">
+                          <div>{st.stationName}</div>
+                          <div className="text-blue-400 font-mono text-[10px]">
+                            {Number(st.waterLevel ?? 0).toFixed(3)}m
+                            {st.isRaw && <span className="ml-1 text-[8px] text-indigo-400 opacity-80 uppercase tracking-tighter">Raw</span>}
+                          </div>
+                        </div>
                         {st.alertLevel && st.alertLevel !== 'normal' && (
-                          <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] uppercase
+                          <span className={`mt-1 inline-block px-1.5 py-0.5 rounded text-[9px] uppercase
                             ${st.alertLevel === 'dangerous' ? 'bg-red-500/20 text-red-400' : 'bg-orange-500/20 text-orange-400'}`
                           }>
                             {st.alertLevel}
@@ -314,8 +367,13 @@ export default function Home() {
                     <div className="flex items-center gap-3 shrink-0 pl-3 border-l border-gray-700/50">
                       <div className="text-right flex flex-col items-end">
                         <span className={`font-mono font-bold text-base ${theme.text}`}>
-                          {st.waterLevel?.toFixed(2)}m
+                          {Number(st.waterLevel ?? 0).toFixed(3)}m
                         </span>
+                        {st.isRaw && (
+                          <span className="text-[8px] font-bold text-indigo-400 uppercase tracking-tighter animate-pulse">
+                            Raw
+                          </span>
+                        )}
                         {st.alertLevel && st.alertLevel !== 'normal' && (
                           <span className={`text-[10px] uppercase font-bold tracking-wider ${theme.text} mt-0.5`}>
                             {st.alertLevel}
@@ -371,8 +429,13 @@ export default function Home() {
                     <div className="flex items-center gap-3 shrink-0 pl-3 border-l border-gray-700/50">
                       <div className="text-right flex flex-col items-end">
                         <span className={`font-mono font-bold text-base ${theme.text}`}>
-                          {st.waterLevel?.toFixed(2)}m
+                          {Number(st.waterLevel ?? 0).toFixed(3)}m
                         </span>
+                        {st.isRaw && (
+                          <span className="text-[8px] font-bold text-indigo-400 uppercase tracking-tighter animate-pulse">
+                            Raw
+                          </span>
+                        )}
                         {st.alertLevel && st.alertLevel !== 'normal' && (
                           <span className={`text-[10px] uppercase font-bold tracking-wider ${theme.text} mt-0.5`}>
                             {st.alertLevel}

@@ -58,6 +58,7 @@ async function initDatabase() {
                 latitude NUMERIC,
                 longitude NUMERIC,
                 location_source VARCHAR(50),
+                network_mode VARCHAR(20) DEFAULT 'TTN',
                 last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         `);
@@ -68,6 +69,7 @@ async function initDatabase() {
                 id SERIAL PRIMARY KEY,
                 station_id VARCHAR(30) REFERENCES stations(station_id),
                 water_level NUMERIC,
+                offset_water_level NUMERIC,
                 data_rate VARCHAR(30),
                 rssi INTEGER,
                 snr DOUBLE PRECISION,
@@ -83,6 +85,8 @@ async function initDatabase() {
 
         // Migration: Add columns if they don't exist (for existing tables)
         try {
+            await pool.query(`ALTER TABLE stations ADD COLUMN IF NOT EXISTS network_mode VARCHAR(20) DEFAULT 'TTN';`);
+            await pool.query(`ALTER TABLE readings ADD COLUMN IF NOT EXISTS offset_water_level NUMERIC;`);
             await pool.query(`ALTER TABLE readings ADD COLUMN IF NOT EXISTS data_rate VARCHAR(50);`);
             await pool.query(`ALTER TABLE readings ADD COLUMN IF NOT EXISTS snr DOUBLE PRECISION;`);
             await pool.query(`ALTER TABLE readings ADD COLUMN IF NOT EXISTS battery NUMERIC;`);

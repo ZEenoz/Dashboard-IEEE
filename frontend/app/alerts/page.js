@@ -229,12 +229,12 @@ export default function AlertsPage() {
     if (session?.user?.role === 'general_user') return null; // Prevent flash before redirect
 
     return (
-        <div className="p-8 text-white space-y-6">
+        <div className="mb-20 space-y-6">
 
             {/* ── Header ────────────────────────────────────────────────────── */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-red-400 flex items-center gap-3">
+                    <h1 className="text-3xl font-bold text-white tracking-tight border-l-4 border-red-500 pl-4">
                         Alerts &amp; Notifications
                     </h1>
                     <p className="text-gray-400 text-sm mt-1">

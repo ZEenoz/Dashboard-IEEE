@@ -1,18 +1,33 @@
-// ... (previous imports)
+// --- MQTT Service ---
+// Supports 3 modes: TTN Cloud, ChirpStack, and Local Simulator
 const mqtt = require('mqtt');
 const http = require('http');
 const { saveReading } = require('./dataManager');
 const { getSettings } = require('../config/settings');
 
-const USE_SIMULATOR = (process.env.USE_SIMULATOR === 'true'); // 🔴 false = TTI Cloud, 🟢 true = Simulator
+const USE_SIMULATOR = (process.env.USE_SIMULATOR === 'true');
 
-// ... (MQTT Config and SENSOR_MAP remain same)
+// ──────────────────────────────────────────
+// 🔧 TTN (The Things Network) Configuration
+// ──────────────────────────────────────────
 const MQTT_LOCAL = process.env.MQTT_LOCAL_URL || "mqtt://localhost:1883";
 const TTI_HOST = process.env.TTI_HOST || "ieeew2025.as1.cloud.thethings.industries";
 const TTI_APP_ID = process.env.TTI_APP_ID || "ieee2025";
 const TTI_TENANT_ID = process.env.TTI_TENANT_ID || "ieeew2025";
-const TTI_API_KEY = process.env.TTI_API_KEY || "NNSXS.ENUINHN3B3EJ5RM4V7NH3SYS4TCYD4E2S6LQSHQ.UX2QZA5IJRIJSMGOLKKYUSQDSBGK4Z5OG4LXZG46IK6NBUT7MCUQ";
-const USE_SIMULATOR_ENV = process.env.USE_SIMULATOR === 'true'; // Allow override via env
+const TTI_API_KEY = process.env.TTI_API_KEY;
+
+// ──────────────────────────────────────────
+// 🟣 ChirpStack Configuration
+// ──────────────────────────────────────────
+// ChirpStack v4 MQTT Integration
+// Topic format: application/{application_id}/device/{dev_eui}/event/up
+// Broker: typically mqtt(s)://chirpstack-host:1883 or 8883
+// Auth: username/password OR TLS client certificate
+const CHIRPSTACK_MQTT_URL = process.env.CHIRPSTACK_MQTT_URL || "mqtt://localhost:1883";
+const CHIRPSTACK_MQTT_USER = process.env.CHIRPSTACK_MQTT_USER || "";
+const CHIRPSTACK_MQTT_PASS = process.env.CHIRPSTACK_MQTT_PASS || "";
+const CHIRPSTACK_APP_ID = process.env.CHIRPSTACK_APP_ID || "e9e6da7c-161e-402a-a4c9-8d8473f1bbc9";   // e.g. "a1b2c3d4..." (UUID from ChirpStack)
+const CHIRPSTACK_USE_TLS = process.env.CHIRPSTACK_USE_TLS === 'false';
 
 const FLASK_BOT_URL = process.env.FLASK_BOT_URL || 'http://localhost:5000';
 
@@ -24,17 +39,16 @@ const SENSOR_MAP = {
 let mqttClient;
 let mqttOut;
 let stationHistory = {};
-let activeNodes = {}; // Store { deviceId: { lastSeen: Date, rssi, battery, waterLevel, ... } }
-let gatewayStatus = {}; // Store { gatewayId: { rssi, snr, lastSeen, count } }
-let alertCooldowns = {}; // Separate store for cooldown timestamps — NOT mixed into activeNodes
+let activeNodes = {};
+let gatewayStatus = {};
+let alertCooldowns = {};
+let currentIo = null;         // Keep reference to Socket.IO for reconnection
+let currentNetworkMode = null; // Track which mode we're connected in
 
-// 🔔 Alert Log (in-memory, newest first, max 200 entries) - DEPRECATED
-// See alerts table in database instead
 const alertLog = [];
 
 /**
  * Fire-and-forget HTTP POST to Flask LINE Bot.
- * Silently ignores errors if Flask is not running.
  */
 function pushToFlask(path, body) {
     try {
@@ -57,7 +71,14 @@ function pushToFlask(path, body) {
     }
 }
 
+// ══════════════════════════════════════════════════════
+// 🚀 initMQTT — Main entry point
+// ══════════════════════════════════════════════════════
 function initMQTT(io) {
+    currentIo = io;
+    const settings = getSettings();
+    const networkMode = settings.networkMode || 'TTN';
+
     let mqttOptions;
     let TOPIC;
 
@@ -69,12 +90,121 @@ function initMQTT(io) {
         mqttOut.on("error", err => console.log("❌ MQTT Publisher error (Local):", err.message));
     }
 
+    // ─────────────────────────────────────────────
+    // Determine connection based on mode
+    // ─────────────────────────────────────────────
     if (USE_SIMULATOR) {
-        console.log("🟡 Mode: Using Simulator (Localhost)");
+        // ── SIMULATOR MODE ──
+        console.log("🟡 Mode: Simulator (Localhost MQTT)");
         mqttOptions = MQTT_LOCAL;
         TOPIC = "v3/+/devices/+/up";
+        currentNetworkMode = 'SIMULATOR';
+
+    } else if (networkMode === 'CHIRPSTACK') {
+        // ── CHIRPSTACK MODE ──
+        // Merge config: UI settings (settings.chirpstack) override env vars
+        const csConfig = settings.chirpstack || {};
+        const csMqttUrl = csConfig.mqttUrl || CHIRPSTACK_MQTT_URL;
+        const csMqttUser = csConfig.mqttUser || CHIRPSTACK_MQTT_USER;
+        const csMqttPass = csConfig.mqttPass || CHIRPSTACK_MQTT_PASS;
+        const csAppId = csConfig.applicationId || CHIRPSTACK_APP_ID;
+        const csUseTls = csConfig.useTls || CHIRPSTACK_USE_TLS;
+
+        console.log("🟣 Mode: ChirpStack v4");
+        console.log(`   Broker: ${csMqttUrl}`);
+        console.log(`   App ID: ${csAppId || '(wildcard)'}`);
+        console.log(`   TLS: ${csUseTls ? 'Enabled' : 'Disabled'}`);
+        console.log(`   Auth: ${csMqttUser ? 'Username/Password' : 'Anonymous'}`);
+
+        const opts = {
+            clientId: `dashboard-ieee-cs-${Date.now()}`,
+            clean: true,
+            connectTimeout: 15000,
+            reconnectPeriod: 5000,
+        };
+
+        // Add auth if provided
+        if (csMqttUser) {
+            opts.username = csMqttUser;
+            opts.password = csMqttPass;
+        }
+
+        // TLS support
+        if (csUseTls) {
+            opts.rejectUnauthorized = false; // Set true in production with valid certs
+        }
+
+        const protocol = csUseTls ? 'mqtts' : 'mqtt';
+        const brokerUrl = csMqttUrl.startsWith('mqtt')
+            ? csMqttUrl
+            : `${protocol}://${csMqttUrl}`;
+
+        mqttOptions = { ...opts };
+
+        // ChirpStack v4 topic structure:
+        //   application/{application_id}/device/{dev_eui}/event/up
+        // Use + wildcard for application_id if not specified
+        const appFilter = csAppId || '+';
+        TOPIC = `application/${appFilter}/device/+/event/up`;
+
+        console.log(`   Topic: ${TOPIC}`);
+
+        mqttClient = mqtt.connect(brokerUrl, mqttOptions);
+
+        currentNetworkMode = 'CHIRPSTACK';
+
+        mqttClient.on('connect', () => {
+            console.log(`✅ Connected to ChirpStack MQTT Broker`);
+            mqttClient.subscribe(TOPIC, (err) => {
+                if (!err) {
+                    console.log(`📡 Subscribed to ChirpStack topic: ${TOPIC}`);
+                } else {
+                    console.error(`❌ ChirpStack Subscribe Error:`, err.message);
+                }
+            });
+
+            // Also subscribe to device status events for richer monitoring
+            const statusTopic = `application/${appFilter}/device/+/event/status`;
+            mqttClient.subscribe(statusTopic, (err) => {
+                if (!err) console.log(`📡 Subscribed to ChirpStack status: ${statusTopic}`);
+            });
+
+            // Subscribe to join events
+            const joinTopic = `application/${appFilter}/device/+/event/join`;
+            mqttClient.subscribe(joinTopic, (err) => {
+                if (!err) console.log(`📡 Subscribed to ChirpStack join: ${joinTopic}`);
+            });
+        });
+
+        mqttClient.on('error', (err) => {
+            console.error("❌ ChirpStack MQTT Error:", err.message);
+        });
+
+        mqttClient.on('reconnect', () => {
+            console.log("🔄 Reconnecting to ChirpStack MQTT...");
+        });
+
+        mqttClient.on('offline', () => {
+            console.log("⚫ ChirpStack MQTT Broker offline");
+        });
+
+        mqttClient.on('message', async (topic, message) => {
+            // Only process uplink events, ignore status/join for now
+            if (topic.includes('/event/up')) {
+                await handleMessage(message, io);
+            } else if (topic.includes('/event/status')) {
+                handleChirpStackStatus(topic, message);
+            } else if (topic.includes('/event/join')) {
+                handleChirpStackJoin(topic, message);
+            }
+        });
+
+        // Early return since we handled connection inline
+        return;
+
     } else {
-        console.log("🔵 Mode: Using Private TTI Data (ieeew2025)");
+        // ── TTN MODE ──
+        console.log("🔵 Mode: The Things Network (TTI Cloud)");
         mqttOptions = {
             protocol: 'mqtts',
             host: TTI_HOST,
@@ -84,8 +214,10 @@ function initMQTT(io) {
             rejectUnauthorized: false
         };
         TOPIC = "v3/+/devices/+/up";
+        currentNetworkMode = 'TTN';
     }
 
+    // ── Connect (TTN / Simulator path) ──
     mqttClient = mqtt.connect(mqttOptions);
 
     mqttClient.on('connect', () => {
@@ -102,8 +234,107 @@ function initMQTT(io) {
     mqttClient.on('message', async (topic, message) => {
         await handleMessage(message, io);
     });
+
+    // Announce the active mode to all connected clients immediately after init
+    if (io) io.emit('system-mode', currentNetworkMode);
 }
 
+// ══════════════════════════════════════════════════════
+// 🔄 reconnectMQTT — Switch broker when networkMode changes
+// ══════════════════════════════════════════════════════
+function reconnectMQTT() {
+    const settings = getSettings();
+    const newMode = USE_SIMULATOR ? 'SIMULATOR' : (settings.networkMode || 'TTN');
+
+    if (newMode === currentNetworkMode) {
+        console.log(`🔄 Network mode unchanged (${newMode}), skipping reconnect.`);
+        return;
+    }
+
+    console.log(`🔄 Network mode changed: ${currentNetworkMode} → ${newMode}`);
+    console.log(`🔌 Disconnecting from current MQTT broker...`);
+
+    // Gracefully close existing connection
+    if (mqttClient) {
+        mqttClient.end(true, () => {
+            console.log("✅ Previous MQTT connection closed.");
+            mqttClient = null;
+            // Re-initialize with new settings
+            if (currentIo) {
+                initMQTT(currentIo);
+            }
+        });
+    } else {
+        if (currentIo) {
+            initMQTT(currentIo);
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════
+// 🟣 ChirpStack Event Handlers
+// ══════════════════════════════════════════════════════
+
+/**
+ * Handle ChirpStack device status event
+ * Topic: application/{app_id}/device/{dev_eui}/event/status
+ */
+function handleChirpStackStatus(topic, message) {
+    try {
+        const payload = JSON.parse(message.toString());
+        const devEui = payload.deviceInfo?.devEui || extractDevEuiFromTopic(topic);
+        const batteryLevel = payload.batteryLevel;       // 0-254 (ChirpStack value)
+        const margin = payload.margin;                   // Demodulation margin (dB)
+        const externalPowerSource = payload.externalPowerSource;
+
+        console.log(`📊 ChirpStack Status | Device: ${devEui} | Battery: ${batteryLevel} | Margin: ${margin}dB`);
+
+        // Update active node with battery info if available
+        if (activeNodes[devEui]) {
+            if (batteryLevel !== undefined && batteryLevel !== 255) {
+                // ChirpStack battery: 0 = end-of-life, 1-254 = level, 255 = unknown
+                activeNodes[devEui].battery = Math.round((batteryLevel / 254) * 100);
+            }
+            activeNodes[devEui].lastSeen = new Date();
+        }
+    } catch (e) {
+        console.error("⚠️ ChirpStack Status Parse Error:", e.message);
+    }
+}
+
+/**
+ * Handle ChirpStack join event
+ * Topic: application/{app_id}/device/{dev_eui}/event/join
+ */
+function handleChirpStackJoin(topic, message) {
+    try {
+        const payload = JSON.parse(message.toString());
+        const devEui = payload.deviceInfo?.devEui || extractDevEuiFromTopic(topic);
+        const deviceName = payload.deviceInfo?.deviceName || devEui;
+
+        console.log(`🤝 ChirpStack Join | Device: ${deviceName} (${devEui}) joined the network`);
+    } catch (e) {
+        console.error("⚠️ ChirpStack Join Parse Error:", e.message);
+    }
+}
+
+/**
+ * Extract DevEUI from ChirpStack topic path
+ * e.g. "application/abc123/device/a1b2c3d4e5f6/event/up" → "a1b2c3d4e5f6"
+ */
+function extractDevEuiFromTopic(topic) {
+    const parts = topic.split('/');
+    const deviceIdx = parts.indexOf('device');
+    if (deviceIdx !== -1 && deviceIdx + 1 < parts.length) {
+        return parts[deviceIdx + 1];
+    }
+    return 'unknown';
+}
+
+
+// ══════════════════════════════════════════════════════
+// 📦 handleMessage — Parse uplink payload (TTN or ChirpStack)
+// ══════════════════════════════════════════════════════
 async function handleMessage(message, io) {
     try {
         const settings = getSettings();
@@ -119,49 +350,165 @@ async function handleMessage(message, io) {
         const STATIONS_CONFIG = settings.stations || {};
 
         if (networkMode === 'CHIRPSTACK') {
-            deviceId = payload.deviceInfo?.devEui || "unknown";
-            stationName = STATIONS_CONFIG[deviceId]?.name || deviceId;
+            // ──────────────────────────────────────────
+            // 🟣 ChirpStack v4 Payload Parsing
+            // ──────────────────────────────────────────
+            // ChirpStack v4 uplink JSON structure:
+            // {
+            //   "deduplicationId": "...",
+            //   "time": "2024-01-01T00:00:00Z",
+            //   "deviceInfo": {
+            //     "tenantId": "...",
+            //     "tenantName": "...",
+            //     "applicationId": "...",
+            //     "applicationName": "...",
+            //     "deviceProfileId": "...",
+            //     "deviceProfileName": "...",
+            //     "deviceName": "My Sensor",
+            //     "devEui": "a1b2c3d4e5f6a7b8",
+            //     "tags": {}
+            //   },
+            //   "devAddr": "01abc123",
+            //   "adr": true,
+            //   "dr": 5,
+            //   "fCnt": 42,
+            //   "fPort": 1,
+            //   "confirmed": false,
+            //   "data": "base64encodedFRMPayload",
+            //   "object": {                 ← Decoded by ChirpStack codec
+            //     "waterLevel": 1.23,
+            //     "battery": 85,
+            //     "type": "Float"
+            //   },
+            //   "rxInfo": [
+            //     {
+            //       "gatewayId": "a1b2c3d4e5f6a7b8",
+            //       "uplinkId": 12345,
+            //       "nsTime": "2024-01-01T00:00:00Z",
+            //       "rssi": -65,
+            //       "snr": 8.5,
+            //       "location": { "latitude": 13.76, "longitude": 100.50 }
+            //     }
+            //   ],
+            //   "txInfo": {
+            //     "frequency": 923200000,
+            //     "modulation": {
+            //       "lora": {
+            //         "bandwidth": 125000,
+            //         "spreadingFactor": 7,
+            //         "codeRate": "CR_4_5"
+            //       }
+            //     }
+            //   }
+            // }
 
+            // Device identification
+            deviceId = payload.deviceInfo?.devEui || "unknown";
+            const deviceName = payload.deviceInfo?.deviceName || deviceId;
+
+            // Use config name if available, otherwise use ChirpStack device name
+            stationName = STATIONS_CONFIG[deviceId]?.name || deviceName;
+
+            // Decoded object (requires ChirpStack codec to be configured)
             const obj = payload.object || {};
 
-            isFloat = obj.type === 'Float' || stationName.toLowerCase().includes("float") || deviceId.toLowerCase().includes("float") || deviceId.includes("hel-v3") || deviceId === "ST001";
+            // If no codec is configured, try to decode base64 FRMPayload
+            if (Object.keys(obj).length === 0 && payload.data) {
+                console.log(`⚠️ ChirpStack: No decoded 'object' for ${deviceId}. Raw base64 data: ${payload.data}`);
+                console.log(`   → Please configure a Codec (JavaScript or CayenneLPP) in your ChirpStack Device Profile.`);
+                // Attempt basic decode for common formats
+                try {
+                    const rawBytes = Buffer.from(payload.data, 'base64');
+                    // If payload is 2 bytes, interpret as water level in cm
+                    if (rawBytes.length >= 2) {
+                        const rawCm = (rawBytes[0] << 8) | rawBytes[1];
+                        obj.waterLevel = rawCm / 100; // Convert cm to meters
+                        console.log(`   → Auto-decoded ${rawBytes.length} bytes → waterLevel: ${obj.waterLevel}m`);
+                    }
+                } catch (decodeErr) {
+                    console.error(`   → Base64 decode failed:`, decodeErr.message);
+                }
+            }
+
+            // Sensor type detection
+            const cfgType = STATIONS_CONFIG[deviceId]?.type;
+            isFloat = cfgType === 'Float'
+                || obj.type === 'Float'
+                || stationName.toLowerCase().includes("float")
+                || deviceId.toLowerCase().includes("float");
             sensorType = isFloat ? "Float" : "Static";
 
-            rawLevel = parseFloat(obj.waterLevel || obj.waterlevel || obj.water_level || obj.Level || 0);
+            // Water level extraction (try multiple field names for flexibility)
+            rawLevel = parseFloat(
+                obj.waterLevel ?? obj.waterlevel ?? obj.water_level ?? obj.Level ?? obj.level ?? obj.distance ?? 0
+            );
 
-            if (payload.location) {
-                finalLat = payload.location.latitude;
-                finalLng = payload.location.longitude;
-                locationSource = "GPS Sensor";
-            } else if (STATIONS_CONFIG[deviceId]) {
+            // Location: priority → payload GPS > gateway location > config file > default
+            if (obj.latitude !== undefined && obj.longitude !== undefined) {
+                finalLat = parseFloat(obj.latitude);
+                finalLng = parseFloat(obj.longitude);
+                locationSource = "GPS Sensor (Decoded)";
+            } else if (payload.deviceInfo?.tags?.latitude) {
+                // ChirpStack device tags can store static coordinates
+                finalLat = parseFloat(payload.deviceInfo.tags.latitude);
+                finalLng = parseFloat(payload.deviceInfo.tags.longitude);
+                locationSource = "ChirpStack Device Tags";
+            } else if (STATIONS_CONFIG[deviceId]?.lat !== undefined) {
                 finalLat = STATIONS_CONFIG[deviceId].lat;
                 finalLng = STATIONS_CONFIG[deviceId].lng;
                 locationSource = "Config File";
+            } else if (payload.rxInfo?.[0]?.location) {
+                // Fallback to gateway location
+                finalLat = payload.rxInfo[0].location.latitude;
+                finalLng = payload.rxInfo[0].location.longitude;
+                locationSource = "Gateway Location";
             }
 
+            // RF metadata from rxInfo
             if (payload.rxInfo && payload.rxInfo.length > 0) {
-                rssi = payload.rxInfo[0].rssi || -999;
-                snr = payload.rxInfo[0].snr || 0;
+                rssi = payload.rxInfo[0].rssi ?? -999;
+                snr = payload.rxInfo[0].snr ?? 0;
                 gateways = payload.rxInfo.map(gw => ({
                     gateway_id: gw.gatewayId || "unknown-gateway",
                     rssi: gw.rssi,
-                    snr: gw.snr
+                    snr: gw.snr,
+                    location: gw.location || null
                 }));
             }
 
-            dataRateStr = payload.txInfo?.modulation?.lora?.spreadingFactor ? `SF${payload.txInfo.modulation.lora.spreadingFactor}BW${payload.txInfo.modulation.lora.bandwidth / 1000}` : 0;
-            battery = parseFloat(obj.battery_percentage !== undefined ? obj.battery_percentage : (obj.battery || obj.bat || obj.Battery || 0));
-            batteryVoltage = parseFloat(obj.battery_voltage !== undefined ? obj.battery_voltage : 0);
+            // Data rate from txInfo
+            if (payload.txInfo?.modulation?.lora) {
+                const lora = payload.txInfo.modulation.lora;
+                dataRateStr = `SF${lora.spreadingFactor}BW${(lora.bandwidth || 125000) / 1000}`;
+            } else if (payload.dr !== undefined) {
+                dataRateStr = `DR${payload.dr}`;
+            }
+
+            // Battery
+            battery = parseFloat(
+                obj.battery_percentage ?? obj.battery ?? obj.bat ?? obj.Battery ?? 0
+            );
+            batteryVoltage = parseFloat(
+                obj.battery_voltage ?? obj.batteryVoltage ?? obj.vbat ?? 0
+            );
 
         } else {
-            // TTN Mode
+            // ──────────────────────────────────────────
+            // 🔵 TTN Mode (The Things Network)
+            // ──────────────────────────────────────────
             const uplink = payload.uplink_message || {};
             const decoded = uplink.decoded_payload || {};
             deviceId = payload.end_device_ids?.device_id || "unknown";
 
             stationName = STATIONS_CONFIG[deviceId]?.name || deviceId;
 
-            isFloat = decoded.type === 'Float' || stationName.toLowerCase().includes("float") || deviceId.toLowerCase().includes("float") || deviceId.includes("hel-v3") || deviceId === "ST001";
+            const cfgType = STATIONS_CONFIG[deviceId]?.type;
+            isFloat = cfgType === 'Float'
+                || decoded.type === 'Float'
+                || stationName.toLowerCase().includes("float")
+                || deviceId.toLowerCase().includes("float")
+                || deviceId.includes("hel-v3")
+                || deviceId === "ST001";
             sensorType = isFloat ? "Float" : "Static";
 
             rawLevel = parseFloat(decoded.waterLevel || decoded.waterlevel || decoded.water_level || decoded.Level || 0);
@@ -171,7 +518,6 @@ async function handleMessage(message, io) {
                 finalLng = parseFloat(decoded.longitude);
                 locationSource = "GPS Sensor";
             } else {
-                // Recursive search for TTN payload latitude/longitude
                 const findGPS = (obj, depth = 0) => {
                     if (!obj || typeof obj !== 'object' || depth > 5) return null;
                     if (obj.latitude !== undefined && obj.longitude !== undefined) {
@@ -193,7 +539,6 @@ async function handleMessage(message, io) {
                     finalLng = parseFloat(gpsPos.lng);
                     locationSource = "GPS Sensor (Decoded)";
                 } else if (uplink.locations) {
-                    // Search in uplink.locations (e.g. frm-payload or user)
                     const locKeys = Object.keys(uplink.locations);
                     let foundLoc = false;
                     for (let key of locKeys) {
@@ -236,6 +581,10 @@ async function handleMessage(message, io) {
             battery = parseFloat(decoded.battery_percentage !== undefined ? decoded.battery_percentage : (decoded.battery || decoded.bat || decoded.Battery || 0));
             batteryVoltage = parseFloat(decoded.battery_voltage !== undefined ? decoded.battery_voltage : 0);
         }
+
+        // ──────────────────────────────────────────
+        // 📐 Common processing (both modes)
+        // ──────────────────────────────────────────
 
         if (rawLevel > 4) {
             rawLevel = rawLevel / 100;
@@ -286,17 +635,19 @@ async function handleMessage(message, io) {
 
 
         activeNodes[deviceId] = {
-            stationId: deviceId, // Use 'stationId' for consistent naming in frontend
-            name: stationName,   // Include name
+            stationId: deviceId,
+            name: stationName,
             lastSeen: new Date(),
             rssi,
             snr,
             battery,
             batteryVoltage,
-            waterLevel: waterLevel, // Include current reading
-            sensorType: sensorType, // Add explicitly for frontend map coloring
-            alertLevel: alertLevel, // Track current severity status
-            status: "Online"
+            waterLevel: waterLevel, // Calibrated
+            rawLevel: rawLevel,     // Original Sensor Value
+            sensorType: sensorType,
+            alertLevel: alertLevel,
+            status: "Online",
+            networkMode: currentNetworkMode
         };
 
         // Update Gateway Status
@@ -336,7 +687,8 @@ async function handleMessage(message, io) {
             stationId: deviceId,
             displayId: stationId,
             stationName: stationName,
-            waterLevel,
+            waterLevel, // Calibrated
+            rawLevel,   // Original Sensor Value
             lat: finalLat,
             lng: finalLng,
             src: locationSource,
@@ -347,7 +699,8 @@ async function handleMessage(message, io) {
             battery,
             batteryVoltage,
             sensorType,
-            alertLevel
+            alertLevel,
+            networkMode: currentNetworkMode
         };
 
 
@@ -357,7 +710,7 @@ async function handleMessage(message, io) {
         await saveReading(dataToSend);
 
         // ─────────────────────────────────────────────
-        // 📡 Phase 1: Push real water data to Flask Bot
+        // 📡 Push real water data to Flask Bot
         // ─────────────────────────────────────────────
         pushToFlask('/internal/water-update', {
             stationId: deviceId,
@@ -375,7 +728,6 @@ async function handleMessage(message, io) {
         let warningCooldown = (alertThresholds.warningCooldownMin || 60) * 60 * 1000;
         let dangerousCooldown = (alertThresholds.dangerousCooldownMin || 15) * 60 * 1000;
 
-        // 🟢 By-pass cooldown in Simulator mode for easier testing
         if (USE_SIMULATOR) {
             warningCooldown = 0;
             dangerousCooldown = 0;
@@ -395,9 +747,6 @@ async function handleMessage(message, io) {
                 const threshold = alertLevel === 'dangerous' ? criticalLevel : warningLevel;
                 console.log(`${alertLevel === 'dangerous' ? '🚨' : '⚠️'} ${alertLevel.toUpperCase()} Alert: ${stationName} | ${waterLevel.toFixed(2)}m >= ${threshold}m`);
 
-                // ─────────────────────────────────────────────
-                // 📋 Add to Alert Log (for Alerts page) -> NOW IN POSTGRES
-                // ─────────────────────────────────────────────
                 const alertEntry = {
                     id: `alert-${Date.now()}`,
                     timestamp: new Date().toISOString(),
@@ -407,21 +756,19 @@ async function handleMessage(message, io) {
                     threshold,
                     warningThreshold: warningLevel,
                     criticalThreshold: criticalLevel,
-                    alertLevel,       // 'warning' | 'dangerous'
+                    alertLevel,
                     battery,
                     rssi,
                     sensorType,
                     lineStatus: 'sent_to_bot'
                 };
 
-                // 📨 Push to Flask Bot
                 if (settings.lineBot?.active !== false) {
                     pushToFlask('/trigger-alert', alertEntry);
                 } else {
                     console.log("🔕 LINE Bot alert swallowed (LINE Bot is disabled in settings)");
                 }
 
-                // 📲 Send LINE Notify with level-specific message
                 const { sendAlertByLevel } = require('./notificationService');
                 sendAlertByLevel(alertEntry);
 
@@ -436,7 +783,6 @@ async function handleMessage(message, io) {
                         `;
                         const res = await pool.query(insertQuery, [deviceId, alertLevel, waterLevel, threshold, battery, rssi, 'sent_to_bot']);
 
-                        // Emit real-time alert to frontend
                         if (res.rows.length > 0) {
                             alertEntry.id = res.rows[0].id;
                             alertEntry.timestamp = res.rows[0].created_at;
@@ -449,10 +795,9 @@ async function handleMessage(message, io) {
                     }
                 } catch (e) {
                     console.error("⚠️ Failed to save alert to DB:", e.message);
-                    io.emit('new-alert', alertEntry); // Still emit even if DB fails
+                    io.emit('new-alert', alertEntry);
                 }
 
-                // Update cooldown timestamps (separate from node data)
                 if (!alertCooldowns[deviceId]) alertCooldowns[deviceId] = {};
                 if (alertLevel === 'dangerous') {
                     alertCooldowns[deviceId].lastDangerNotified = now;
@@ -462,7 +807,7 @@ async function handleMessage(message, io) {
             }
         }
 
-        // ... (MQTT Publish to Legacy remains same)
+        // Legacy MQTT publish
         const sensors = SENSOR_MAP[deviceId] || [];
         for (let sensorId of sensors) {
             let value = 0;
@@ -494,16 +839,17 @@ function getAlertLog() {
 function getMQTTStatus() {
     return {
         connected: mqttClient ? mqttClient.connected : false,
-        broker: USE_SIMULATOR ? 'Local Simulator' : 'TTI Cloud',
-        topic: USE_SIMULATOR ? "v3/+/devices/+/up" : "v3/+/devices/+/up"
+        broker: USE_SIMULATOR ? 'Local Simulator' : (currentNetworkMode === 'CHIRPSTACK' ? 'ChirpStack' : 'TTI Cloud'),
+        mode: currentNetworkMode || 'Unknown',
+        topic: currentNetworkMode === 'CHIRPSTACK'
+            ? `application/${CHIRPSTACK_APP_ID || '+'}/device/+/event/up`
+            : "v3/+/devices/+/up"
     };
 }
 
 function getGatewayStatus() {
-    // Return detailed list of gateways
     const gateways = Object.values(gatewayStatus).sort((a, b) => b.lastSeen - a.lastSeen);
 
-    // If using simulator and no gateways found (yet), add a mock one for testing UI
     if (USE_SIMULATOR && gateways.length === 0) {
         return {
             type: 'Simulator (Mock)',
@@ -515,7 +861,7 @@ function getGatewayStatus() {
     }
 
     return {
-        type: 'TTI/LoRaWAN',
+        type: currentNetworkMode === 'CHIRPSTACK' ? 'ChirpStack' : 'TTI/LoRaWAN',
         gateways: gateways
     };
 }
@@ -526,6 +872,7 @@ function getActiveNodes() {
 
 module.exports = {
     initMQTT,
+    reconnectMQTT,
     getStationHistory,
     updateStationHistory,
     getAlertLog,

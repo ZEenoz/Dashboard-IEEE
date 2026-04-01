@@ -1,13 +1,47 @@
 const express = require('express');
 const router = express.Router();
 const fs = require('fs');
+const path = require('path');
 const { getSettings, saveSettings } = require('../config/settings');
 const { getPool } = require('../config/database');
 const bcrypt = require('bcryptjs');
 const { requireApiKey } = require('../middleware/auth');
 
+// --- Offset Presets APIs ---
+const PRESETS_FILE = path.join(__dirname, '..', 'offset-presets.json');
+
+router.get('/offset-presets', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    try {
+        if (fs.existsSync(PRESETS_FILE)) {
+            const data = JSON.parse(fs.readFileSync(PRESETS_FILE, 'utf8'));
+            return res.json(data);
+        }
+        return res.json([]);
+    } catch (e) {
+        console.error('Failed to read offset presets:', e.message);
+        return res.json([]);
+    }
+});
+
+router.post('/offset-presets', requireApiKey, (req, res) => {
+    try {
+        const presets = req.body;
+        if (!Array.isArray(presets)) return res.status(400).json({ error: 'Expected array' });
+        fs.writeFileSync(PRESETS_FILE, JSON.stringify(presets, null, 2));
+        console.log(`💾 Offset presets saved (${presets.length} presets)`);
+        return res.json({ success: true, count: presets.length });
+    } catch (e) {
+        console.error('Failed to save offset presets:', e.message);
+        return res.status(500).json({ error: e.message });
+    }
+});
+
 // --- Settings APIs ---
 router.get('/settings', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
     res.json(getSettings());
 });
 
@@ -53,6 +87,7 @@ router.get('/export', async (req, res) => {
                 COALESCE(s.name, r.station_id) as station_name,
                 r.station_id,
                 r.water_level,
+                r.offset_water_level,
                 r.data_rate,
                 r.rssi,
                 r.snr,
@@ -96,7 +131,8 @@ router.get('/export', async (req, res) => {
                 row.time,
                 `"${safeName}"`, // Quote name in case of commas/quotes
                 row.station_id,
-                row.water_level,
+                row.water_level,          // Raw
+                row.offset_water_level,   // Calibrated
                 row.data_rate,
                 row.rssi,
                 row.snr,
@@ -152,6 +188,10 @@ router.get('/alerts', async (req, res) => {
         `;
         const params = [];
         let whereClauses = [];
+
+        const currentNetworkMode = getSettings().networkMode || 'TTN';
+        whereClauses.push(`COALESCE(s.network_mode, 'TTN') = $1`);
+        params.push(currentNetworkMode);
 
         if (stationId && stationId !== 'all') {
             whereClauses.push(`a.station_id = $${params.length + 1}`);
@@ -227,12 +267,16 @@ router.get('/history', async (req, res) => {
                     ${truncateSQL} as "rawTimestamp", 
                     r.station_id as "stationId",
                     COALESCE(MAX(s.name), r.station_id) as "stationName",
-                    ROUND(AVG(r.water_level)::numeric, 3) as "waterLevel",
+                    ROUND(AVG(r.water_level)::numeric, 3) as "rawLevel",
+                    ROUND(AVG(COALESCE(r.offset_water_level, r.water_level))::numeric, 3) as "waterLevel",
                     MAX(r.sensor_type) as "sensorType"
                 FROM readings r
                 LEFT JOIN stations s ON r.station_id = s.station_id
-                WHERE ${timeFilter || '1=1'}
+                WHERE (${timeFilter || '1=1'})
+                AND COALESCE(s.network_mode, 'TTN') = $${pIdx++}
             `;
+
+            params.push(getSettings().networkMode || 'TTN');
 
             if (stationId && stationId !== 'all') {
                 query += ` AND r.station_id = $${pIdx++}`;
@@ -253,7 +297,8 @@ router.get('/history', async (req, res) => {
                     r.timestamp as "rawTimestamp", 
                     r.station_id as "stationId",
                     COALESCE(s.name, r.station_id) as "stationName",
-                    r.water_level as "waterLevel",
+                    r.water_level as "rawLevel",
+                    COALESCE(r.offset_water_level, r.water_level) as "waterLevel",
                     r.data_rate as "dataRateStr",
                     r.battery,
                     r.rssi,
@@ -264,8 +309,11 @@ router.get('/history', async (req, res) => {
                     r.location_source as "locationSource"
                 FROM readings r
                 LEFT JOIN stations s ON r.station_id = s.station_id
-                WHERE ${timeFilter || '1=1'}
+                WHERE (${timeFilter || '1=1'})
+                AND COALESCE(s.network_mode, 'TTN') = $${pIdx++}
             `;
+
+            params.push(getSettings().networkMode || 'TTN');
 
             if (stationId && stationId !== 'all') {
                 query += ` AND r.station_id = $${pIdx++}`;

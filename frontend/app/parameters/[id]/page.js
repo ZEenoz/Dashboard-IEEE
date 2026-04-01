@@ -137,7 +137,10 @@ function ThresholdPanel({ stationId }) {
         try {
             const res = await fetch(`${API}/station-config/${stationId}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-api-key': 'IEEE_SECURE_API_KEY_2025' },
+                headers: { 
+                    'Content-Type': 'application/json'
+                    // Authorized via session cookie or internal API key from env
+                },
                 body: JSON.stringify({
                     warning_level: warningLevel !== '' ? parseFloat(warningLevel) : null,
                     critical_level: criticalLevel !== '' ? parseFloat(criticalLevel) : null,
@@ -156,15 +159,15 @@ function ThresholdPanel({ stationId }) {
 
     return (
         <div className="bg-[#151E32] rounded-2xl border border-gray-800 p-6 mb-6 shadow-xl">
-            <h3 className="text-sm font-bold text-gray-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4 text-orange-400" />
-                Alert Thresholds (This Station)
+            <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                <ShieldAlert className="w-3.5 h-3.5 text-orange-400" />
+                Station-Specific Thresholds
             </h3>
             <div className="grid grid-cols-2 gap-4 mb-4">
                 {/* Warning */}
                 <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-xl p-4">
-                    <label className="text-xs font-bold text-yellow-400 flex items-center gap-1 mb-2">
-                        <ShieldCheck className="w-3 h-3" /> ⚠️ Warning Level
+                    <label className="text-[10px] font-bold text-yellow-500 uppercase tracking-wider flex items-center gap-1 mb-2">
+                        <ShieldCheck className="w-3 h-3" /> Warning Level
                     </label>
                     <div className="relative">
                         <input
@@ -181,8 +184,8 @@ function ThresholdPanel({ stationId }) {
                 </div>
                 {/* Critical */}
                 <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-4">
-                    <label className="text-xs font-bold text-red-400 flex items-center gap-1 mb-2">
-                        <ShieldAlert className="w-3 h-3" /> 🚨 Critical Level
+                    <label className="text-[10px] font-bold text-red-500 uppercase tracking-wider flex items-center gap-1 mb-2">
+                        <ShieldAlert className="w-3 h-3" /> Critical Level
                     </label>
                     <div className="relative">
                         <input
@@ -225,7 +228,7 @@ function ThresholdPanel({ stationId }) {
 export default function SensorDetailsPage() {
     const params = useParams();
     const router = useRouter();
-    const { stations, history } = useSocket();
+    const { stations, history, displayMode } = useSocket();
     const { isAdmin, role } = useAuth();
     const stationId = params.id;
 
@@ -235,10 +238,13 @@ export default function SensorDetailsPage() {
 
     useEffect(() => {
         fetch(`${API}/settings`)
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                return res.json();
+            })
             .then(data => setSettings(data))
             .catch(err => {
-                console.error("Failed to fetch settings", err);
+                console.error("Failed to fetch settings:", err.message);
                 toast.error("Failed to load global settings");
             });
     }, []);
@@ -282,11 +288,15 @@ export default function SensorDetailsPage() {
             .filter(h => h.stationId === stationId && h.rawTimestamp > twentyFourHoursAgo)
             .map(h => ({
                 time: new Date(h.rawTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                value: Number(h.waterLevel || 0),
+                value: Number(
+                    displayMode === 'raw' 
+                        ? (h.rawLevel || h.waterLevel || 0) 
+                        : (h.waterLevel || 0)
+                ),
                 rawTimestamp: h.rawTimestamp
             }))
             .sort((a, b) => a.rawTimestamp - b.rawTimestamp);
-    }, [history, stationId]);
+    }, [history, stationId, displayMode]);
 
     const stats = useMemo(() => {
         if (chartData.length === 0) return { min: 0, max: 0, avg: 0 };
@@ -325,8 +335,7 @@ export default function SensorDetailsPage() {
     const isOffline = (new Date().getTime() - (station.rawTimestamp || 0)) > 60 * 60 * 1000;
 
     return (
-        <div className="flex flex-col h-screen bg-[#0B1121] text-white overflow-hidden font-sans">
-
+        <div className="flex flex-col min-h-screen bg-gray-950 text-white font-sans pb-20">
             {/* Export Modal */}
             {showExportModal && (
                 <ExportModal
@@ -337,53 +346,56 @@ export default function SensorDetailsPage() {
             )}
 
             {/* Header */}
-            <header className="flex items-center justify-between px-6 py-4 bg-[#151E32] border-b border-gray-800 shadow-md z-20">
+            <header className="flex items-center justify-between px-6 py-5 bg-gray-900/50 border-b border-gray-800 shadow-md backdrop-blur-md z-20">
                 <div className="flex items-center gap-4">
                     <button
                         onClick={() => router.back()}
-                        className="p-2 rounded-lg hover:bg-gray-700 transition-colors text-gray-400 hover:text-white"
+                        aria-label="กลับไปหน้าหลัก"
+                        className="p-2 rounded-xl bg-gray-800 hover:bg-gray-700 transition-all text-gray-400 hover:text-white border border-gray-700"
                     >
-                        <ArrowLeft size={20} />
+                        <ArrowLeft size={18} />
                     </button>
                     <div>
-                        <div className="flex items-center gap-3">
-                            <h1 className="text-xl font-bold tracking-tight">Station ID: {station.stationName || stationId}</h1>
-                            <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full ${isOffline ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                            <h1 className="text-2xl font-bold tracking-tight text-white border-l-4 border-blue-500 pl-4">
+                                {station.stationName || stationId}
+                            </h1>
+                            <span className={`px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest rounded-full w-fit ${isOffline ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-green-500/10 text-green-400 border border-green-500/20'}`}>
                                 {isOffline ? 'Offline' : 'Active'}
                             </span>
                         </div>
-                        <p className="text-xs text-gray-500 mt-0.5">Water Monitoring Network</p>
+                        <p className="text-xs text-gray-500 mt-1 pl-4">Network Node Station Detail</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
                     {(role === 'admin' || role === 'local_authority') && (
                         <button
                             onClick={() => setShowExportModal(true)}
-                            className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 border border-gray-700 transition-all"
+                            className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 border border-gray-700 transition-all text-sm"
                         >
                             <Download size={16} className="text-green-500" />
-                            Export CSV
+                            <span>Export CSV</span>
                         </button>
                     )}
                 </div>
             </header>
 
             {/* Top Stats Row */}
-            <div className="grid grid-cols-4 divide-x divide-gray-800 bg-[#0F172A] border-b border-gray-800">
-                <div className="p-4 flex items-center gap-4">
-                    <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500"><MapPin size={20} /></div>
-                    <div>
-                        <p className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Location (GPS)</p>
-                        <p className="text-sm font-medium text-gray-200">{Math.abs(station.lat || 0).toFixed(4)}° {station.lat >= 0 ? 'N' : 'S'}, {Math.abs(station.lng || 0).toFixed(4)}° {station.lng >= 0 ? 'E' : 'W'}</p>
+            <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-gray-800 bg-gray-900/30 border-b border-gray-800">
+                <div className="p-4 flex items-center gap-4 border-b border-gray-800 lg:border-b-0">
+                    <div className="p-2.5 bg-blue-500/10 rounded-xl text-blue-500 border border-blue-500/20"><MapPin size={18} /></div>
+                    <div className="overflow-hidden">
+                        <p className="text-[10px] uppercase font-bold text-gray-500 tracking-[0.2em] mb-0.5">Location (GPS)</p>
+                        <p className="text-sm font-bold text-gray-200 tabular-nums truncate">{Math.abs(station.lat || 0).toFixed(4)}° {station.lat >= 0 ? 'N' : 'S'}, {Math.abs(station.lng || 0).toFixed(4)}° {station.lng >= 0 ? 'E' : 'W'}</p>
                     </div>
                 </div>
-                <div className="p-4 flex items-center gap-4">
-                    <div className="p-2 bg-purple-500/10 rounded-lg text-purple-500"><Battery size={20} /></div>
-                    <div className="flex-1">
-                        <p className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Battery Status</p>
+                <div className="p-4 flex items-center gap-4 border-b border-gray-800 lg:border-b-0">
+                    <div className="p-2.5 bg-orange-500/10 rounded-xl text-orange-500 border border-orange-500/20"><Battery size={18} /></div>
+                    <div className="flex-1 overflow-hidden">
+                        <p className="text-[10px] uppercase font-bold text-gray-500 tracking-[0.2em] mb-0.5">Power Status</p>
                         <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-gray-200">{station.battery}%</span>
-                            <div className="h-1.5 flex-1 bg-gray-700 rounded-full overflow-hidden">
+                            <span className="text-sm font-bold text-gray-200 tabular-nums">{station.battery}%</span>
+                            <div className="h-1.5 flex-1 bg-gray-800 rounded-full overflow-hidden">
                                 <div
                                     className={`h-full rounded-full ${station.battery > 50 ? 'bg-green-500' : station.battery > 25 ? 'bg-orange-500' : 'bg-red-500'}`}
                                     style={{ width: `${station.battery}%` }}
@@ -392,18 +404,18 @@ export default function SensorDetailsPage() {
                         </div>
                     </div>
                 </div>
-                <div className="p-4 flex items-center gap-4">
-                    <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-500"><Signal size={20} /></div>
-                    <div>
-                        <p className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Signal (RSSI)</p>
-                        <p className="text-sm font-medium text-gray-200">{station.rssi} dBm</p>
+                <div className="p-4 flex items-center gap-4 border-r border-gray-800 lg:border-r-0">
+                    <div className="p-2.5 bg-indigo-500/10 rounded-xl text-indigo-500 border border-indigo-500/20"><Signal size={18} /></div>
+                    <div className="overflow-hidden">
+                        <p className="text-[10px] uppercase font-bold text-gray-500 tracking-[0.2em] mb-0.5">Signal (RSSI)</p>
+                        <p className="text-sm font-bold text-gray-200 tabular-nums truncate">{station.rssi} dBm</p>
                     </div>
                 </div>
                 <div className="p-4 flex items-center gap-4">
-                    <div className="p-2 bg-cyan-500/10 rounded-lg text-cyan-500"><Clock size={20} /></div>
-                    <div>
-                        <p className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Last Transmission</p>
-                        <p className="text-sm font-medium text-gray-200">{station.timestamp || 'Unknown'}</p>
+                    <div className="p-2.5 bg-cyan-500/10 rounded-xl text-cyan-500 border border-cyan-500/20"><Clock size={18} /></div>
+                    <div className="overflow-hidden">
+                        <p className="text-[10px] uppercase font-bold text-gray-500 tracking-[0.2em] mb-0.5">Transmission</p>
+                        <p className="text-sm font-bold text-gray-200 tabular-nums truncate">{station.timestamp || 'Wait for link...'}</p>
                     </div>
                 </div>
             </div>
@@ -513,13 +525,13 @@ export default function SensorDetailsPage() {
                     </div>
 
                     {/* Current Depth Card */}
-                    <div className="bg-[#151E32] rounded-2xl p-8 border border-gray-800 shadow-xl relative overflow-hidden group hover:border-blue-500/30 transition-colors mb-6">
-                        <div className="absolute top-0 right-0 p-32 bg-blue-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+                    <div className="bg-gray-900 rounded-3xl p-8 border border-gray-800 shadow-2xl relative overflow-hidden group hover:border-blue-500/30 transition-all duration-500 mb-6">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none group-hover:bg-blue-500/15 transition-all duration-700"></div>
                         <div className="text-center relative z-10">
-                            <p className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-2">Current Depth</p>
-                            <div className="flex items-baseline justify-center gap-1">
-                                <span className="text-7xl font-bold tracking-tighter text-white">
-                                    {typeof station.waterLevel === 'number' ? station.waterLevel.toFixed(2) : station.waterLevel}
+                            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.3em] mb-4">Current Water Level</p>
+                            <div className="flex items-baseline justify-center gap-2">
+                                <span className="text-8xl font-bold tracking-tighter text-white drop-shadow-2xl">
+                                    {Number(displayMode === 'raw' ? (station.rawLevel ?? station.waterLevel) : (station.waterLevel ?? 0)).toFixed(3)}
                                 </span>
                                 <span className="text-2xl font-normal text-gray-500">m</span>
                             </div>
@@ -542,12 +554,12 @@ export default function SensorDetailsPage() {
                     )}
 
                     {/* Chart Section */}
-                    <div className="mb-8">
+                    <div className="mb-8 overflow-hidden">
                         <div className="flex items-center justify-between mb-4 px-1">
-                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">24-Hour Trend</h3>
-                            <span className="text-xs text-gray-600 font-mono">Range: {stats.min}m - {stats.max}m</span>
+                            <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">24-Hour Trend</h3>
+                            <span className="text-[10px] text-gray-500 font-mono bg-gray-800/50 px-2 py-0.5 rounded border border-gray-700">Range: {stats.min}m - {stats.max}m</span>
                         </div>
-                        <div className="h-48 w-full bg-[#151E32] rounded-xl border border-gray-800 p-4 shadow-lg">
+                        <div className="h-56 w-full bg-gray-900 rounded-2xl border border-gray-800 p-4 shadow-2xl relative">
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={chartData}>
                                     <defs>
@@ -556,33 +568,60 @@ export default function SensorDetailsPage() {
                                             <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" vertical={false} />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} strokeOpacity={0.2} />
                                     <XAxis dataKey="time" hide />
                                     <YAxis domain={['auto', 'auto']} hide />
                                     <Tooltip
-                                        contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff', borderRadius: '8px' }}
-                                        itemStyle={{ color: '#60A5FA' }}
-                                        labelStyle={{ color: '#9CA3AF', marginBottom: '4px' }}
+                                        contentStyle={{ 
+                                            backgroundColor: 'rgba(17, 24, 39, 0.8)', 
+                                            borderColor: 'rgba(55, 65, 81, 0.5)', 
+                                            color: '#fff', 
+                                            borderRadius: '12px',
+                                            backdropFilter: 'blur(8px)',
+                                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                                            fontSize: '12px',
+                                            padding: '12px'
+                                        }}
+                                        itemStyle={{ color: '#60A5FA', fontWeight: 'bold' }}
+                                        labelStyle={{ color: '#9CA3AF', marginBottom: '4px', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em' }}
+                                        cursor={{ stroke: '#3B82F6', strokeWidth: 1, strokeDasharray: '4 4' }}
                                     />
-                                    <Area type="monotone" dataKey="value" stroke="#3B82F6" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
+                                    <Area 
+                                        type="monotone" 
+                                        dataKey="value" 
+                                        stroke="#3B82F6" 
+                                        strokeWidth={3} 
+                                        fillOpacity={1} 
+                                        fill="url(#colorValue)" 
+                                        animationDuration={1500}
+                                    />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </div>
                     </div>
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-3 gap-4 mb-8">
-                        <div className="bg-[#151E32] p-4 rounded-xl border border-gray-800">
-                            <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Max Level</p>
-                            <p className="text-xl font-bold text-white">{stats.max}m</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                        <div className="bg-gray-900 p-5 rounded-2xl border border-gray-800 shadow-xl transition-all hover:border-blue-500/20 group">
+                            <p className="text-[10px] uppercase font-bold text-gray-500 mb-2 tracking-[0.2em]">Peak Level</p>
+                            <div className="flex items-baseline gap-2">
+                                <p className="text-3xl font-bold text-white tabular-nums group-hover:text-blue-400 transition-colors">{stats.max}</p>
+                                <span className="text-xs font-medium text-gray-500 font-mono">m</span>
+                            </div>
                         </div>
-                        <div className="bg-[#151E32] p-4 rounded-xl border border-gray-800">
-                            <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Avg Level</p>
-                            <p className="text-xl font-bold text-white">{stats.avg}m</p>
+                        <div className="bg-gray-900 p-5 rounded-2xl border border-gray-800 shadow-xl transition-all hover:border-purple-500/20 group">
+                            <p className="text-[10px] uppercase font-bold text-gray-500 mb-2 tracking-[0.2em]">Median Level</p>
+                            <div className="flex items-baseline gap-2">
+                                <p className="text-3xl font-bold text-white tabular-nums group-hover:text-purple-400 transition-colors">{stats.avg}</p>
+                                <span className="text-xs font-medium text-gray-500 font-mono">m</span>
+                            </div>
                         </div>
-                        <div className="bg-[#151E32] p-4 rounded-xl border border-gray-800">
-                            <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Min Level</p>
-                            <p className="text-xl font-bold text-white">{stats.min}m</p>
+                        <div className="bg-gray-900 p-5 rounded-2xl border border-gray-800 shadow-xl transition-all hover:border-cyan-500/20 group">
+                            <p className="text-[10px] uppercase font-bold text-gray-500 mb-2 tracking-[0.2em]">Minimum Level</p>
+                            <div className="flex items-baseline gap-2">
+                                <p className="text-3xl font-bold text-white tabular-nums group-hover:text-cyan-400 transition-colors">{stats.min}</p>
+                                <span className="text-xs font-medium text-gray-500 font-mono">m</span>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -10,7 +10,7 @@ import { PlayCircle, PauseCircle, CheckSquare, Square, Download } from 'lucide-r
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 export default function AnalyticsPage() {
-    const { history, stations } = useSocket();
+    const { history, stations, displayMode } = useSocket();
     const { role } = useAuth();
     const [selectedStations, setSelectedStations] = useState([]);
     const [timeRange, setTimeRange] = useState('1h'); // '1h', '6h', '24h'
@@ -136,11 +136,15 @@ export default function AnalyticsPage() {
                 };
             }
 
-            pivotedData[timeKey][item.stationId] = Number(item.waterLevel || 0);
+            pivotedData[timeKey][item.stationId] = Number(
+                displayMode === 'raw'
+                    ? (item.rawLevel || item.waterLevel || 0)
+                    : (item.waterLevel || 0)
+            );
         });
 
         return Object.values(pivotedData).sort((a, b) => a.rawTimestamp - b.rawTimestamp);
-    }, [fetchedHistory, frozenHistory, isPaused, timeRange, selectedStations]);
+    }, [fetchedHistory, frozenHistory, isPaused, timeRange, selectedStations, displayMode]);
 
     // Calculate Statistics for Selected Stations
     const stats = useMemo(() => {
@@ -180,11 +184,11 @@ export default function AnalyticsPage() {
     };
 
     return (
-        <div className="p-8 text-white h-full flex flex-col">
-            <div className="flex flex-col md:flex-row justify-between items-start mb-8 gap-6">
-                <div>
-                    <h1 className="text-3xl font-bold text-blue-400 mb-2">Analytics</h1>
-                    <p className="text-gray-400 text-sm">Compare Water Level trends across multiple sensors.</p>
+        <div className="flex flex-col h-full space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 px-1">
+                <div className="flex flex-col">
+                    <h1 className="text-3xl font-bold text-white tracking-tight border-l-4 border-blue-500 pl-4">Analytics</h1>
+                    <p className="text-gray-400 text-sm mt-1 max-w-lg">Comparative performance and trend analysis.</p>
                 </div>
 
                 <div className="flex flex-col gap-4 items-end">
@@ -203,39 +207,41 @@ export default function AnalyticsPage() {
                         {/* Pause / Live Button */}
                         <button
                             onClick={togglePause}
-                            className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all ${isPaused
+                            className={`px-3 py-2 rounded-xl font-bold flex items-center gap-2 transition-all flex-1 sm:flex-none justify-center ${isPaused
                                 ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20'
                                 : 'bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/20'
                                 }`}
                         >
-                            {isPaused ? <PauseCircle className="w-5 h-5" /> : <PlayCircle className="w-5 h-5" />}
-                            {isPaused ? 'Paused' : 'Live'}
+                            {isPaused ? <PauseCircle className="w-5 h-5 text-sm" /> : <PlayCircle className="w-5 h-5 text-sm" />}
+                            <span className="text-xs">{isPaused ? 'Paused' : 'Live'}</span>
                         </button>
 
-                        {/* Chart Type Selector */}
-                        <div className="flex bg-gray-800 rounded-lg p-1 border border-gray-700">
-                            {['line', 'area', 'bar'].map(type => (
-                                <button
-                                    key={type}
-                                    onClick={() => setChartType(type)}
-                                    className={`px-3 py-1 rounded capitalize ${chartType === type ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
-                                >
-                                    {type}
-                                </button>
-                            ))}
-                        </div>
+                        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                            {/* Chart Type Selector */}
+                            <div className="flex bg-gray-800 rounded-xl p-1 border border-gray-700 flex-1 sm:flex-none">
+                                {['line', 'area', 'bar'].map(type => (
+                                    <button
+                                        key={type}
+                                        onClick={() => setChartType(type)}
+                                        className={`px-3 py-1.5 rounded-lg capitalize text-xs font-bold transition-all flex-1 sm:flex-none ${chartType === type ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-white'}`}
+                                    >
+                                        {type}
+                                    </button>
+                                ))}
+                            </div>
 
-                        {/* Time Range Selector */}
-                        <div className="flex bg-gray-800 rounded-lg p-1 border border-gray-700">
-                            {['1h', '6h', '24h', '7d', '30d'].map(range => (
-                                <button
-                                    key={range}
-                                    onClick={() => setTimeRange(range)}
-                                    className={`px-3 py-1 rounded ${timeRange === range ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
-                                >
-                                    {range}
-                                </button>
-                            ))}
+                            {/* Time Range Selector */}
+                            <div className="flex bg-gray-800 rounded-xl p-1 border border-gray-700 flex-1 sm:flex-none">
+                                {['1h', '6h', '24h', '7d', '30d'].map(range => (
+                                    <button
+                                        key={range}
+                                        onClick={() => setTimeRange(range)}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex-1 sm:flex-none ${timeRange === range ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-white'}`}
+                                    >
+                                        {range}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -295,19 +301,18 @@ export default function AnalyticsPage() {
 
                 {/* Right Column: Chart */}
                 <div className="lg:col-span-3 flex flex-col gap-6">
-                    {/* Summary Cards (Aggregated for Selected) */}
-                    <div className="grid grid-cols-3 gap-4">
-                        <div className="bg-[#151E32] rounded-xl p-4 border border-gray-700">
-                            <h3 className="text-gray-500 text-xs font-bold uppercase mb-1">Max Level (Selected)</h3>
-                            <div className="text-2xl font-bold text-white">{stats.max} <span className="text-sm font-normal text-gray-500">m</span></div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-[#151E32] rounded-2xl p-4 border border-gray-700 shadow-xl">
+                            <h3 className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">Peak Level (Selected)</h3>
+                            <div className="text-2xl font-bold text-white tabular-nums">{stats.max} <span className="text-sm font-normal text-gray-400 font-mono">m</span></div>
                         </div>
-                        <div className="bg-[#151E32] rounded-xl p-4 border border-gray-700">
-                            <h3 className="text-gray-500 text-xs font-bold uppercase mb-1">Avg Level (Selected)</h3>
-                            <div className="text-2xl font-bold text-white">{stats.avg} <span className="text-sm font-normal text-gray-500">m</span></div>
+                        <div className="bg-[#151E32] rounded-2xl p-4 border border-gray-700 shadow-xl">
+                            <h3 className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">Average Level</h3>
+                            <div className="text-2xl font-bold text-white tabular-nums">{stats.avg} <span className="text-sm font-normal text-gray-400 font-mono">m</span></div>
                         </div>
-                        <div className="bg-[#151E32] rounded-xl p-4 border border-gray-700">
-                            <h3 className="text-gray-500 text-xs font-bold uppercase mb-1">Min Level (Selected)</h3>
-                            <div className="text-2xl font-bold text-white">{stats.min} <span className="text-sm font-normal text-gray-500">m</span></div>
+                        <div className="bg-[#151E32] rounded-2xl p-4 border border-gray-700 shadow-xl">
+                            <h3 className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">Minimum Level</h3>
+                            <div className="text-2xl font-bold text-white tabular-nums">{stats.min} <span className="text-sm font-normal text-gray-400 font-mono">m</span></div>
                         </div>
                     </div>
 

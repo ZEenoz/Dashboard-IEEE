@@ -9,7 +9,7 @@ import { History, Filter, Calendar, Smartphone, Droplets, Gauge, AlertCircle, In
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 export default function HistoryPage() {
-    const { stations, socket } = useSocket();
+    const { stations, socket, displayMode } = useSocket();
     const { data: session } = useSession();
     const [historyData, setHistoryData] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -29,7 +29,7 @@ export default function HistoryPage() {
 
         try {
             const currentOffset = isLoadMore ? offset : 0;
-            
+
             let url = selectedDevice !== 'all'
                 ? `${API_URL}/history?stationId=${selectedDevice}&limit=${LIMIT}&offset=${currentOffset}`
                 : `${API_URL}/history?limit=${LIMIT}&offset=${currentOffset}`;
@@ -39,6 +39,7 @@ export default function HistoryPage() {
             }
 
             const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
             const data = await res.json();
             const fetchedData = Array.isArray(data) ? data : [];
 
@@ -115,11 +116,11 @@ export default function HistoryPage() {
     }, [historyData, selectedDevice, selectedDate, selectedSensorType]);
 
     return (
-        <div className="p-8 text-white h-[calc(100vh-64px)] overflow-hidden flex flex-col">
-            <div className="flex flex-col md:flex-row justify-between items-start mb-8 gap-6">
+        <div className="mb-20 space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6 px-1">
                 <div className="flex flex-col">
                     <div className="flex items-center gap-4">
-                        <h1 className="text-3xl font-extrabold text-blue-400 flex items-center gap-3">
+                        <h1 className="text-3xl font-bold text-white tracking-tight border-l-4 border-blue-500 pl-4">
                             Event History
                         </h1>
                         <button
@@ -132,18 +133,18 @@ export default function HistoryPage() {
                         </button>
                     </div>
                     <p className="text-gray-400 text-sm mt-1">
-                        Show all event history. (Loaded from Database)
+                        Viewing historical records for all connected stations.
                     </p>
                 </div>
 
-                <div className="flex flex-wrap gap-4 items-center">
+                <div className="flex flex-wrap gap-3 items-center w-full md:w-auto">
                     {/* Sensor Type Selector */}
-                    <div className="relative">
+                    <div className="relative flex-1 md:flex-none min-w-[140px]">
                         <Filter className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                         <select
                             value={selectedSensorType}
                             onChange={(e) => setSelectedSensorType(e.target.value)}
-                            className="bg-gray-800 text-white border border-gray-700 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:border-blue-500 appearance-none shadow-sm"
+                            className="bg-gray-800 text-white border border-gray-700 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:border-blue-500 appearance-none shadow-sm w-full"
                         >
                             <option value="all">All Types</option>
                             <option value="Float">Float Sensor</option>
@@ -152,27 +153,27 @@ export default function HistoryPage() {
                     </div>
 
                     {/* Date Selector */}
-                    <div className="relative">
+                    <div className="relative flex-1 md:flex-none min-w-[140px]">
                         <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                         <input
                             type="date"
                             value={selectedDate}
                             onChange={(e) => setSelectedDate(e.target.value)}
-                            className="bg-gray-800 text-white border border-gray-700 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:border-blue-500 shadow-sm"
+                            className="bg-gray-800 text-white border border-gray-700 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:border-blue-500 shadow-sm w-full"
                         />
                     </div>
 
                     {/* Device Selector */}
-                    <div className="relative">
+                    <div className="relative flex-1 md:flex-none min-w-[140px]">
                         <Smartphone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                         <select
                             value={selectedDevice}
                             onChange={(e) => setSelectedDevice(e.target.value)}
-                            className="bg-gray-800 text-white border border-gray-700 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:border-blue-500 appearance-none shadow-sm"
+                            className="bg-gray-800 text-white border border-gray-700 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:border-blue-500 appearance-none shadow-sm w-full"
                         >
                             <option value="all">All Devices</option>
                             {Object.keys(stations).map(id => (
-                                <option key={id} value={id}>{id}</option>
+                                <option key={id} value={id}>{stations[id].stationName || id}</option>
                             ))}
                         </select>
                     </div>
@@ -189,20 +190,20 @@ export default function HistoryPage() {
                                 </th>
                                 <th className="px-6 py-4 font-bold">
                                     <div className="flex items-center gap-2">
-                                        <Smartphone className="w-4 h-4" /> Device ID
+                                        <Smartphone className="w-4 h-4" /> Device
                                     </div>
                                 </th>
-                                <th className="px-6 py-4 font-bold">
+                                <th className="px-6 py-4 font-bold hidden md:table-cell">
                                     <div className="flex items-center gap-2">
                                         <Activity className="w-4 h-4" /> Type
                                     </div>
                                 </th>
                                 <th className="px-6 py-4 font-bold">
                                     <div className="flex items-center gap-2">
-                                        <Droplets className="w-4 h-4" /> Values
+                                        <Droplets className="w-4 h-4" /> Level
                                     </div>
                                 </th>
-                                <th className="px-6 py-4 font-bold">
+                                <th className="px-6 py-4 font-bold hidden lg:table-cell">
                                     <div className="flex items-center gap-2">
                                         <Info className="w-4 h-4" /> Status
                                     </div>
@@ -250,37 +251,28 @@ export default function HistoryPage() {
                                     }
 
                                     return (
-                                        <tr key={index} className="hover:bg-gray-700/30 transition-colors group">
-                                            <td className="px-6 py-4 text-gray-400 font-mono text-sm border-r border-gray-800/50 whitespace-nowrap">
+                                        <tr key={index} className="hover:bg-gray-700/30 transition-colors group text-sm">
+                                            <td className="px-4 md:px-6 py-4 text-gray-400 font-mono text-xs border-r border-gray-800/50 whitespace-nowrap">
                                                 {displayDateTime}
                                             </td>
-                                            <td className="px-6 py-4 font-medium text-white border-r border-gray-800/50">
-                                                {item.stationId}
+                                            <td className="px-4 md:px-6 py-4 font-medium text-white border-r border-gray-800/50 max-w-[120px] truncate">
+                                                {stations[item.stationId]?.stationName || item.stationId}
                                             </td>
-                                            <td className="px-6 py-4 text-sm border-r border-gray-800/50">
-                                                <span className={`px-2 py-1 rounded text-xs font-bold tracking-wide uppercase ${!item.sensorType ? 'bg-gray-700 text-gray-400' :
+                                            <td className="px-6 py-4 text-sm border-r border-gray-800/50 hidden md:table-cell">
+                                                <span className={`px-2 py-1 rounded text-[10px] font-bold tracking-wide uppercase ${!item.sensorType ? 'bg-gray-700 text-gray-400' :
                                                     item.sensorType === 'Float' ? 'bg-cyan-900/50 text-cyan-400 border border-cyan-800' : 'bg-indigo-900/50 text-indigo-400 border border-indigo-800'
                                                     }`}>
                                                     {item.sensorType || 'Unknown'}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 border-r border-gray-800/50">
-                                                <div className="flex flex-col gap-1">
-                                                    <div className="flex flex-col gap-1">
-                                                        <div className="flex items-center gap-2 text-xs text-gray-400">
-                                                            {item.sensorType === 'Float' ? (
-                                                                <Droplets className="w-3 h-3 text-blue-500" />
-                                                            ) : (
-                                                                <Gauge className="w-3 h-3 text-purple-500" />
-                                                            )}
-                                                            <span className={`${item.sensorType === 'Float' ? 'text-blue-400' : 'text-purple-400'} font-bold text-sm`}>
-                                                                {typeof item.waterLevel === 'number' ? item.waterLevel.toFixed(2) : item.waterLevel} m
-                                                            </span>
-                                                        </div>
-                                                    </div>
+                                            <td className="px-4 md:px-6 py-4 border-r border-gray-800/50">
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`${item.sensorType === 'Float' ? 'text-blue-400' : 'text-purple-400'} font-bold tabular-nums`}>
+                                                        {Number(displayMode === 'raw' ? (item.rawLevel ?? item.waterLevel) : (item.waterLevel ?? 0)).toFixed(3)}m
+                                                    </span>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-6 py-4 hidden lg:table-cell">
                                                 <div className="flex items-center gap-1.5 bg-green-900/20 text-green-400 px-3 py-1 rounded-full w-fit text-xs font-medium border border-green-900/50">
                                                     <AlertCircle className="w-3 h-3" />
                                                     Active
@@ -291,7 +283,7 @@ export default function HistoryPage() {
                                 }))}
                         </tbody>
                     </table>
-                    
+
                     {/* Load More Button */}
                     {!loading && historyData.length > 0 && hasMore && (
                         <div className="p-4 flex justify-center border-t border-gray-800">

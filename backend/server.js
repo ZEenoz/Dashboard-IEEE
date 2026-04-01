@@ -28,6 +28,8 @@ app.use('/api', apiRoutes);
 io.on('connection', (socket) => {
     console.log('👤 Client Connected');
     socket.emit('init-data', getStationHistory());
+    const settingsMod = require('./config/settings');
+    socket.emit('system-mode', settingsMod.getSettings().networkMode || 'TTN');
 });
 
 // Initialization

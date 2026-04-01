@@ -4,12 +4,20 @@ const SETTINGS_FILE = './settings.json';
 
 // Default Settings
 let settings = {
-    networkMode: 'TTN',
+    networkMode: 'TTN',   // 'TTN' | 'CHIRPSTACK'
     alertThresholds: {
         warningLevel: 1.8,
         criticalLevel: 2.7,
         warningCooldownMin: 60,
         dangerousCooldownMin: 15
+    },
+    chirpstack: {
+        // ChirpStack MQTT connection (override via env vars)
+        mqttUrl: '',       // e.g. "mqtt://chirpstack.example.com:1883"
+        mqttUser: '',      // MQTT username
+        mqttPass: '',      // MQTT password 
+        applicationId: '', // ChirpStack Application ID (UUID)
+        useTls: false
     },
     lineNotify: { token: '', active: false },
     lineBot: { active: true },
@@ -33,9 +41,21 @@ function loadSettings() {
 }
 
 function saveSettings(newSettings) {
+    const previousMode = settings.networkMode;
     settings = newSettings;
     fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
     console.log("💾 Settings saved!");
+
+    // If networkMode changed, reconnect MQTT to the new broker
+    if (previousMode !== settings.networkMode) {
+        console.log(`🔄 Network mode changed: ${previousMode} → ${settings.networkMode}`);
+        try {
+            const { reconnectMQTT } = require('../services/mqttService');
+            reconnectMQTT();
+        } catch (e) {
+            console.error("⚠️ Failed to trigger MQTT reconnect:", e.message);
+        }
+    }
 
     // Concurrently save to PostgreSQL without blocking
     try {

@@ -41,3 +41,60 @@ body {
 .card-gradient {
   background: linear-gradient(135deg, rgba(31,41,55,0.9) 0%, rgba(17,24,39,0.95) 100%);
 }
+
+/* Premium Mode Toggle Switch */
+.mode-toggle-container {
+  display: flex;
+  background: rgba(31, 41, 55, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 4px;
+  position: relative;
+  width: fit-content;
+}
+
+.mode-toggle-active-bg {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 50%;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 0;
+}
+
+.mode-toggle-container[data-mode="calibrated"] .mode-toggle-active-bg {
+  left: 4px;
+}
+
+.mode-toggle-container[data-mode="raw"] .mode-toggle-active-bg {
+  left: calc(50%);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+}
+
+.mode-toggle-btn {
+  padding: 6px 14px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #9ca3af;
+  position: relative;
+  z-index: 10;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mode-toggle-btn.active {
+  color: white;
+}
+
+.mode-toggle-btn:hover:not(.active) {
+  color: #d1d5db;
+}

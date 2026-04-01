@@ -67,7 +67,7 @@ export default function SettingsPage() {
             ...prev,
             stations: {
                 ...prev.stations,
-                [id]: { name, lat, lng, image: '', offset: 0 }
+                [id]: { name, lat, lng, image: '', offset: 0, networkMode: prev.networkMode || 'TTN' }
             }
         }));
         setShowAddModal(false);
@@ -75,7 +75,7 @@ export default function SettingsPage() {
 
     // Fetch Settings
     useEffect(() => {
-        fetch(`${API_URL}/settings`)
+        fetch(`${API_URL}/settings`, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } })
             .then(res => res.json())
             .then(data => {
                 setSettings(data);
@@ -658,18 +658,102 @@ export default function SettingsPage() {
                                     className="bg-gray-800 border border-gray-600 rounded px-3 py-1 text-sm text-white focus:border-blue-500 outline-none"
                                 >
                                     <option value="TTN">The Things Network (TTN)</option>
-                                    <option value="CHIRPSTACK">Chirpstack</option>
+                                    <option value="CHIRPSTACK">ChirpStack v4</option>
                                 </select>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-gray-400">Operational Mode</span>
                                 <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${settings.useSimulator ? 'bg-yellow-900/50 text-yellow-500' : 'bg-green-900/50 text-green-500'
                                     }`}>
-                                    {settings.useSimulator ? 'Simulator Mode' : 'Production (TTN)'}
+                                    {settings.useSimulator ? 'Simulator Mode' : `Production (${settings.networkMode || 'TTN'})`}
                                 </span>
                             </div>
                         </div>
+
+                        {/* 🟣 ChirpStack Configuration (shown when CHIRPSTACK mode is active) */}
+                        {settings.networkMode === 'CHIRPSTACK' && (
+                            <div className="bg-purple-900/20 p-6 rounded-xl border border-purple-500/30 space-y-4 mt-4">
+                                <h3 className="text-lg font-bold text-purple-300 flex items-center gap-2">
+                                    <Activity className="w-5 h-5" />
+                                    ChirpStack v4 Connection
+                                </h3>
+                                <p className="text-xs text-gray-400 mb-2">
+                                    Configure MQTT connection to your ChirpStack Network Server.
+                                    These can also be set via environment variables (CHIRPSTACK_MQTT_URL, CHIRPSTACK_APP_ID, etc.)
+                                </p>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* MQTT URL */}
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">MQTT Broker URL</label>
+                                        <input
+                                            type="text"
+                                            placeholder="mqtt://chirpstack.example.com:1883"
+                                            value={settings.chirpstack?.mqttUrl || ''}
+                                            onChange={(e) => handleChange('chirpstack', 'mqttUrl', e.target.value)}
+                                            className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:border-purple-500 outline-none font-mono"
+                                        />
+                                    </div>
+
+                                    {/* Application ID */}
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Application ID</label>
+                                        <input
+                                            type="text"
+                                            placeholder="UUID from ChirpStack (or leave empty for wildcard)"
+                                            value={settings.chirpstack?.applicationId || ''}
+                                            onChange={(e) => handleChange('chirpstack', 'applicationId', e.target.value)}
+                                            className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:border-purple-500 outline-none font-mono"
+                                        />
+                                    </div>
+
+                                    {/* MQTT Username */}
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">MQTT Username</label>
+                                        <input
+                                            type="text"
+                                            placeholder="(optional)"
+                                            value={settings.chirpstack?.mqttUser || ''}
+                                            onChange={(e) => handleChange('chirpstack', 'mqttUser', e.target.value)}
+                                            className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:border-purple-500 outline-none"
+                                        />
+                                    </div>
+
+                                    {/* MQTT Password */}
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">MQTT Password</label>
+                                        <input
+                                            type="password"
+                                            placeholder="(optional)"
+                                            value={settings.chirpstack?.mqttPass || ''}
+                                            onChange={(e) => handleChange('chirpstack', 'mqttPass', e.target.value)}
+                                            className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:border-purple-500 outline-none"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* TLS Toggle */}
+                                <div className="flex items-center gap-3 mt-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={settings.chirpstack?.useTls || false}
+                                        onChange={(e) => handleChange('chirpstack', 'useTls', e.target.checked)}
+                                        className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-purple-500"
+                                    />
+                                    <span className="text-sm text-gray-300">Use TLS (mqtts://)</span>
+                                </div>
+
+                                {/* Info Box */}
+                                <div className="bg-gray-800/60 rounded-lg p-4 mt-3 text-xs text-gray-400 space-y-1">
+                                    <p><strong className="text-purple-300">MQTT Topic:</strong> <code className="text-purple-200">application/{'{app_id}'}/device/+/event/up</code></p>
+                                    <p><strong className="text-purple-300">Device ID:</strong> Uses <code className="text-purple-200">devEui</code> from deviceInfo</p>
+                                    <p><strong className="text-purple-300">Decoded Data:</strong> Requires a Codec (JavaScript/CayenneLPP) in ChirpStack Device Profile</p>
+                                    <p className="mt-2 text-yellow-400/80">⚠️ After saving, the backend will automatically reconnect to the ChirpStack MQTT broker.</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
+
                 )}
 
                 {/* 👥 Users Tab */}

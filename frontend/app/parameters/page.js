@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function ParametersPage() {
-    const { stations, getTrend } = useSocket();
+    const { stations, getTrend, displayMode } = useSocket();
     const router = useRouter();
     const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
     const [selectedDevice, setSelectedDevice] = useState('all');
@@ -86,10 +86,10 @@ export default function ParametersPage() {
     };
 
     return (
-        <div className="p-8 text-white">
-            <div className="flex flex-col md:flex-row justify-between items-start mb-8 gap-6">
+        <div className="mb-20 space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6 px-1">
                 <div className="flex flex-col">
-                    <h1 className="text-3xl font-extrabold text-blue-400 flex items-center gap-3">
+                    <h1 className="text-3xl font-bold text-white tracking-tight border-l-4 border-blue-500 pl-4">
                         Sensors Stations
                     </h1>
                     <p className="text-gray-400 text-sm mt-1">Show all sensors stations.</p>
@@ -140,7 +140,7 @@ export default function ParametersPage() {
                                     </h3>
                                     <div className="mt-2 flex items-baseline">
                                         <span className="text-3xl font-bold text-white">
-                                            {typeof station.waterLevel === 'number' ? station.waterLevel.toFixed(2) : station.waterLevel}
+                                            {Number((displayMode === 'raw' ? (station.rawLevel ?? station.waterLevel) : (station.waterLevel ?? 0))).toFixed(3)}
                                         </span>
                                         <span className="ml-2 text-gray-500">m</span>
                                     </div>
@@ -202,7 +202,7 @@ export default function ParametersPage() {
                                                 <Gauge size={16} className="text-purple-500" />
                                             )}
                                             <span className={`font-mono ${station.sensorType === 'Float' ? 'text-blue-300' : 'text-purple-300'}`}>
-                                                {typeof station.waterLevel === 'number' ? station.waterLevel.toFixed(2) : station.waterLevel} m
+                                                {Number((displayMode === 'raw' ? (station.rawLevel ?? station.waterLevel) : (station.waterLevel ?? 0))).toFixed(3)} m
                                             </span>
 
                                         </div>

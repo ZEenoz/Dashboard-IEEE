@@ -69,16 +69,17 @@ async function saveReadingToSheet(data) {
                 timestamp,                // 1. Time (A)
                 data.stationName,         // 2. Station (B)
                 data.stationId,           // 3. Stationd ID (C)
-                data.waterLevel,          // 4. water_level (m) (D)
-                data.dataRate,            // 5. data_rate (E)
-                data.rssi,                // 6. RSSI (F)
-                data.snr,                 // 7. snr (G)
-                data.battery,             // 8. battery (H)
-                data.batteryVoltage || 0, // 9. battery_voltage (I)
-                data.sensorType,          // 10. Sensor Type (J)
-                data.lat,                 // 11. Latitude (K)
-                data.lng,                 // 12. Longitude (L)
-                data.src || 'Unknown'     // 13. Source (M)
+                data.rawLevel,            // 4. water_level (Raw) (D)
+                data.waterLevel,          // 5. offset_water_level (Calibrated) (E)
+                data.dataRate,            // 6. data_rate (F)
+                data.rssi,                // 7. RSSI (G)
+                data.snr,                 // 8. snr (H)
+                data.battery,             // 9. battery (I)
+                data.batteryVoltage || 0, // 10. battery_voltage (J)
+                data.sensorType,          // 11. Sensor Type (K)
+                data.lat,                 // 12. Latitude (L)
+                data.lng,                 // 13. Longitude (M)
+                data.src || 'Unknown'     // 14. Source (N)
             ]
         ];
 
@@ -86,7 +87,7 @@ async function saveReadingToSheet(data) {
 
         // Determine Sheet Name based on Sensor Type
         // If Sensor Type contains 'Float', go to 'Float' sheet, else 'Static'
-        const sheetName = (data.sensorType && data.sensorType.toLowerCase().includes('float')) ? 'Float' : 'Static1';
+        const sheetName = (data.sensorType && data.sensorType.toLowerCase().includes('float')) ? 'Float' : 'Static1-1';
 
         // Append to specific sheet
         console.log(`📝 Appending to Sheet: ${sheetName}`);
@@ -131,7 +132,7 @@ async function getHistoryFromSheet(hours = 48) {
         // Read all data (Not efficient for huge datasets, but fine for prototype)
         const result = await sheetsService.spreadsheets.values.get({
             spreadsheetId,
-            range: 'Static1', // Read whole sheet
+            range: 'Static1-1', // Read from the correct sheet
         });
 
         const rows = result.data.values;
@@ -158,8 +159,9 @@ async function getHistoryFromSheet(hours = 48) {
 
                 history[deviceId].push({
                     time: timestamp.toLocaleTimeString('th-TH'),
-                    rawTimestamp: timestamp,
-                    waterLevel: waterLevel || 0
+                    rawTimestamp: timestamp.getTime(),
+                    waterLevel: parseFloat(row[4] || row[3] || 0), // Calibrated (E)
+                    rawLevel: parseFloat(row[3] || 0), // Raw (D)
                 });
             }
         });

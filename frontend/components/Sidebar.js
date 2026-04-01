@@ -1,11 +1,11 @@
 'use client';
 
-import { LayoutDashboard, Database, Activity, Map as MapIcon, Settings, Search, Menu, LogOut, User, Warehouse, SatelliteDish, LayoutGrid, History, Bell } from 'lucide-react';
+import { LayoutDashboard, Database, Activity, Map as MapIcon, Settings, Search, Menu, LogOut, User, Warehouse, SatelliteDish, LayoutGrid, History, Bell, Sliders } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 
-const menuItems = [
+export const menuItems = [
     { name: 'Overview', icon: LayoutGrid, href: '/' },
     { name: 'Stations', icon: SatelliteDish, href: '/parameters' },
     { name: 'Analytics', icon: Activity, href: '/analytics' },
@@ -49,9 +49,24 @@ export default function Sidebar() {
                     );
                 })}
 
-                {/* Settings link - Hidden from General User */}
+                {/* Admin Tools */}
                 {session?.user?.role !== 'general_user' && (
-                    <div className="mt-auto border-t border-gray-800 pt-4">
+                    <div className="mt-auto border-t border-gray-800 pt-4 space-y-1">
+                        {/* Offset Presets — Admin Only */}
+                        {session?.user?.role === 'admin' && (
+                            <Link
+                                href="/offset-presets"
+                                className={`flex items-center px-4 py-3 rounded-lg transition-all duration-200 group
+                            ${pathname === '/offset-presets'
+                                        ? 'bg-blue-600/10 text-blue-500 border-r-2 border-blue-500'
+                                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                                    }`}
+                            >
+                                <Sliders className={`w-5 h-5 ${pathname === '/offset-presets' ? 'text-blue-500' : 'text-gray-400 group-hover:text-white'}`} />
+                                <span className="ml-3 font-medium">Offset Presets</span>
+                            </Link>
+                        )}
+
                         <Link
                             href="/settings"
                             className={`flex items-center px-4 py-3 rounded-lg transition-all duration-200 group

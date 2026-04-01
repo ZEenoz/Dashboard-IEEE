@@ -10,11 +10,25 @@ const SocketContext = createContext();
 export const useSocket = () => useContext(SocketContext);
 
 export const SocketProvider = ({ children }) => {
-    const [stations, setStations] = useState({});
+    const [rawStations, setRawStations] = useState({});
+    const [systemMode, setSystemMode] = useState('TTN');
     const [history, setHistory] = useState([]); // Store history for charts
     const [sessionHistory, setSessionHistory] = useState([]); // 🟢 Store "Fresh Start" history (clears on refresh)
     const [lineNotifications, setLineNotifications] = useState([]);
+    const [displayMode, setDisplayMode] = useState('calibrated'); // 'raw' | 'calibrated'
     const socketRef = React.useRef(null);
+
+    // 🆕 Persistence: Load/Save Display Mode
+    useEffect(() => {
+        const saved = localStorage.getItem('waterLevelDisplayMode');
+        if (saved === 'raw' || saved === 'calibrated') {
+            setDisplayMode(saved);
+        }
+    }, []);
+
+    useEffect(() => {
+        localStorage.setItem('waterLevelDisplayMode', displayMode);
+    }, [displayMode]);
 
     useEffect(() => {
         const socket = io(SOCKET_URL);
@@ -33,7 +47,7 @@ export const SocketProvider = ({ children }) => {
                 rawTimestamp: now.getTime()
             };
 
-            setStations((prev) => ({
+            setRawStations((prev) => ({
                 ...prev,
                 [newData.stationId]: enrichedData
             }));
@@ -118,7 +132,12 @@ export const SocketProvider = ({ children }) => {
                 }
             });
 
-            setStations(prev => ({ ...prev, ...latestStations }));
+            setRawStations(prev => ({ ...prev, ...latestStations }));
+        });
+
+        socket.on("system-mode", (mode) => {
+            console.log(`🔌 System Mode Changed: ${mode}`);
+            setSystemMode(mode);
         });
 
         socket.on("line-notification", (notification) => {
@@ -160,8 +179,28 @@ export const SocketProvider = ({ children }) => {
         return { direction: 'stable', color: 'text-gray-500', icon: '➡️' };
     };
 
+    const stations = React.useMemo(() => {
+        return Object.fromEntries(
+            Object.entries(rawStations).filter(([id, data]) => {
+                const nodeMode = data.networkMode || 'TTN';
+                return nodeMode === systemMode;
+            })
+        );
+    }, [rawStations, systemMode]);
+
     return (
-        <SocketContext.Provider value={{ stations, history, sessionHistory, setSessionHistory, getTrend, lineNotifications, socket: socketRef.current }}>
+        <SocketContext.Provider value={{ 
+            stations, 
+            history, 
+            sessionHistory, 
+            setSessionHistory, 
+            getTrend, 
+            lineNotifications, 
+            socket: socketRef.current, 
+            systemMode,
+            displayMode,
+            setDisplayMode
+        }}>
             {children}
         </SocketContext.Provider>
     );

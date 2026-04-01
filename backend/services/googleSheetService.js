@@ -87,7 +87,7 @@ async function saveReadingToSheet(data) {
 
         // Determine Sheet Name based on Sensor Type
         // If Sensor Type contains 'Float', go to 'Float' sheet, else 'Static'
-        const sheetName = (data.sensorType && data.sensorType.toLowerCase().includes('float')) ? 'Float' : 'Static1-1';
+        const sheetName = (data.sensorType && data.sensorType.toLowerCase().includes('float')) ? 'Float' : 'Static1';
 
         // Append to specific sheet
         console.log(`📝 Appending to Sheet: ${sheetName}`);

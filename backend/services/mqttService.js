@@ -135,7 +135,8 @@ function initMQTT(io) {
         }
 
         const protocol = csUseTls ? 'mqtts' : 'mqtt';
-        const brokerUrl = csMqttUrl.startsWith('mqtt')
+        // Improved check to support mqtt, mqtts, and tcp protocols
+        const brokerUrl = (/^(mqtt|mqtts|tcp):\/\//).test(csMqttUrl)
             ? csMqttUrl
             : `${protocol}://${csMqttUrl}`;
 
@@ -149,6 +150,7 @@ function initMQTT(io) {
 
         console.log(`   Topic: ${TOPIC}`);
 
+        console.log(`📡 Connecting to ChirpStack: ${brokerUrl}`);
         mqttClient = mqtt.connect(brokerUrl, mqttOptions);
 
         currentNetworkMode = 'CHIRPSTACK';

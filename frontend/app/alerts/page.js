@@ -113,7 +113,9 @@ export default function AlertsPage() {
             if (filterDate) {
                 url += `&date=${filterDate}`;
             }
-            const res = await fetch(url);
+            const res = await fetch(url, {
+                headers: { 'ngrok-skip-browser-warning': 'true' }
+            });
             const data = await res.json();
             const fetchedData = Array.isArray(data) ? data : [];
 

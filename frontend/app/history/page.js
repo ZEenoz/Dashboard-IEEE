@@ -38,7 +38,9 @@ export default function HistoryPage() {
                 url += `&date=${selectedDate}`;
             }
 
-            const res = await fetch(url);
+            const res = await fetch(url, {
+                headers: { 'ngrok-skip-browser-warning': 'true' }
+            });
             if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
             const data = await res.json();
             const fetchedData = Array.isArray(data) ? data : [];

@@ -31,5 +31,19 @@ services:
     volumes:
       - ./backend/service-account.json:/app/service-account.json
 
+  # --- 🤖 LINE BOT (FLASK) ---
+  line-bot:
+    build:
+      context: ./line-bot
+      dockerfile: Dockerfile
+    container_name: line_bot
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    depends_on:
+      - postgres
+    env_file:
+      - ./line-bot/.env
+
 volumes:
   postgres_data:

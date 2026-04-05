@@ -401,4 +401,5 @@ except Exception as e:
     print("--------------------------------------------------")
 
 if __name__ == "__main__":
-    app.run(port=5000, debug=True)
+    # Ensure it listens on all interfaces (0.0.0.0) for Docker support
+    app.run(host='0.0.0.0', port=5000, debug=True)

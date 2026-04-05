@@ -4,7 +4,7 @@ const SETTINGS_FILE = './settings.json';
 
 // Default Settings
 let settings = {
-    networkMode: 'TTN',   // 'TTN' | 'CHIRPSTACK'
+    networkMode: 'CHIRPSTACK',
     alertThresholds: {
         warningLevel: 1.8,
         criticalLevel: 2.7,

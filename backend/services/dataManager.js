@@ -8,7 +8,13 @@ let useSheets = false;
 // Initialize Data Sources based on Settings
 async function initDataManager() {
     const settings = getSettings();
-    const type = (settings.data_source && settings.data_source.type) ? settings.data_source.type.toLowerCase() : "postgres";
+    let type = (settings.data_source && settings.data_source.type) ? settings.data_source.type.toLowerCase() : "postgres";
+
+    // Auto-enable Google Sheets if ID is present in ENV
+    if (process.env.GOOGLE_SHEET_ID && !type.includes('google')) {
+        type += ', google';
+        console.log("📝 Auto-enabling Google Sheets (detected GOOGLE_SHEET_ID in env)");
+    }
 
     console.log(`🔧 Data Source Configuration: ${type}`);
 

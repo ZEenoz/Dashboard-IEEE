@@ -24,6 +24,9 @@ let settings = {
     stations: {
         "test-hel-v3": { name: "Float Station", lat: 14.422328, lng: 100.387755 },
         "test-hel-v3-n2": { name: "Static Station 1", lat: 14.420291, lng: 100.389034 },
+    },
+    data_source: {
+        type: 'postgres'  // Default to postgres, will be augmented by dataManager if env vars present
     }
 };
 

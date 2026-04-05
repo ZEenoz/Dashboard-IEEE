@@ -45,5 +45,18 @@ services:
     env_file:
       - ./line-bot/.env
 
+  # --- 🛡️ NGINX REVERSE PROXY (SINGLE ENTRY) ---
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: nginx_proxy
+    restart: unless-stopped
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "8888:80"
+    depends_on:
+      - backend
+      - line-bot
+
 volumes:
   postgres_data:

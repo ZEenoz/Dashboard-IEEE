@@ -1,25 +1,27 @@
-version: '3.8'
 services:
+  # --- 📤 MQTT BROKER ---
   mosquitto:
     image: eclipse-mosquitto
     container_name: mosquitto_broker
+    restart: unless-stopped
     ports:
-      - "1883:1883" # พอร์ตสำหรับรับส่งข้อมูลปกติ
-      - "9001:9001" # พอร์ตสำหรับ Web (ถ้าจำเป็น)
+      - "1883:1883"
+      - "9001:9001"
     volumes:
       - ./mosquitto/config:/mosquitto/config
       - ./mosquitto/data:/mosquitto/data
       - ./mosquitto/log:/mosquitto/log
-    # คำสั่งด้านล่างนี้เพื่อสร้างไฟล์ config แบบง่ายๆ อัตโนมัติ โดยอนุญาตให้ใครก็ได้เชื่อมต่อ (สำหรับการทดสอบ)
     command: >
       sh -c "echo 'persistence true' > /mosquitto/config/mosquitto.conf &&
              echo 'listener 1883' >> /mosquitto/config/mosquitto.conf &&
              echo 'allow_anonymous true' >> /mosquitto/config/mosquitto.conf &&
              /usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf"
 
+  # --- 📂 DATABASE ---
   postgres:
     image: postgres:15
     container_name: postgres_db
+    restart: unless-stopped
     ports:
       - "5432:5432"
     environment:
@@ -29,6 +31,24 @@ services:
       POSTGRES_DB: water_monitoring
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+  # --- 🚀 DASHBOARD BACKEND ---
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dashboard_backend
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    depends_on:
+      - postgres
+      - mosquitto
+    env_file:
+      - ./backend/.env
+    # เมาท์ไฟล์ JSON ของ Google Sheet เข้าไปใช้งาน
+    volumes:
+      - ./backend/service-account.json:/app/service-account.json
 
 volumes:
   postgres_data:

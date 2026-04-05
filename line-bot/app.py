@@ -42,104 +42,46 @@ def liff_page():
     return render_template('register.html', stations=stations)
 
 def get_live_stations():
-    """ Helper to fetch live stations from Node.js backend. """
+    """ 
+    Helper to fetch live stations directly from PostgreSQL database. 
+    This is the source of truth for all current stations.
+    """
     stations = []
     try:
-        # Normalize NODE_API_URL: ensure it ends with /api and no trailing slash
-        base_url = NODE_API_URL.strip().rstrip('/')
-        if not base_url.endswith('/api') and 'railway.app' in base_url:
-            base_url += '/api'
+        # 1. Fetch all stations from local database (PostgreSQL)
+        db_items = get_all_stations()
         
-        # 1. Fetch config from settings API
-        api_url = f'{base_url}/settings'
-        print(f"DEBUG: Calling Backend API -> {api_url}")
-        settings_res = requests.get(api_url, timeout=5)
-        
-        if settings_res.status_code == 200:
-            try:
-                config_stations = settings_res.json().get('stations', {})
-                for st_id, data in config_stations.items():
-                    stations.append({
-                        'id': st_id,
-                        'name': data.get('name') or f"สถานี {st_id}",
-                        'location': f"Lat: {data.get('lat', '')}, Lng: {data.get('lng', '')}" if data.get('lat') else "ระบุพิกัดใน Settings",
-                        'image_url': 'https://img1.pic.in.th/images/Gemini_Generated_Image_cxndnqcxndnqcxnd.png' # default
-                    })
-                print(f"✅ Fetched {len(stations)} stations from Node.js API")
-            except Exception as json_err:
-                print(f"⚠️ API returned invalid JSON for settings: {json_err}")
-                print(f"⚠️ Response content: {settings_res.text[:200]}")
-        else:
-            print(f"⚠️ Backend API for settings returned status {settings_res.status_code}")
-        
-        # 2. Add active physical nodes from system-health if they are not in config
-        health_api_url = f'{base_url}/system-health'
-        print(f"DEBUG: Calling Backend API -> {health_api_url}")
-        health_res = requests.get(health_api_url, timeout=5)
-        if health_res.status_code == 200:
-            try:
-                active_nodes = health_res.json().get('nodes', {}).get('active', [])
-                existing_ids = [s['id'] for s in stations]
-                
-                for node in active_nodes:
-                    node_id = node.get('stationId') or node.get('displayId')
-                    if node_id and node_id not in existing_ids:
-                        stations.append({
-                            'id': node_id,
-                            'name': node.get('name', f"Station {node_id}"),
-                            'location': 'Active Device Route',
-                            'image_url': 'https://s.isanook.com/ns/0/ud/1628/8144062/new-normal.jpg'
-                        })
-            except Exception as json_err:
-                print(f"⚠️ API returned invalid JSON for system-health: {json_err}")
-                print(f"⚠️ Response content: {health_res.text[:200]}")
-        else:
-            print(f"⚠️ Backend API for system-health returned status {health_res.status_code}")
-    except requests.exceptions.RequestException as req_err:
-        print(f"❌ Network/Request Error fetching live stations from API: {req_err}")
-        print("🔄 Falling back to database query...")
-        stations = get_all_stations()
-    except Exception as e:
-        print(f"❌ Unexpected Error fetching live stations from API: {e}")
-        print("🔄 Falling back to database query...")
-        stations = get_all_stations()
-        
-    # 3. Fallback to Database if no stations found via API
-    if not stations:
-        print("⚠️ No stations found via API. Falling back to database...")
-        stations = get_all_stations()
-
-    # 4. Override images and locationsกับ Admin-saved custom data
-    try:
-        db_stations = {str(s['id']): s for s in get_all_stations()}
-        for st in stations:
-            st_id_str = str(st['id'])
-            if st_id_str in db_stations:
-                saved = db_stations[st_id_str]
-                # Priority: 1. DB saved value, 2. API value
-                if saved.get('name'): st['name'] = saved['name']
-                if saved.get('location'): st['location'] = saved['location']
-                if saved.get('image_url'): st['image_url'] = saved['image_url']
-                # print(f"DEBUG: Syncing {st_id_str} from DB -> Name: {st['name']}, Image: {st['image_url'][:30]}...")
+        for item in db_items:
+            # Ensure all required fields are present and valid for LINE Flex Message
+            st_id = str(item.get('id', ''))
+            st_name = item.get('name') or f"Station {st_id}"
+            st_location = item.get('location') or "ไม่ระบุตำแหน่ง"
+            st_image = item.get('image_url')
             
-            # Final check to ensure NO field is empty (LINE requires non-empty strings)
-            if not st.get('name'):
-                st['name'] = f"Station {st.get('id', 'Unknown')}"
-                
-            if not st.get('location') or str(st['location']).strip() == '':
-                st['location'] = "ไม่ระบุตำแหน่ง"
-                
-            if not st.get('image_url') or str(st['image_url']).strip() == '' or str(st['image_url']).lower() == 'none':
-                st['image_url'] = "https://img1.pic.in.th/images/Gemini_Generated_Image_cxndnqcxndnqcxnd.png"
-    except Exception as e:
-        print(f"⚠️ Error overriding custom data: {e}")
+            # Use default image if none provided
+            if not st_image or str(st_image).strip() == '' or str(st_image).lower() == 'none':
+                st_image = "https://img1.pic.in.th/images/Gemini_Generated_Image_cxndnqcxndnqcxnd.png"
 
-    # 5. Sort stations: Static first, then Float, then others
-    def sort_key(s):
-        name = s.get('name', '').lower()
-        if 'static' in name: return (0, name)
-        elif 'float' in name: return (1, name)
-        return (2, name)
+            stations.append({
+                'id': st_id,
+                'name': st_name,
+                'location': st_location,
+                'image_url': st_image
+            })
+            
+        print(f"✅ Loaded {len(stations)} stations directly from Database")
+
+    except Exception as e:
+        print(f"❌ Error fetching stations from Database: {e}")
+        import traceback
+        traceback.print_exc()
+
+    # 2. Sort stations: CHIRPSTACK first, then alphabetical
+    # Note: If we had network_mode in the returned dict, we could sort by it.
+    # For now, just alphabetize by name.
+    stations.sort(key=lambda s: s.get('name', '').lower())
+    
+    return stations
 
     stations.sort(key=sort_key)
     return stations

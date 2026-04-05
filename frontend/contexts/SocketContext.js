@@ -31,7 +31,11 @@ export const SocketProvider = ({ children }) => {
     }, [displayMode]);
 
     useEffect(() => {
-        const socket = io(SOCKET_URL);
+        const socket = io(SOCKET_URL, {
+            extraHeaders: {
+                "ngrok-skip-browser-warning": "true"
+            }
+        });
         socketRef.current = socket;
 
         socket.on("sensor-update", (newData) => {

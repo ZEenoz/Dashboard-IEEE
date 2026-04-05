@@ -37,7 +37,9 @@ export default function AnalyticsPage() {
             setIsLoading(true);
             try {
                 // Fetch aggregated data from backend, removing the 10000 limit limit
-                const res = await fetch(`${API_URL}/history?range=${timeRange}&aggregate=true`);
+                const res = await fetch(`${API_URL}/history?range=${timeRange}&aggregate=true`, {
+                    headers: { 'ngrok-skip-browser-warning': 'true' }
+                });
                 if (!res.ok) throw new Error('Failed to fetch from backend');
                 const data = await res.json();
 
@@ -59,7 +61,9 @@ export default function AnalyticsPage() {
     // Fetch Settings
     const [settings, setSettings] = useState(null);
     useEffect(() => {
-        fetch(`${API_URL}/settings`)
+        fetch(`${API_URL}/settings`, {
+            headers: { 'ngrok-skip-browser-warning': 'true' }
+        })
             .then(res => {
                 if (!res.ok) throw new Error('Failed to fetch from backend');
                 return res.json();

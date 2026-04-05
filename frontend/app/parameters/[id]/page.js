@@ -26,7 +26,9 @@ function ExportModal({ stationId, stationName, onClose }) {
         toast.loading('Exporting CSV...', { id: 'csv-export' });
         try {
             const url = `${API}/export?start_date=${fromDate}&end_date=${toDate}&station_id=${stationId}`;
-            const res = await fetch(url);
+            const res = await fetch(url, {
+                headers: { 'ngrok-skip-browser-warning': 'true' }
+            });
             if (!res.ok) throw new Error('Export failed');
             const blob = await res.blob();
             const link = document.createElement('a');
@@ -123,7 +125,9 @@ function ThresholdPanel({ stationId }) {
 
     // Load existing config
     useEffect(() => {
-        fetch(`${API}/station-config/${stationId}`)
+        fetch(`${API}/station-config/${stationId}`, {
+            headers: { 'ngrok-skip-browser-warning': 'true' }
+        })
             .then(r => r.json())
             .then(data => {
                 if (data.warning_level != null) setWarningLevel(String(data.warning_level));
@@ -138,7 +142,8 @@ function ThresholdPanel({ stationId }) {
             const res = await fetch(`${API}/station-config/${stationId}`, {
                 method: 'POST',
                 headers: { 
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': 'true'
                     // Authorized via session cookie or internal API key from env
                 },
                 body: JSON.stringify({
@@ -237,7 +242,9 @@ export default function SensorDetailsPage() {
     const [mapStyle, setMapStyle] = useState('dark'); // 'dark' | 'satellite'
 
     useEffect(() => {
-        fetch(`${API}/settings`)
+        fetch(`${API}/settings`, {
+            headers: { 'ngrok-skip-browser-warning': 'true' }
+        })
             .then(res => {
                 if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
                 return res.json();

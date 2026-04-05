@@ -18,7 +18,10 @@ export default function UserManagement() {
         try {
             setLoading(true);
             const res = await fetch(`${API_URL}/users`, {
-                headers: { 'x-api-key': 'IEEE_SECURE_API_KEY_2025' }
+                headers: { 
+                    'x-api-key': 'IEEE_SECURE_API_KEY_2025',
+                    'ngrok-skip-browser-warning': 'true'
+                }
             });
             const data = await res.json();
             setUsers(Array.isArray(data) ? data : []);
@@ -41,7 +44,11 @@ export default function UserManagement() {
                 // Update
                 const res = await fetch(`${API_URL}/users/${editingUser.id}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'x-api-key': 'IEEE_SECURE_API_KEY_2025' },
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'x-api-key': 'IEEE_SECURE_API_KEY_2025',
+                        'ngrok-skip-browser-warning': 'true'
+                    },
                     body: JSON.stringify({
                         role: form.role,
                         is_active: form.is_active,
@@ -56,7 +63,11 @@ export default function UserManagement() {
                 // Create
                 const res = await fetch(`${API_URL}/users`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-api-key': 'IEEE_SECURE_API_KEY_2025' },
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'x-api-key': 'IEEE_SECURE_API_KEY_2025',
+                        'ngrok-skip-browser-warning': 'true'
+                    },
                     body: JSON.stringify({
                         username: form.username,
                         password: form.password,
@@ -80,7 +91,7 @@ export default function UserManagement() {
     const handleDelete = async (id) => {
         if (!confirm('Are you sure you want to delete this user?')) return;
         try {
-            const res = await fetch(`${API_URL}/users/${id}`, { method: 'DELETE', headers: { 'x-api-key': 'IEEE_SECURE_API_KEY_2025' } });
+            const res = await fetch(`${API_URL}/users/${id}`, { method: 'DELETE', headers: { 'x-api-key': 'IEEE_SECURE_API_KEY_2025', 'ngrok-skip-browser-warning': 'true' } });
             if (!res.ok) {
                 const error = await res.json();
                 throw new Error(error.error || 'Failed to delete user');

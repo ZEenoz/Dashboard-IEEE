@@ -75,7 +75,14 @@ export default function SettingsPage() {
 
     // Fetch Settings
     useEffect(() => {
-        fetch(`${API_URL}/settings`, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } })
+        fetch(`${API_URL}/settings`, { 
+            cache: 'no-store', 
+            headers: { 
+                'Cache-Control': 'no-cache', 
+                'Pragma': 'no-cache',
+                'ngrok-skip-browser-warning': 'true'
+            } 
+        })
             .then(res => res.json())
             .then(data => {
                 setSettings(data);
@@ -141,7 +148,11 @@ export default function SettingsPage() {
         try {
             const res = await fetch(`${API_URL}/settings`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-api-key': 'IEEE_SECURE_API_KEY_2025' },
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'x-api-key': 'IEEE_SECURE_API_KEY_2025',
+                    'ngrok-skip-browser-warning': 'true'
+                },
                 body: JSON.stringify(settings)
             });
             if (res.ok) {
@@ -299,7 +310,11 @@ export default function SettingsPage() {
                                                         try {
                                                             const res = await fetch(`${API_URL}/test-notify`, {
                                                                 method: 'POST',
-                                                                headers: { 'Content-Type': 'application/json', 'x-api-key': 'IEEE_SECURE_API_KEY_2025' },
+                                                                headers: { 
+                                                                    'Content-Type': 'application/json', 
+                                                                    'x-api-key': 'IEEE_SECURE_API_KEY_2025',
+                                                                    'ngrok-skip-browser-warning': 'true'
+                                                                },
                                                                 body: JSON.stringify({ token: settings.lineNotify?.token })
                                                             });
                                                             const data = await res.json();

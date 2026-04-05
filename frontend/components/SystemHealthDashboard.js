@@ -30,7 +30,9 @@ export default function SystemHealthDashboard() {
     const [history, setHistory] = useState([]);
 
     const fetchHealth = () => {
-        fetch(`${API_URL}/system-health`)
+        fetch(`${API_URL}/system-health`, {
+            headers: { 'ngrok-skip-browser-warning': 'true' }
+        })
             .then(res => res.json())
             .then(data => {
                 setHealth(data);

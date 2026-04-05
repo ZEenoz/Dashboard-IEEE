@@ -469,7 +469,9 @@ export default function AnalyticsPage() {
                                     const url = `${API_URL}/export?start_date=${start}&end_date=${end}&station_id=${station}`;
                                     try {
                                         toast.loading('Exporting CSV...', { id: 'csv-export' });
-                                        const res = await fetch(url);
+                                        const res = await fetch(url, {
+                                            headers: { 'ngrok-skip-browser-warning': 'true' }
+                                        });
                                         if (!res.ok) throw new Error('Export failed');
                                         const blob = await res.blob();
                                         const link = document.createElement('a');

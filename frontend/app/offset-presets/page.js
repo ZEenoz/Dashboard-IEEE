@@ -48,7 +48,14 @@ export default function OffsetPresetsPage() {
 
     // Fetch settings & presets
     useEffect(() => {
-        const fetchOpts = { cache: 'no-store', headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } };
+        const fetchOpts = { 
+            cache: 'no-store', 
+            headers: { 
+                'Cache-Control': 'no-cache', 
+                'Pragma': 'no-cache',
+                'ngrok-skip-browser-warning': 'true'
+            } 
+        };
         Promise.all([
             fetch(`${API_URL}/settings`, fetchOpts).then(r => r.json()),
             fetch(`${API_URL}/offset-presets`, fetchOpts).then(r => r.json()).catch(() => [])
@@ -166,7 +173,11 @@ export default function OffsetPresetsPage() {
             // 1. Save presets config
             const resPresets = await fetch(`${API_URL}/offset-presets`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-api-key': 'IEEE_SECURE_API_KEY_2025' },
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'x-api-key': 'IEEE_SECURE_API_KEY_2025',
+                    'ngrok-skip-browser-warning': 'true'
+                },
                 body: JSON.stringify(presets)
             });
             if (!resPresets.ok) throw new Error(`Failed to save presets: ${resPresets.statusText}`);
@@ -183,7 +194,11 @@ export default function OffsetPresetsPage() {
 
             const resSettings = await fetch(`${API_URL}/settings`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-api-key': 'IEEE_SECURE_API_KEY_2025' },
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'x-api-key': 'IEEE_SECURE_API_KEY_2025',
+                    'ngrok-skip-browser-warning': 'true'
+                },
                 body: JSON.stringify(updatedSettings)
             });
             if (!resSettings.ok) throw new Error(`Failed to save settings: ${resSettings.statusText}`);

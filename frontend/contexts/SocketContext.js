@@ -79,21 +79,19 @@ export const SocketProvider = ({ children }) => {
         // 🆕 Handle Initial Data (Load History on Refresh)
         socket.on("init-data", (fullHistory) => {
             console.log("📥 Received Initial History:", fullHistory);
-
+            
             // Flatten history into a single array for the charts
             let combinedHistory = [];
-            Object.values(fullHistory).forEach(deviceHistory => {
+            Object.values(fullHistory || {}).forEach(deviceHistory => {
                 deviceHistory.forEach(entry => {
-                    // Ensure timestamp logic matches
                     const now = new Date();
-                    // If entry.rawTimestamp is string from JSON, parse it
-                    const rawTime = new Date(entry.rawTimestamp || entry.time).getTime(); // Fallback
+                    const rawTime = new Date(entry.rawTimestamp || entry.time || entry.timestamp).getTime();
                     const twentyFourHoursAgo = now.getTime() - (24 * 60 * 60 * 1000);
 
                     if (rawTime > twentyFourHoursAgo) {
                         combinedHistory.push({
                             ...entry,
-                            timestamp: entry.timestamp || entry.time, // 🟢 Fix: Ensure timestamp exists
+                            timestamp: entry.timestamp || entry.time,
                             rawTimestamp: rawTime
                         });
                     }
@@ -103,40 +101,14 @@ export const SocketProvider = ({ children }) => {
             // Sort by time
             combinedHistory.sort((a, b) => a.rawTimestamp - b.rawTimestamp);
             setHistory(combinedHistory);
+        });
 
-            // 🟢 Hydrate 'stations' state with the latest data from history
-            const latestStations = {};
-            Object.keys(fullHistory).forEach(stationId => {
-                const stationData = fullHistory[stationId];
-                if (stationData && stationData.length > 0) {
-                    // Get the last entry (assuming sorted or we just take the last one pushed)
-                    // The backend likely sends them in order, but let's be safe and sort specifically for this
-                    const sorted = [...stationData].sort((a, b) => {
-                        const timeA = new Date(a.rawTimestamp || a.timestamp).getTime();
-                        const timeB = new Date(b.rawTimestamp || b.timestamp).getTime();
-                        return timeA - timeB;
-                    });
-
-                    const latest = sorted[sorted.length - 1];
-                    const now = new Date(latest.rawTimestamp || latest.timestamp);
-
-                    // Convert Water Level from cm to m if needed (heuristic or backend logic)
-                    // Backend sends mixed units sometimes, so we ensure consistency here if needed
-                    // But assuming 'latest' is raw from backend, we apply same enrichment
-                    const waterLevelMeters = latest.waterLevel ? latest.waterLevel : 0;
-
-                    latestStations[stationId] = {
-                        ...latest,
-                        waterLevel: waterLevelMeters,
-                        stationId: stationId, // Ensure ID is present
-                        timestamp: now.toLocaleTimeString(),
-                        fullDate: now.toISOString(),
-                        rawTimestamp: now.getTime()
-                    };
-                }
-            });
-
-            setRawStations(prev => ({ ...prev, ...latestStations }));
+        // 🆕 New: Receiving the latest known state for each station (Instant Cards)
+        socket.on("latest-readings", (data) => {
+            console.log("📥 Received Latest Readings:", data);
+            if (data && Object.keys(data).length > 0) {
+                setRawStations(prev => ({ ...prev, ...data }));
+            }
         });
 
         socket.on("system-mode", (mode) => {
@@ -186,7 +158,10 @@ export const SocketProvider = ({ children }) => {
     const stations = React.useMemo(() => {
         return Object.fromEntries(
             Object.entries(rawStations).filter(([id, data]) => {
-                const nodeMode = data.networkMode || 'TTN';
+                // If it's the new format with networkMode, filter strictly
+                // Otherwise, if missing networkMode, show it as a fallback
+                const nodeMode = data.networkMode;
+                if (!nodeMode) return true; // Allow stations with no mode defined
                 return nodeMode === systemMode;
             })
         );

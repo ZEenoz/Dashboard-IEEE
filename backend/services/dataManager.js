@@ -160,8 +160,50 @@ async function getHistory(hours = 48) {
     return {};
 }
 
+// Get Latest Readings (for initial load)
+async function getLatestReadings() {
+    if (!usePostgres) return {};
+    const pool = getPool();
+    if (!pool) return {};
+
+    try {
+        const sql = `
+            SELECT DISTINCT ON (r.station_id) 
+                r.station_id, 
+                r.offset_water_level as "waterLevel", 
+                r.water_level as "rawLevel",
+                r.battery, 
+                r.battery_voltage as "batteryVoltage", 
+                r.sensor_type as "sensorType", 
+                r.latitude as lat, 
+                r.longitude as lng, 
+                r.location_source as src, 
+                r.timestamp,
+                s.network_mode as "networkMode"
+            FROM readings r
+            LEFT JOIN stations s ON r.station_id = s.station_id
+            ORDER BY r.station_id, r.timestamp DESC;
+        `;
+        const res = await pool.query(sql);
+        const latest = {};
+        res.rows.forEach(row => {
+            latest[row.station_id] = {
+                ...row,
+                timestamp: new Date(row.timestamp).toLocaleTimeString(),
+                fullDate: new Date(row.timestamp).toISOString(),
+                rawTimestamp: new Date(row.timestamp).getTime()
+            };
+        });
+        return latest;
+    } catch (err) {
+        console.error('⚠️ Latest Readings Error:', err.message);
+        return {};
+    }
+}
+
 module.exports = {
     initDataManager,
     saveReading,
-    getHistory
+    getHistory,
+    getLatestReadings
 };

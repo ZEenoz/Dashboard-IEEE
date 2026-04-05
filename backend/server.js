@@ -39,9 +39,18 @@ app.use((req, res, next) => {
 app.use('/api', apiRoutes);
 
 // Socket.io
-io.on('connection', (socket) => {
+io.on('connection', async (socket) => {
     console.log('👤 Client Connected');
+    
+    // 1. Send History (for charts)
     socket.emit('init-data', getStationHistory());
+    
+    // 2. Send Latest per Station (for cards) - NEW
+    const { getLatestReadings } = require('./services/dataManager');
+    const latest = await getLatestReadings();
+    socket.emit('latest-readings', latest);
+
+    // 3. System Mode
     const settingsMod = require('./config/settings');
     socket.emit('system-mode', settingsMod.getSettings().networkMode || 'TTN');
 });

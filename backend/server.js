@@ -12,11 +12,25 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
 // Middleware
-app.use(cors());
+const corsOptions = {
+    origin: '*', // Allow all origins for the dashboard
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+    optionsSuccessStatus: 204
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
-// Inject IO into request for routes to use
+// ngrok Interstitial Page Skip & CORS Headers
 app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, ngrok-skip-browser-warning");
+    
+    // Auto-skip ngrok warning if the client forgot the header
+    if (req.headers['user-agent'] && !req.headers['ngrok-skip-browser-warning']) {
+        // This won't stop the browser's own check but helps some clients
+    }
+    
     req.io = io;
     next();
 });

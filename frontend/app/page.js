@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useSocket } from "@/contexts/SocketContext";
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';

@@ -62,7 +62,7 @@ const SidebarStationItem = React.memo(({ st, type, onFly, onDetails }) => {
             {st.stationName || st.id || 'Unknown'}
           </div>
           <div className={`text-[11px] ${theme.accent} font-medium mt-1`}>
-            {st.lat?.toFixed(3)}, {st.lng?.toFixed(3)}
+            {(Number(st.lat) || 0).toFixed(3)}, {(Number(st.lng) || 0).toFixed(3)}
           </div>
         </div>
       </button>

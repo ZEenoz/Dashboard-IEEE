@@ -309,9 +309,9 @@ export default function SensorDetailsPage() {
         if (chartData.length === 0) return { min: 0, max: 0, avg: 0 };
         const values = chartData.map(d => d.value);
         return {
-            min: Math.min(...values).toFixed(2),
-            max: Math.max(...values).toFixed(2),
-            avg: (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2)
+            min: values.length > 0 ? Math.min(...values).toFixed(2) : "0.00",
+            max: values.length > 0 ? Math.max(...values).toFixed(2) : "0.00",
+            avg: values.length > 0 ? (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2) : "0.00"
         };
     }, [chartData]);
 
@@ -393,7 +393,7 @@ export default function SensorDetailsPage() {
                     <div className="p-2.5 bg-blue-500/10 rounded-xl text-blue-500 border border-blue-500/20"><MapPin size={18} /></div>
                     <div className="overflow-hidden">
                         <p className="text-[10px] uppercase font-bold text-gray-500 tracking-[0.2em] mb-0.5">Location (GPS)</p>
-                        <p className="text-sm font-bold text-gray-200 tabular-nums truncate">{Math.abs(station.lat || 0).toFixed(4)}° {station.lat >= 0 ? 'N' : 'S'}, {Math.abs(station.lng || 0).toFixed(4)}° {station.lng >= 0 ? 'E' : 'W'}</p>
+                        <p className="text-sm font-bold text-gray-200 tabular-nums truncate">{(Number(station.lat) || 0).toFixed(4)}° {station.lat >= 0 ? 'N' : 'S'}, {(Number(station.lng) || 0).toFixed(4)}° {station.lng >= 0 ? 'E' : 'W'}</p>
                     </div>
                 </div>
                 <div className="p-4 flex items-center gap-4 border-b border-gray-800 lg:border-b-0">
@@ -538,7 +538,7 @@ export default function SensorDetailsPage() {
                             <p className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.3em] mb-4">Current Water Level</p>
                             <div className="flex items-baseline justify-center gap-2">
                                 <span className="text-8xl font-bold tracking-tighter text-white drop-shadow-2xl">
-                                    {Number(displayMode === 'raw' ? (station.rawLevel ?? station.waterLevel) : (station.waterLevel ?? 0)).toFixed(3)}
+                                    {(Number(displayMode === 'raw' ? (station.rawLevel ?? station.waterLevel) : (station.waterLevel ?? 0)) || 0).toFixed(3)}
                                 </span>
                                 <span className="text-2xl font-normal text-gray-500">m</span>
                             </div>

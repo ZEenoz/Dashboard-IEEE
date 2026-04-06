@@ -270,7 +270,7 @@ export default function HistoryPage() {
                                             <td className="px-4 md:px-6 py-4 border-r border-gray-800/50">
                                                 <div className="flex items-center gap-2">
                                                     <span className={`${item.sensorType === 'Float' ? 'text-blue-400' : 'text-purple-400'} font-bold tabular-nums`}>
-                                                        {Number(displayMode === 'raw' ? (item.rawLevel ?? item.waterLevel) : (item.waterLevel ?? 0)).toFixed(3)}m
+                                                        {(Number(displayMode === 'raw' ? (item.rawLevel ?? item.waterLevel) : (item.waterLevel ?? 0)) || 0).toFixed(3)}m
                                                     </span>
                                                 </div>
                                             </td>

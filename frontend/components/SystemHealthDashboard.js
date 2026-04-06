@@ -1,6 +1,4 @@
-"use client";
-
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Activity,
     Server,
@@ -24,7 +22,7 @@ import {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
-export default function SystemHealthDashboard() {
+const SystemHealthDashboard = React.memo(() => {
     const [health, setHealth] = useState(null);
     const [loading, setLoading] = useState(true);
     const [history, setHistory] = useState([]);
@@ -40,8 +38,8 @@ export default function SystemHealthDashboard() {
                 setHistory(prev => {
                     const stats = {
                         time: new Date().toLocaleTimeString(),
-                        cup: data.cpu?.currentLoad || 0,
-                        mem: data.memory?.percent || 0
+                        cup: Number(data.cpu?.currentLoad) || 0,
+                        mem: Number(data.memory?.percent) || 0
                     };
                     const newHistory = [...prev, stats];
                     if (newHistory.length > 20) newHistory.shift();
@@ -60,11 +58,13 @@ export default function SystemHealthDashboard() {
         return () => clearInterval(interval);
     }, []);
 
+    // Helper for safe number formatting
+    const safeFixed = (val, digits = 1) => (Number(val) || 0).toFixed(digits);
+
     if (loading) return <div className="p-4 text-center text-gray-500">Loading System Health...</div>;
     if (!health) return <div className="p-4 text-center text-red-500">System Offline</div>;
 
     // Helpers for status colors
-    const getStatusColor = (status) => status === 'connected' || status === true ? 'text-green-500' : 'text-red-500';
     const getLoadColor = (value) => value > 80 ? 'bg-red-500' : value > 50 ? 'bg-yellow-500' : 'bg-green-500';
 
     return (
@@ -78,7 +78,7 @@ export default function SystemHealthDashboard() {
                     <div>
                         <div className="text-xs text-gray-500 uppercase font-bold">Uptime</div>
                         <div className="text-lg font-mono font-bold text-white">
-                            {(health.server?.uptime / 3600).toFixed(1)}h
+                            {safeFixed(health.server?.uptime / 3600, 1)}h
                         </div>
                     </div>
                 </div>
@@ -89,12 +89,12 @@ export default function SystemHealthDashboard() {
                     </div>
                     <div>
                         <div className="text-xs text-gray-500 uppercase font-bold">Database</div>
-                        <div className="text-lg font-bold text-white uppercase">{health.database?.status}</div>
+                        <div className="text-lg font-bold text-white uppercase">{health.database?.status || 'Unknown'}</div>
                         <div className="text-xs text-gray-500">
                             {health.database?.size ? (
                                 <span>{health.database.size} • {new Intl.NumberFormat().format(health.database.rows)} rows</span>
                             ) : (
-                                <span>{health.database?.latency}ms</span>
+                                <span>{health.database?.latency || 0}ms</span>
                             )}
                         </div>
                     </div>
@@ -107,7 +107,7 @@ export default function SystemHealthDashboard() {
                     <div>
                         <div className="text-xs text-gray-500 uppercase font-bold">MQTT Broker</div>
                         <div className="text-lg font-bold text-white">{health.network?.mqtt?.connected ? 'Online' : 'Offline'}</div>
-                        <div className="text-xs text-gray-500">{health.network?.mqtt?.broker}</div>
+                        <div className="text-xs text-gray-500 truncate max-w-[120px]">{health.network?.mqtt?.broker || '—'}</div>
                     </div>
                 </div>
 
@@ -131,18 +131,18 @@ export default function SystemHealthDashboard() {
                         <h3 className="flex items-center gap-2 font-bold text-gray-300">
                             <Cpu className="w-5 h-5 text-blue-400" /> CPU Load
                         </h3>
-                        <span className="font-mono text-xl font-bold">{health.cpu?.currentLoad.toFixed(1)}%</span>
+                        <span className="font-mono text-xl font-bold">{safeFixed(health.cpu?.currentLoad, 1)}%</span>
                     </div>
                     <div className="w-full bg-gray-800 rounded-full h-2 mb-4">
                         <div
                             className={`h-2 rounded-full transition-all duration-500 ${getLoadColor(health.cpu?.currentLoad)}`}
-                            style={{ width: `${health.cpu?.currentLoad}%` }}
+                            style={{ width: `${Math.min(100, Number(health.cpu?.currentLoad) || 0)}%` }}
                         ></div>
                     </div>
                     <div className="h-32">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={history}>
-                                <Line type="monotone" dataKey="cup" stroke="#60A5FA" strokeWidth={2} dot={false} />
+                                <Line type="monotone" dataKey="cup" stroke="#60A5FA" strokeWidth={2} dot={false} isAnimationActive={false} />
                                 <YAxis hide domain={[0, 100]} />
                             </LineChart>
                         </ResponsiveContainer>
@@ -155,22 +155,22 @@ export default function SystemHealthDashboard() {
                         <h3 className="flex items-center gap-2 font-bold text-gray-300">
                             <Activity className="w-5 h-5 text-green-400" /> Memory
                         </h3>
-                        <span className="font-mono text-xl font-bold">{health.memory?.percent.toFixed(1)}%</span>
+                        <span className="font-mono text-xl font-bold">{safeFixed(health.memory?.percent, 1)}%</span>
                     </div>
                     <div className="w-full bg-gray-800 rounded-full h-2 mb-4">
                         <div
                             className={`h-2 rounded-full transition-all duration-500 ${getLoadColor(health.memory?.percent)}`}
-                            style={{ width: `${health.memory?.percent}%` }}
+                            style={{ width: `${Math.min(100, Number(health.memory?.percent) || 0)}%` }}
                         ></div>
                     </div>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                         <div className="bg-gray-800/50 p-2 rounded">
                             <div className="text-gray-500 text-xs">Used</div>
-                            <div className="font-mono">{(health.memory?.used / 1024 / 1024 / 1024).toFixed(2)} GB</div>
+                            <div className="font-mono">{safeFixed(health.memory?.used / 1024 / 1024 / 1024, 2)} GB</div>
                         </div>
                         <div className="bg-gray-800/50 p-2 rounded">
                             <div className="text-gray-500 text-xs">Total</div>
-                            <div className="font-mono">{(health.memory?.total / 1024 / 1024 / 1024).toFixed(2)} GB</div>
+                            <div className="font-mono">{safeFixed(health.memory?.total / 1024 / 1024 / 1024, 2)} GB</div>
                         </div>
                     </div>
                 </div>
@@ -181,17 +181,17 @@ export default function SystemHealthDashboard() {
                         <h3 className="flex items-center gap-2 font-bold text-gray-300">
                             <HardDrive className="w-5 h-5 text-purple-400" /> Disk Storage
                         </h3>
-                        <span className="font-mono text-xl font-bold">{health.disk?.percent?.toFixed(1)}%</span>
+                        <span className="font-mono text-xl font-bold">{safeFixed(health.disk?.percent, 1)}%</span>
                     </div>
                     <div className="w-full bg-gray-800 rounded-full h-2 mb-4">
                         <div
                             className={`h-2 rounded-full transition-all duration-500 bg-purple-500`}
-                            style={{ width: `${health.disk?.percent}%` }}
+                            style={{ width: `${Math.min(100, Number(health.disk?.percent) || 0)}%` }}
                         ></div>
                     </div>
-                    <div className="text-xs text-gray-500 mb-2">Platform</div>
-                    <div className="font-mono text-sm bg-gray-800 p-2 rounded truncate">
-                        {health.server?.distro} ({health.server?.platform})
+                    <div className="text-xs text-gray-500 mb-2 font-bold uppercase tracking-tighter">System Info</div>
+                    <div className="font-mono text-[10px] bg-gray-800 p-2 rounded truncate text-gray-300">
+                        {health.server?.distro} | {health.server?.platform}
                     </div>
                 </div>
             </div>
@@ -273,30 +273,30 @@ export default function SystemHealthDashboard() {
                                     {Array.isArray(health.nodes?.active) && health.nodes.active.map((node, idx) => (
                                         <tr key={idx} className="hover:bg-gray-800/30 transition-colors">
                                             <td className="p-3">
-                                                <div className="font-bold text-white">{node.name}</div>
-                                                <div className="text-xs font-mono text-gray-500">{node.stationId}</div>
+                                                <div className="font-bold text-white">{node.name || 'Unknown'}</div>
+                                                <div className="text-xs font-mono text-gray-500 truncate max-w-[150px]">{node.stationId}</div>
                                             </td>
                                             <td className="p-3">
-                                                <span className="font-mono text-blue-300">{node.waterLevel?.toFixed(2)} m</span>
+                                                <span className="font-mono text-blue-300">{safeFixed(node.waterLevel, 2)} m</span>
                                             </td>
                                             <td className="p-3">
                                                 <div className="flex items-center gap-2">
                                                     <div className={`w-8 h-2 rounded-full overflow-hidden bg-gray-700`}>
                                                         <div
-                                                            className={`h-full ${node.battery > 3.7 ? 'bg-green-500' : 'bg-red-500'}`}
-                                                            style={{ width: `${Math.min(100, (node.battery - 3.0) / 1.2 * 100)}%` }}
+                                                            className={`h-full ${Number(node.battery) > 3.7 ? 'bg-green-500' : 'bg-red-500'}`}
+                                                            style={{ width: `${Math.min(100, Math.max(0, (Number(node.battery) - 3.0) / 1.2 * 100))}%` }}
                                                         ></div>
                                                     </div>
-                                                    <span className="text-xs font-mono">{node.battery?.toFixed(2)}%</span>
+                                                    <span className="text-xs font-mono">{safeFixed(node.battery, 2)}%</span>
                                                 </div>
                                             </td>
                                             <td className="p-3 font-mono text-xs">
-                                                <div className={node.rssi > -100 ? 'text-green-500' : 'text-red-500'}>
-                                                    {node.rssi} dBm
+                                                <div className={Number(node.rssi) > -100 ? 'text-green-500' : 'text-red-500'}>
+                                                    {node.rssi || 0} dBm
                                                 </div>
                                             </td>
                                             <td className="p-3 text-right font-mono text-xs text-gray-300">
-                                                {new Date(node.lastSeen).toLocaleTimeString()}
+                                                {node.lastSeen ? new Date(node.lastSeen).toLocaleTimeString() : '—'}
                                             </td>
                                         </tr>
                                     ))}
@@ -308,4 +308,6 @@ export default function SystemHealthDashboard() {
             </div>
         </div>
     );
-}
+});
+
+export default SystemHealthDashboard;

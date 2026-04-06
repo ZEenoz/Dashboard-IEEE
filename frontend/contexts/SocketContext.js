@@ -105,9 +105,12 @@ export const SocketProvider = ({ children }) => {
 
         // 🆕 New: Receiving the latest known state for each station (Instant Cards)
         socket.on("latest-readings", (data) => {
-            console.log("📥 Received Latest Readings:", data);
+            console.log("📥 Received Latest Readings (Instant Cards):", data);
             if (data && Object.keys(data).length > 0) {
                 setRawStations(prev => ({ ...prev, ...data }));
+                console.log("✅ rawStations hydrated with latest data");
+            } else {
+                console.warn("⚠️ Received empty latest-readings data");
             }
         });
 
@@ -124,8 +127,8 @@ export const SocketProvider = ({ children }) => {
         return () => socket.disconnect();
     }, []);
 
-    // Function to calculate trend
-    const getTrend = (stationId, parameter, currentValue) => {
+    // 🆕 Optimized: Memoize getTrend function
+    const getTrend = React.useCallback((stationId, parameter, currentValue) => {
         if (!history || history.length === 0) return { direction: 'stable', color: 'text-gray-500', icon: '➡️' };
 
         const now = new Date().getTime();
@@ -147,13 +150,11 @@ export const SocketProvider = ({ children }) => {
             if (percentChange > 5) return { direction: 'rising-fast', color: 'text-red-500', icon: '⬆️' }; // Rising Fast
             return { direction: 'rising', color: 'text-orange-500', icon: '↗️' }; // Rising
         } else if (diff < 0) {
-            // For falling, we might want green if it's "good" (like pressure dropping to safe levels) or red if "bad".
-            // Based on user request: Falling = Green.
             return { direction: 'falling', color: 'text-green-500', icon: '⬇️' }; // Falling
         }
 
         return { direction: 'stable', color: 'text-gray-500', icon: '➡️' };
-    };
+    }, [history]);
 
     const stations = React.useMemo(() => {
         return Object.fromEntries(
@@ -167,19 +168,22 @@ export const SocketProvider = ({ children }) => {
         );
     }, [rawStations, systemMode]);
 
+    // 🆕 Optimized: Memoize context provider value to prevent re-rendering the whole tree
+    const contextValue = React.useMemo(() => ({
+        stations, 
+        history, 
+        sessionHistory, 
+        setSessionHistory, 
+        getTrend, 
+        lineNotifications, 
+        socket: socketRef.current, 
+        systemMode,
+        displayMode,
+        setDisplayMode
+    }), [stations, history, sessionHistory, getTrend, lineNotifications, systemMode, displayMode]);
+
     return (
-        <SocketContext.Provider value={{ 
-            stations, 
-            history, 
-            sessionHistory, 
-            setSessionHistory, 
-            getTrend, 
-            lineNotifications, 
-            socket: socketRef.current, 
-            systemMode,
-            displayMode,
-            setDisplayMode
-        }}>
+        <SocketContext.Provider value={contextValue}>
             {children}
         </SocketContext.Provider>
     );

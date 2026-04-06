@@ -3,7 +3,7 @@ import { Droplets, Gauge, Info, ArrowRight } from 'lucide-react';
 
 import { useSocket } from '@/contexts/SocketContext';
 
-const StationCard = ({ station, onClick }) => {
+const StationCard = React.memo(({ station, onClick }) => {
     const { displayMode } = useSocket();
     // --- Status Calculation ---
     const now = new Date();
@@ -13,7 +13,6 @@ const StationCard = ({ station, onClick }) => {
 
     // Active = received data within last 60 minutes (consistent with Parameters page)
     const isActive = diffMinutes < 60;
-    const isRecent = diffMinutes < 10; // within 10 mins = "Live"
 
     // --- Sensor Type & Theme ---
     const isFloat = station.type
@@ -89,22 +88,33 @@ const StationCard = ({ station, onClick }) => {
         >
             {/* === Top: Image / Gradient Header === */}
             <div
-                className={`h-40 w-full bg-gradient-to-br ${gradient} relative flex items-center justify-center bg-cover bg-no-repeat transition-all duration-500`}
-                style={station.imageUrl ? {
-                    backgroundImage: `url(${station.imageUrl})`,
-                    backgroundPosition: station.imagePosition
-                        ? `${station.imagePosition.x}% ${station.imagePosition.y}%`
-                        : 'center center'
-                } : {}}
+                className={`h-40 w-full bg-gradient-to-br ${gradient} relative flex items-center justify-center overflow-hidden transition-all duration-500`}
+                style={{ aspectRatio: '16/9' }}
             >
+                {/* Use real img for lazy loading and performance */}
+                {station.imageUrl ? (
+                    <img 
+                        src={station.imageUrl}
+                        alt={stationName}
+                        loading="lazy"
+                        decoding="async"
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        style={{ 
+                            objectPosition: station.imagePosition
+                                ? `${station.imagePosition.x}% ${station.imagePosition.y}%`
+                                : 'center center'
+                        }}
+                    />
+                ) : null}
+
                 {/* Dark overlay for images — improves badge legibility */}
                 {station.imageUrl && (
-                    <div className="absolute inset-0 bg-black/20" />
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
                 )}
 
                 {/* Fallback: Show sensor type icon when no image */}
                 {!station.imageUrl && (
-                    <div className={`${bgAccentSoft} p-4 rounded-full opacity-40`}>
+                    <div className={`${bgAccentSoft} p-4 rounded-full opacity-40 group-hover:opacity-60 transition-opacity`}>
                         <Icon className={`w-10 h-10 ${textAccent}`} />
                     </div>
                 )}
@@ -124,12 +134,10 @@ const StationCard = ({ station, onClick }) => {
             {/* === Bottom: Content Section === */}
             <div className="p-4 flex-1 flex flex-col justify-between bg-gray-800">
                 <div>
-                    {/* Station Name */}
                     <h3 className={`text-base font-bold text-white mb-1 leading-snug transition-colors ${isFloat ? 'group-hover:text-blue-400' : 'group-hover:text-purple-400'} truncate`}>
                         {stationName}
                     </h3>
 
-                    {/* Description — uses Info icon (not MapPin, which implies location) */}
                     {station.description && (
                         <p className="text-gray-400 text-xs flex items-start gap-1.5 mb-2 leading-relaxed">
                             <Info size={11} className="mt-0.5 flex-shrink-0 text-gray-500" />
@@ -138,9 +146,7 @@ const StationCard = ({ station, onClick }) => {
                     )}
                 </div>
 
-                {/* Stats Row */}
                 <div className="flex items-end justify-between border-t border-gray-700/70 pt-3 mt-2">
-                    {/* Water Level */}
                     <div className="flex flex-col">
                         <span className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-1">
                             Water Depth
@@ -164,7 +170,6 @@ const StationCard = ({ station, onClick }) => {
                         )}
                     </div>
 
-                    {/* Right: Battery + View hint */}
                     <div className="flex flex-col items-end gap-1">
                         {battery != null && (
                             <div className="flex flex-col items-end">
@@ -174,12 +179,11 @@ const StationCard = ({ station, onClick }) => {
                                 </span>
                             </div>
                         )}
-
                     </div>
                 </div>
             </div>
         </div>
     );
-};
+});
 
 export default StationCard;

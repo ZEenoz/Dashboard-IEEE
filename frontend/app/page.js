@@ -40,6 +40,62 @@ const getStatusTheme = (st, defaultType) => {
   };
 };
 
+// ─── Optimized Sidebar Item Component ──────────────────────────────────────
+const SidebarStationItem = React.memo(({ st, type, onFly, onDetails }) => {
+  const theme = getStatusTheme(st, type);
+  const Icon = type === 'float' ? Droplets : Gauge;
+
+  return (
+    <div
+      className={`flex items-center justify-between p-3 rounded-xl border transition-colors group ${theme.bg} ${theme.border}`}
+    >
+      <button
+        onClick={() => onFly(st)}
+        className="flex items-center gap-3 flex-1 text-left"
+        aria-label={`Locate ${st.stationName || 'station'} on map`}
+      >
+        <div className={`w-10 h-10 rounded-full ${theme.iconBg} flex items-center justify-center ${theme.text} shrink-0`}>
+          <Icon size={18} />
+        </div>
+        <div className="flex flex-col min-w-0 pr-2">
+          <div className="font-bold text-sm text-gray-100 break-words leading-tight" title={st.stationName}>
+            {st.stationName || st.id || 'Unknown'}
+          </div>
+          <div className={`text-[11px] ${theme.accent} font-medium mt-1`}>
+            {st.lat?.toFixed(3)}, {st.lng?.toFixed(3)}
+          </div>
+        </div>
+      </button>
+
+      <div className="flex items-center gap-3 shrink-0 pl-3 border-l border-gray-700/50">
+        <div className="text-right flex flex-col items-end">
+          <span className={`font-mono font-bold text-base ${theme.text}`}>
+            {Number(st.waterLevel ?? 0).toFixed(3)}m
+          </span>
+          {st.isRaw && (
+            <span className="text-[8px] font-bold text-indigo-400 uppercase tracking-tighter animate-pulse">
+              Raw
+            </span>
+          )}
+          {st.alertLevel && st.alertLevel !== 'normal' && (
+            <span className={`text-[10px] uppercase font-bold tracking-wider ${theme.text} mt-0.5`}>
+              {st.alertLevel}
+            </span>
+          )}
+        </div>
+        <button
+          onClick={() => onDetails(st.stationId)}
+          aria-label={`View details for ${st.stationName || 'station'}`}
+          className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors flex items-center justify-center border border-gray-700 shadow-sm"
+          title="View Details"
+        >
+          <ArrowRight size={16} />
+        </button>
+      </div>
+    </div>
+  );
+});
+
 export default function Home() {
   const { stations, history, displayMode, setDisplayMode } = useSocket();
   const router = useRouter();
@@ -78,7 +134,7 @@ export default function Home() {
     zoom: 12
   });
 
-  const flyToStation = (station) => {
+  const flyToStation = React.useCallback((station) => {
     if (!station.lat || !station.lng) return;
     setViewState({
       longitude: Number(station.lng),
@@ -86,7 +142,11 @@ export default function Home() {
       zoom: 15,
       transitionDuration: 1000
     });
-  };
+  }, []);
+
+  const handleGoToDetails = React.useCallback((id) => {
+    router.push(`/parameters/${id}`);
+  }, [router]);
 
   // State for Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -342,61 +402,15 @@ export default function Home() {
           <div>
             <h4 className="text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">Float Nodes</h4>
             <div className="space-y-3">
-              {floatNodes.map((st, i) => {
-                const theme = getStatusTheme(st, 'float');
-                return (
-                  <div
-                    key={st.stationId || i}
-                    className={`flex items-center justify-between p-3 rounded-xl border transition-colors group ${theme.bg} ${theme.border}`}
-                  >
-                    {/* Left side: Clickable to locate */}
-                    <button
-                      onClick={() => flyToStation(st)}
-                      className="flex items-center gap-3 flex-1 text-left"
-                      aria-label={`Locate ${st.stationName || 'station'} on map`}
-                    >
-                      <div className={`w-10 h-10 rounded-full ${theme.iconBg} flex items-center justify-center ${theme.text} shrink-0`}>
-                        <Droplets size={18} />
-                      </div>
-                      <div className="flex flex-col min-w-0 pr-2">
-                        <div className="font-bold text-sm text-gray-100 break-words leading-tight" title={st.stationName}>
-                          {st.stationName || st.id || 'Unknown'}
-                        </div>
-                        <div className={`text-[11px] ${theme.accent} font-medium mt-1`}>
-                          {st.lat?.toFixed(3)}, {st.lng?.toFixed(3)}
-                        </div>
-                      </div>
-                    </button>
-
-                    {/* Right side: Water level + Details Link */}
-                    <div className="flex items-center gap-3 shrink-0 pl-3 border-l border-gray-700/50">
-                      <div className="text-right flex flex-col items-end">
-                        <span className={`font-mono font-bold text-base ${theme.text}`}>
-                          {Number(st.waterLevel ?? 0).toFixed(3)}m
-                        </span>
-                        {st.isRaw && (
-                          <span className="text-[8px] font-bold text-indigo-400 uppercase tracking-tighter animate-pulse">
-                            Raw
-                          </span>
-                        )}
-                        {st.alertLevel && st.alertLevel !== 'normal' && (
-                          <span className={`text-[10px] uppercase font-bold tracking-wider ${theme.text} mt-0.5`}>
-                            {st.alertLevel}
-                          </span>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => router.push(`/parameters/${st.stationId}`)}
-                        aria-label={`View details for ${st.stationName || 'station'}`}
-                        className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors flex items-center justify-center border border-gray-700 shadow-sm"
-                        title="View Details"
-                      >
-                        <ArrowRight size={16} />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+              {floatNodes.map((st, i) => (
+                <SidebarStationItem 
+                  key={st.stationId || i}
+                  st={st}
+                  type="float"
+                  onFly={flyToStation}
+                  onDetails={handleGoToDetails}
+                />
+              ))}
             </div>
           </div>
 
@@ -404,61 +418,15 @@ export default function Home() {
           <div>
             <h4 className="text-xs font-bold text-gray-500 uppercase mb-2 mt-4 tracking-wider">Static Nodes</h4>
             <div className="space-y-3">
-              {staticNodes.map((st, i) => {
-                const theme = getStatusTheme(st, 'static');
-                return (
-                  <div
-                    key={st.stationId || i}
-                    className={`flex items-center justify-between p-3 rounded-xl border transition-colors group ${theme.bg} ${theme.border}`}
-                  >
-                    {/* Left side: Clickable to locate */}
-                    <button
-                      onClick={() => flyToStation(st)}
-                      className="flex items-center gap-3 flex-1 text-left"
-                      aria-label={`Locate ${st.stationName || 'station'} on map`}
-                    >
-                      <div className={`w-10 h-10 rounded-full ${theme.iconBg} flex items-center justify-center ${theme.text} shrink-0`}>
-                        <Gauge size={18} />
-                      </div>
-                      <div className="flex flex-col min-w-0 pr-2">
-                        <div className="font-bold text-sm text-gray-100 break-words leading-tight" title={st.stationName}>
-                          {st.stationName || st.id || 'Unknown'}
-                        </div>
-                        <div className={`text-[11px] ${theme.accent} font-medium mt-1`}>
-                          {st.lat?.toFixed(3)}, {st.lng?.toFixed(3)}
-                        </div>
-                      </div>
-                    </button>
-
-                    {/* Right side: Water level + Details Link */}
-                    <div className="flex items-center gap-3 shrink-0 pl-3 border-l border-gray-700/50">
-                      <div className="text-right flex flex-col items-end">
-                        <span className={`font-mono font-bold text-base ${theme.text}`}>
-                          {Number(st.waterLevel ?? 0).toFixed(3)}m
-                        </span>
-                        {st.isRaw && (
-                          <span className="text-[8px] font-bold text-indigo-400 uppercase tracking-tighter animate-pulse">
-                            Raw
-                          </span>
-                        )}
-                        {st.alertLevel && st.alertLevel !== 'normal' && (
-                          <span className={`text-[10px] uppercase font-bold tracking-wider ${theme.text} mt-0.5`}>
-                            {st.alertLevel}
-                          </span>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => router.push(`/parameters/${st.stationId}`)}
-                        aria-label={`View details for ${st.stationName || 'station'}`}
-                        className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors flex items-center justify-center border border-gray-700 shadow-sm"
-                        title="View Details"
-                      >
-                        <ArrowRight size={16} />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+              {staticNodes.map((st, i) => (
+                <SidebarStationItem 
+                  key={st.stationId || i}
+                  st={st}
+                  type="static"
+                  onFly={flyToStation}
+                  onDetails={handleGoToDetails}
+                />
+              ))}
             </div>
           </div>
 

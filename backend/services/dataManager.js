@@ -169,7 +169,8 @@ async function getLatestReadings() {
     try {
         const sql = `
             SELECT DISTINCT ON (r.station_id) 
-                r.station_id, 
+                r.station_id as "stationId", 
+                s.name as "stationName",
                 r.offset_water_level as "waterLevel", 
                 r.water_level as "rawLevel",
                 r.battery, 
@@ -187,7 +188,8 @@ async function getLatestReadings() {
         const res = await pool.query(sql);
         const latest = {};
         res.rows.forEach(row => {
-            latest[row.station_id] = {
+            // Map row to frontend format
+            latest[row.stationId] = {
                 ...row,
                 timestamp: new Date(row.timestamp).toLocaleTimeString(),
                 fullDate: new Date(row.timestamp).toISOString(),

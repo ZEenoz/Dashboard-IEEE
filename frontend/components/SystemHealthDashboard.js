@@ -65,84 +65,79 @@ const SystemHealthDashboard = React.memo(() => {
     if (!health) return <div className="p-4 text-center text-red-500">System Offline</div>;
 
     // Helpers for status colors
-    const getLoadColor = (value) => value > 80 ? 'bg-red-500' : value > 50 ? 'bg-yellow-500' : 'bg-green-500';
+    const getLoadColor = (value) => value > 80 ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.3)]' : value > 50 ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.3)]' : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.3)]';
 
     return (
-        <div className="space-y-6 fade-in">
-            {/* Top Status Bar */}
+        <div className="space-y-6 fade-in px-1">
+            {/* Top Status Bar - Refined Glassmorphism */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-700 flex items-center gap-4">
-                    <div className={`p-3 rounded-lg bg-blue-500/10 text-blue-400`}>
+                <div className="bg-gray-900/40 p-4 rounded-xl border border-white/5 backdrop-blur-sm flex items-center gap-4 hover:bg-gray-800/40 transition-all">
+                    <div className={`p-3 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20`}>
                         <Clock className="w-6 h-6" />
                     </div>
                     <div>
-                        <div className="text-xs text-gray-500 uppercase font-bold">Uptime</div>
-                        <div className="text-lg font-mono font-bold text-white">
-                            {safeFixed(health.server?.uptime / 3600, 1)}h
+                        <div className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-0.5">Uptime</div>
+                        <div className="text-lg font-mono font-bold text-white tracking-tighter">
+                            {safeFixed(health.server?.uptime / 3600, 1)}<span className="text-xs ml-0.5 opacity-50">h</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-700 flex items-center gap-4">
-                    <div className={`p-3 rounded-lg ${health.database?.status === 'connected' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                <div className="bg-gray-900/40 p-4 rounded-xl border border-white/5 backdrop-blur-sm flex items-center gap-4 hover:bg-gray-800/40 transition-all">
+                    <div className={`p-3 rounded-lg ${health.database?.status === 'connected' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
                         <Database className="w-6 h-6" />
                     </div>
                     <div>
-                        <div className="text-xs text-gray-500 uppercase font-bold">Database</div>
-                        <div className="text-lg font-bold text-white uppercase">{health.database?.status || 'Unknown'}</div>
-                        <div className="text-xs text-gray-500">
-                            {health.database?.size ? (
-                                <span>{health.database.size} • {new Intl.NumberFormat().format(health.database.rows)} rows</span>
-                            ) : (
-                                <span>{health.database?.latency || 0}ms</span>
-                            )}
+                        <div className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-0.5">Database</div>
+                        <div className={`text-lg font-black uppercase tracking-tight ${health.database?.status === 'connected' ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {health.database?.status || 'Unknown'}
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-700 flex items-center gap-4">
-                    <div className={`p-3 rounded-lg ${health.network?.mqtt?.connected ? 'bg-purple-500/10 text-purple-500' : 'bg-red-500/10 text-red-500'}`}>
+                <div className="bg-gray-900/40 p-4 rounded-xl border border-white/5 backdrop-blur-sm flex items-center gap-4 hover:bg-gray-800/40 transition-all">
+                    <div className={`p-3 rounded-lg ${health.network?.mqtt?.connected ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
                         <Wifi className="w-6 h-6" />
                     </div>
                     <div>
-                        <div className="text-xs text-gray-500 uppercase font-bold">MQTT Broker</div>
-                        <div className="text-lg font-bold text-white">{health.network?.mqtt?.connected ? 'Online' : 'Offline'}</div>
-                        <div className="text-xs text-gray-500 truncate max-w-[120px]">{health.network?.mqtt?.broker || '—'}</div>
+                        <div className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-0.5">MQTT Broker</div>
+                        <div className={`text-lg font-black tracking-tight ${health.network?.mqtt?.connected ? 'text-indigo-400' : 'text-red-400'}`}>
+                            {health.network?.mqtt?.connected ? 'Online' : 'Offline'}
+                        </div>
                     </div>
                 </div>
 
-                <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-700 flex items-center gap-4">
-                    <div className="p-3 rounded-lg bg-orange-500/10 text-orange-500">
+                <div className="bg-gray-900/40 p-4 rounded-xl border border-white/5 backdrop-blur-sm flex items-center gap-4 hover:bg-gray-800/40 transition-all">
+                    <div className="p-3 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
                         <Radio className="w-6 h-6" />
                     </div>
                     <div>
-                        <div className="text-xs text-gray-500 uppercase font-bold">Active Nodes</div>
-                        <div className="text-lg font-bold text-white">{health.nodes?.count ?? 0}</div>
-                        <div className="text-xs text-gray-500">Total</div>
+                        <div className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-0.5">Active Nodes</div>
+                        <div className="text-lg font-black text-white tracking-tight">{health.nodes?.count ?? 0}</div>
                     </div>
                 </div>
             </div>
 
-            {/* Server Resources */}
+            {/* Server Resources - Refined Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* CPU */}
-                <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-700">
+                <div className="bg-gray-900/40 p-6 rounded-xl border border-white/5 group hover:bg-gray-800/40 transition-all">
                     <div className="flex justify-between items-center mb-4">
-                        <h3 className="flex items-center gap-2 font-bold text-gray-300">
-                            <Cpu className="w-5 h-5 text-blue-400" /> CPU Load
+                        <h3 className="flex items-center gap-2 font-black text-[11px] text-gray-400 uppercase tracking-widest">
+                            <Cpu className="w-4 h-4 text-blue-400" /> CPU Load
                         </h3>
-                        <span className="font-mono text-xl font-bold">{safeFixed(health.cpu?.currentLoad, 1)}%</span>
+                        <span className="font-mono text-xl font-bold text-blue-400">{safeFixed(health.cpu?.currentLoad, 1)}%</span>
                     </div>
-                    <div className="w-full bg-gray-800 rounded-full h-2 mb-4">
+                    <div className="w-full bg-gray-800 rounded-full h-1.5 mb-4 overflow-hidden border border-white/5">
                         <div
-                            className={`h-2 rounded-full transition-all duration-500 ${getLoadColor(health.cpu?.currentLoad)}`}
+                            className={`h-full rounded-full transition-all duration-700 ${getLoadColor(health.cpu?.currentLoad)}`}
                             style={{ width: `${Math.min(100, Number(health.cpu?.currentLoad) || 0)}%` }}
                         ></div>
                     </div>
-                    <div className="h-32">
+                    <div className="h-32 opacity-60 group-hover:opacity-100 transition-opacity">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={history}>
-                                <Line type="monotone" dataKey="cup" stroke="#60A5FA" strokeWidth={2} dot={false} isAnimationActive={false} />
+                                <Line type="monotone" dataKey="cup" stroke="#60A5FA" strokeWidth={3} dot={false} isAnimationActive={false} />
                                 <YAxis hide domain={[0, 100]} />
                             </LineChart>
                         </ResponsiveContainer>

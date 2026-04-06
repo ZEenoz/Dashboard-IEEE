@@ -18,25 +18,41 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 const getStatusTheme = (st, defaultType) => {
   if (st.alertLevel === 'dangerous') {
     return {
-      bg: 'bg-red-500/10 hover:bg-red-500/20', border: 'border-red-500/30',
-      text: 'text-red-400', iconBg: 'bg-red-500/15', accent: 'text-red-300'
+      bg: 'bg-red-500/10 hover:bg-red-server-500/15', 
+      border: 'border-red-500/40',
+      text: 'text-red-400', 
+      iconBg: 'bg-red-500/20', 
+      accent: 'text-red-400/70',
+      glow: 'shadow-[0_0_15px_rgba(239,68,68,0.2)]'
     };
   }
   if (st.alertLevel === 'warning') {
     return {
-      bg: 'bg-orange-500/10 hover:bg-orange-500/20', border: 'border-orange-500/30',
-      text: 'text-orange-400', iconBg: 'bg-orange-500/15', accent: 'text-orange-300'
+      bg: 'bg-amber-500/10 hover:bg-amber-500/15', 
+      border: 'border-amber-500/40',
+      text: 'text-amber-400', 
+      iconBg: 'bg-amber-500/20', 
+      accent: 'text-amber-400/70',
+      glow: 'shadow-[0_0_12px_rgba(245,158,11,0.15)]'
     };
   }
   if (defaultType === 'float') {
     return {
-      bg: 'bg-blue-900/10 hover:bg-blue-900/20', border: 'border-blue-500/20',
-      text: 'text-blue-400', iconBg: 'bg-blue-500/15', accent: 'text-blue-300'
+      bg: 'bg-blue-500/5 hover:bg-blue-500/10', 
+      border: 'border-blue-500/30',
+      text: 'text-blue-400', 
+      iconBg: 'bg-blue-500/15', 
+      accent: 'text-blue-400/60',
+      glow: ''
     };
   }
   return {
-    bg: 'bg-purple-900/10 hover:bg-purple-900/20', border: 'border-purple-500/20',
-    text: 'text-purple-400', iconBg: 'bg-purple-500/15', accent: 'text-purple-300'
+    bg: 'bg-purple-500/5 hover:bg-purple-500/10', 
+    border: 'border-purple-500/30',
+    text: 'text-purple-400', 
+    iconBg: 'bg-purple-500/15', 
+    accent: 'text-purple-400/60',
+    glow: ''
   };
 };
 
@@ -47,21 +63,21 @@ const SidebarStationItem = React.memo(({ st, type, onFly, onDetails }) => {
 
   return (
     <div
-      className={`flex items-center justify-between p-3 rounded-xl border transition-colors group ${theme.bg} ${theme.border}`}
+      className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-300 group ${theme.bg} ${theme.border} ${theme.glow}`}
     >
       <button
         onClick={() => onFly(st)}
         className="flex items-center gap-3 flex-1 text-left"
         aria-label={`Locate ${st.stationName || 'station'} on map`}
       >
-        <div className={`w-10 h-10 rounded-full ${theme.iconBg} flex items-center justify-center ${theme.text} shrink-0`}>
+        <div className={`w-10 h-10 rounded-full ${theme.iconBg} flex items-center justify-center ${theme.text} shrink-0 group-hover:scale-110 transition-transform`}>
           <Icon size={18} />
         </div>
         <div className="flex flex-col min-w-0 pr-2">
-          <div className="font-bold text-sm text-gray-100 break-words leading-tight" title={st.stationName}>
+          <div className="font-bold text-sm text-gray-100 break-words leading-tight group-hover:text-white transition-colors" title={st.stationName}>
             {st.stationName || st.id || 'Unknown'}
           </div>
-          <div className={`text-[11px] ${theme.accent} font-medium mt-1`}>
+          <div className={`text-[10px] ${theme.accent} font-bold uppercase tracking-wider mt-1`}>
             {(Number(st.lat) || 0).toFixed(3)}, {(Number(st.lng) || 0).toFixed(3)}
           </div>
         </div>
@@ -69,8 +85,8 @@ const SidebarStationItem = React.memo(({ st, type, onFly, onDetails }) => {
 
       <div className="flex items-center gap-3 shrink-0 pl-3 border-l border-gray-700/50">
         <div className="text-right flex flex-col items-end">
-          <span className={`font-mono font-bold text-base ${theme.text}`}>
-            {Number(st.waterLevel ?? 0).toFixed(3)}m
+          <span className={`font-mono font-bold text-base tracking-tighter ${theme.text}`}>
+            {Number(st.waterLevel ?? 0).toFixed(3)}<span className="text-[10px] ml-0.5 opacity-60">m</span>
           </span>
           {st.isRaw && (
             <span className="text-[8px] font-bold text-indigo-400 uppercase tracking-tighter animate-pulse">
@@ -78,15 +94,15 @@ const SidebarStationItem = React.memo(({ st, type, onFly, onDetails }) => {
             </span>
           )}
           {st.alertLevel && st.alertLevel !== 'normal' && (
-            <span className={`text-[10px] uppercase font-bold tracking-wider ${theme.text} mt-0.5`}>
+            <span className={`text-[9px] uppercase font-black tracking-[0.1em] ${theme.text} mt-0.5 opacity-80`}>
               {st.alertLevel}
             </span>
           )}
         </div>
         <button
-          onClick={() => onDetails(st.stationId)}
+          onClick={() => handleGoToDetails(st.stationId)}
           aria-label={`View details for ${st.stationName || 'station'}`}
-          className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors flex items-center justify-center border border-gray-700 shadow-sm"
+          className="p-2 rounded-lg bg-gray-800/80 hover:bg-white hover:text-black text-gray-400 transition-all border border-gray-700 shadow-sm"
           title="View Details"
         >
           <ArrowRight size={16} />

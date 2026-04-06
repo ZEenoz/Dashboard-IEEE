@@ -83,9 +83,11 @@ router.get('/export', async (req, res) => {
     try {
         let query = `
             SELECT 
+                r.id,
                 to_char(r.timestamp, 'YYYY-MM-DD HH24:MI:SS') as time,
                 COALESCE(s.name, r.station_id) as station_name,
                 r.station_id,
+                s.network_mode,
                 r.water_level,
                 r.offset_water_level,
                 r.data_rate,
@@ -123,9 +125,11 @@ router.get('/export', async (req, res) => {
 
         // Generate CSV
         const headers = [
+            'ID',
             'Time', 
             'Station Name', 
             'Station ID', 
+            'Network Mode',
             'Water Level Raw (m)', 
             'Water Level Calibrated (m)', 
             'Data Rate', 
@@ -143,9 +147,11 @@ router.get('/export', async (req, res) => {
         result.rows.forEach(row => {
             const safeName = row.station_name ? row.station_name.replace(/"/g, '""') : '';
             csvRows.push([
+                row.id,
                 row.time,
                 `"${safeName}"`, // Quote name in case of commas/quotes
                 row.station_id,
+                row.network_mode || 'TTN',
                 row.water_level,          // Raw
                 row.offset_water_level,   // Calibrated
                 row.data_rate,

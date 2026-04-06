@@ -122,7 +122,22 @@ router.get('/export', async (req, res) => {
         const result = await pool.query(query, params);
 
         // Generate CSV
-        const headers = ['Time', 'Station', 'Stationd ID', 'water_level (m)', 'data_rate', 'RSSI', 'snr', 'battery', 'battery_voltage', 'Sensor Type', 'Latitude', 'Longitude', 'Source'];
+        const headers = [
+            'Time', 
+            'Station Name', 
+            'Station ID', 
+            'Water Level Raw (m)', 
+            'Water Level Calibrated (m)', 
+            'Data Rate', 
+            'RSSI (dBm)', 
+            'SNR (dB)', 
+            'Battery (%)', 
+            'Battery Voltage (V)', 
+            'Sensor Type', 
+            'Latitude', 
+            'Longitude', 
+            'Location Source'
+        ];
         const csvRows = [headers.join(',')];
 
         result.rows.forEach(row => {

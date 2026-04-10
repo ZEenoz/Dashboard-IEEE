@@ -16,7 +16,10 @@ router.get('/offset-presets', (req, res) => {
     try {
         if (fs.existsSync(PRESETS_FILE)) {
             const data = JSON.parse(fs.readFileSync(PRESETS_FILE, 'utf8'));
-            return res.json(data);
+            if (Array.isArray(data)) {
+                return res.json(data);
+            }
+            console.warn('⚠️ offset-presets.json is not an array, returning []');
         }
         return res.json([]);
     } catch (e) {

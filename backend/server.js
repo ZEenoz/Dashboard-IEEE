@@ -42,8 +42,15 @@ app.use('/api', apiRoutes);
 io.on('connection', async (socket) => {
     console.log('👤 Client Connected');
     
-    // 1. Send History (for charts)
-    socket.emit('init-data', getStationHistory());
+    // 1. Send History (for charts) - Deep retrieval from DB
+    try {
+        const historyData = await getHistory(48);
+        socket.emit('init-data', historyData);
+    } catch (err) {
+        console.error("❌ Failed to emit init-data:", err.message);
+        // Fallback to empty if DB fails
+        socket.emit('init-data', {});
+    }
     
     // 2. Send Latest per Station (for cards) - NEW
     const { getLatestReadings } = require('./services/dataManager');

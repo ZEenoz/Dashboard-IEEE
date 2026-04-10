@@ -34,7 +34,7 @@ const StationCard = React.memo(({ station, onClick }) => {
     const alertLevel = station.alertLevel || 'normal';
     let cardAlertClasses = '';
     let alertGlow = '';
-    
+
     if (alertLevel === 'dangerous') {
         cardAlertClasses = 'border-red-500/50 shadow-lg';
         alertGlow = 'shadow-[0_0_20px_rgba(239,68,68,0.25)]';
@@ -55,7 +55,7 @@ const StationCard = React.memo(({ station, onClick }) => {
         statusClasses = 'bg-gray-800/80 text-gray-400 border-gray-700 backdrop-blur-md';
     } else {
         statusLabel = 'Online';
-        statusClasses = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 backdrop-blur-md';
+        statusClasses = 'bg-green-500/80 text-white border-white/30 backdrop-blur-md';
     }
 
     // --- Safe display values ---
@@ -96,13 +96,13 @@ const StationCard = React.memo(({ station, onClick }) => {
             >
                 {/* Use real img for lazy loading and performance */}
                 {station.imageUrl ? (
-                    <img 
+                    <img
                         src={station.imageUrl}
                         alt={stationName}
                         loading="lazy"
                         decoding="async"
                         className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 opacity-80 group-hover:opacity-100"
-                        style={{ 
+                        style={{
                             objectPosition: station.imagePosition
                                 ? `${station.imagePosition.x}% ${station.imagePosition.y}%`
                                 : 'center center'
@@ -179,10 +179,10 @@ const StationCard = React.memo(({ station, onClick }) => {
                     <div className="flex flex-col items-end gap-1">
                         {battery != null && (
                             <div className="flex flex-col items-end">
-                                <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1.5 text-right">Energy</span>
+                                <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1.5 text-right">Battery</span>
                                 <div className="flex items-center gap-2">
                                     <div className="w-10 h-1.5 bg-gray-800 rounded-full overflow-hidden border border-white/5">
-                                        <div 
+                                        <div
                                             className={`h-full transition-all duration-1000 ${battery > 70 ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.3)]' : battery > 30 ? 'bg-amber-500' : 'bg-red-500'}`}
                                             style={{ width: `${battery}%` }}
                                         />

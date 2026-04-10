@@ -82,20 +82,24 @@ export const SocketProvider = ({ children }) => {
             
             // Flatten history into a single array for the charts
             let combinedHistory = [];
-            Object.values(fullHistory || {}).forEach(deviceHistory => {
-                deviceHistory.forEach(entry => {
-                    const now = new Date();
-                    const rawTime = new Date(entry.rawTimestamp || entry.time || entry.timestamp).getTime();
-                    const twentyFourHoursAgo = now.getTime() - (24 * 60 * 60 * 1000);
+            Object.entries(fullHistory || {}).forEach(([deviceId, deviceHistory]) => {
+                const normalizedId = String(deviceId).toLowerCase();
+                if (Array.isArray(deviceHistory)) {
+                    deviceHistory.forEach(entry => {
+                        const now = new Date();
+                        const rawTime = new Date(entry.rawTimestamp || entry.time || entry.timestamp).getTime();
+                        const twentyFourHoursAgo = now.getTime() - (24 * 60 * 60 * 1000);
 
-                    if (rawTime > twentyFourHoursAgo) {
-                        combinedHistory.push({
-                            ...entry,
-                            timestamp: entry.timestamp || entry.time,
-                            rawTimestamp: rawTime
-                        });
-                    }
-                });
+                        if (rawTime > twentyFourHoursAgo) {
+                            combinedHistory.push({
+                                ...entry,
+                                stationId: normalizedId, // Ensure ID is present and normalized
+                                timestamp: entry.timestamp || entry.time,
+                                rawTimestamp: rawTime
+                            });
+                        }
+                    });
+                }
             });
 
             // Sort by time

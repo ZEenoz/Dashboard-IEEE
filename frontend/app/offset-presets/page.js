@@ -56,18 +56,40 @@ export default function OffsetPresetsPage() {
                 'ngrok-skip-browser-warning': 'true'
             } 
         };
-        Promise.all([
-            fetch(`${API_URL}/settings`, fetchOpts).then(r => r.json()),
-            fetch(`${API_URL}/offset-presets`, fetchOpts).then(r => r.json()).catch(() => [])
-        ]).then(([settingsData, presetsData]) => {
-            setSettings(settingsData);
-            setPresets(presetsData || []);
-            setLoading(false);
-        }).catch(err => {
-            console.error('Failed to load data', err);
-            toast.error('Failed to load settings');
-            setLoading(false);
-        });
+
+        const fetchData = async () => {
+            try {
+                const [settingsRes, presetsRes] = await Promise.all([
+                    fetch(`${API_URL}/settings`, fetchOpts),
+                    fetch(`${API_URL}/offset-presets`, fetchOpts)
+                ]);
+
+                const settingsData = await settingsRes.json();
+                let presetsData = [];
+                
+                try {
+                    presetsData = await presetsRes.json();
+                    // Ensure presetsData is an array
+                    if (!Array.isArray(presetsData)) {
+                        console.warn('Presets data is not an array, defaulting to []', presetsData);
+                        presetsData = [];
+                    }
+                } catch (e) {
+                    console.warn('Failed to parse presets JSON', e);
+                    presetsData = [];
+                }
+
+                setSettings(settingsData);
+                setPresets(presetsData);
+            } catch (err) {
+                console.error('Failed to load data', err);
+                toast.error('Failed to load settings');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
     }, []);
 
     // All configured stations
@@ -75,7 +97,7 @@ export default function OffsetPresetsPage() {
 
     // Stations already assigned to a preset
     const assignedStationIds = new Set(
-        presets.flatMap(p => p.stations || [])
+        Array.isArray(presets) ? presets.flatMap(p => p?.stations || []) : []
     );
 
     // Available stations (not assigned to any preset)
@@ -440,11 +462,11 @@ export default function OffsetPresetsPage() {
                                         <div className="flex items-start justify-between mb-4">
                                             <div className="flex items-baseline gap-3">
                                                 <span className={`text-2xl font-mono font-bold tracking-tight ${accentColor}`}>
-                                                    {isPositive ? '+' : ''}{preset.offset.toFixed(2)}m
+                                                    {isPositive ? '+' : ''}{(Number(preset?.offset) || 0).toFixed(2)}m
                                                 </span>
                                                 <input
                                                     type="text"
-                                                    value={preset.name}
+                                                    value={preset?.name || ''}
                                                     onChange={e => updatePresetName(idx, e.target.value)}
                                                     className="text-[13px] uppercase tracking-widest bg-transparent border-none text-blue-500 focus:text-gray-300"
                                                 />
@@ -453,7 +475,7 @@ export default function OffsetPresetsPage() {
                                                 <input
                                                     type="number"
                                                     step="0.01"
-                                                    value={preset.offset}
+                                                    value={preset?.offset ?? 0}
                                                     onChange={e => updatePresetOffset(idx, e.target.value)}
                                                     className="w-20 text-right text-xs font-mono bg-gray-800/60 border border-gray-700/50 rounded px-2 py-1 text-gray-300 focus:outline-none focus:border-gray-500"
                                                 />

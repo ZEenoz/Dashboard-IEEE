@@ -404,8 +404,8 @@ export default function SensorDetailsPage() {
                             <span className="text-sm font-bold text-gray-200 tabular-nums">{station.battery}%</span>
                             <div className="h-1.5 flex-1 bg-gray-800 rounded-full overflow-hidden">
                                 <div
-                                    className={`h-full rounded-full ${station.battery > 50 ? 'bg-green-500' : station.battery > 25 ? 'bg-orange-500' : 'bg-red-500'}`}
-                                    style={{ width: `${station.battery}%` }}
+                                    className={`h-full rounded-full ${Number(station.battery || 0) > 50 ? 'bg-green-500' : Number(station.battery || 0) > 25 ? 'bg-orange-500' : 'bg-red-500'}`}
+                                    style={{ width: `${Number(station.battery || 0)}%` }}
                                 />
                             </div>
                         </div>
@@ -422,7 +422,7 @@ export default function SensorDetailsPage() {
                     <div className="p-2.5 bg-cyan-500/10 rounded-xl text-cyan-500 border border-cyan-500/20"><Clock size={18} /></div>
                     <div className="overflow-hidden">
                         <p className="text-[10px] uppercase font-bold text-gray-500 tracking-[0.2em] mb-0.5">Transmission</p>
-                        <p className="text-sm font-bold text-gray-200 tabular-nums truncate">{station.timestamp || 'Wait for link...'}</p>
+                        <p className="text-sm font-bold text-gray-200 tabular-nums truncate">{station.timestamp || station.rawTimestamp ? new Date(station.rawTimestamp || station.timestamp).toLocaleString() : 'Wait for link...'}</p>
                     </div>
                 </div>
             </div>

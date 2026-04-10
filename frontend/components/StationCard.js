@@ -170,7 +170,7 @@ const StationCard = React.memo(({ station, onClick }) => {
                         ) : (
                             station.offsetValue && station.offsetValue !== 0 ? (
                                 <span className={`text-[10px] font-mono font-bold ${station.offsetValue > 0 ? 'text-emerald-400' : 'text-red-400'} mt-1`}>
-                                    ({station.offsetValue > 0 ? '+' : ''}{station.offsetValue.toFixed(3)})
+                                    ({station.offsetValue > 0 ? '+' : ''}{(Number(station.offsetValue) || 0).toFixed(3)})
                                 </span>
                             ) : null
                         )}

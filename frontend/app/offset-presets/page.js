@@ -325,7 +325,7 @@ export default function OffsetPresetsPage() {
                                             <div className="text-right ml-2 flex-shrink-0">
                                                 <div className="text-[9px] text-gray-500">Level</div>
                                                 <div className="text-sm font-mono font-semibold text-blue-300">
-                                                    {live?.waterLevel?.toFixed(2) || '—'} m
+                                                    {(Number(live?.waterLevel) || 0).toFixed(2)} m
                                                 </div>
                                             </div>
                                         </div>

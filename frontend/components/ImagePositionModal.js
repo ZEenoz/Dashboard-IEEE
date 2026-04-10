@@ -101,8 +101,8 @@ const ImagePositionModal = ({ isOpen, onClose, imageUrl, initialPosition, onSave
                     </div>
 
                     <div className="flex justify-between text-xs font-mono text-gray-500 mt-2">
-                        <span>X: {position.x.toFixed(1)}%</span>
-                        <span>Y: {position.y.toFixed(1)}%</span>
+                        <span>X: {(Number(position.x) || 0).toFixed(1)}%</span>
+                        <span>Y: {(Number(position.y) || 0).toFixed(1)}%</span>
                     </div>
                 </div>
 

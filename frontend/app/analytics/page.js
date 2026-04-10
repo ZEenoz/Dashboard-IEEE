@@ -172,7 +172,7 @@ export default function AnalyticsPage() {
         });
 
         return {
-            avg: totalCount > 0 ? (totalSum / totalCount).toFixed(2) : "0.00",
+            avg: totalCount > 0 ? (Number(totalSum / totalCount) || 0).toFixed(2) : "0.00",
             max: overallMax !== -Infinity && overallMax !== null ? (Number(overallMax) || 0).toFixed(2) : "0.00",
             min: overallMin !== Infinity && overallMin !== null ? (Number(overallMin) || 0).toFixed(2) : "0.00"
         };

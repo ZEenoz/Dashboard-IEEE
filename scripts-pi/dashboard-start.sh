@@ -13,7 +13,7 @@ echo "=========================================="
 
 # 1. ตรวจสอบและเริ่ม Docker Containers (รวม MQTT)
 echo "[1/3] Starting Docker Containers..."
-docker-compose up -d
+docker compose up -d
 
 if [ $? -eq 0 ]; then
     echo "✅ Docker Services are running."

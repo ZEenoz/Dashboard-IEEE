@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { Users, Plus, Edit2, Trash2, Shield, User as UserIcon, CheckCircle2, XCircle } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 export default function UserManagement() {
+    const { t } = useLanguage();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -27,7 +29,7 @@ export default function UserManagement() {
             setUsers(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error('Failed to fetch users:', err);
-            toast.error('Failed to fetch users');
+            toast.error(t('userManagement.failedFetchUsers'));
         } finally {
             setLoading(false);
         }
@@ -82,21 +84,21 @@ export default function UserManagement() {
             await fetchUsers();
             setIsModalOpen(false);
             setForm({ username: '', role: 'general_user', password: '', is_active: true });
-            toast.success(editingUser ? 'User updated successfully!' : 'User created successfully!');
+            toast.success(editingUser ? t('userManagement.userUpdated') : t('userManagement.userCreated'));
         } catch (err) {
             toast.error(err.message);
         }
     };
 
     const handleDelete = async (id) => {
-        if (!confirm('Are you sure you want to delete this user?')) return;
+        if (!confirm(t('userManagement.deleteConfirm'))) return;
         try {
             const res = await fetch(`${API_URL}/users/${id}`, { method: 'DELETE', headers: { 'x-api-key': 'IEEE_SECURE_API_KEY_2025', 'ngrok-skip-browser-warning': 'true' } });
             if (!res.ok) {
                 const error = await res.json();
                 throw new Error(error.error || 'Failed to delete user');
             }
-            toast.success('User deleted successfully');
+            toast.success(t('userManagement.userDeleted'));
             await fetchUsers();
         } catch (err) {
             toast.error(err.message);
@@ -120,14 +122,14 @@ export default function UserManagement() {
             <div className="flex justify-between items-center pb-4 border-b border-gray-700">
                 <h2 className="text-xl font-bold flex items-center gap-2">
                     <Users className="w-6 h-6 text-indigo-400" />
-                    User Management
+                    {t('userManagement.title')}
                 </h2>
                 <button
                     onClick={openAddModal}
                     className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors shadow-lg"
                 >
                     <Plus className="w-4 h-4" />
-                    Add User
+                    {t('userManagement.addUser')}
                 </button>
             </div>
 
@@ -140,10 +142,10 @@ export default function UserManagement() {
                     <table className="w-full text-left">
                         <thead className="bg-gray-900 border-b border-gray-700 text-xs text-gray-400 uppercase tracking-wider">
                             <tr>
-                                <th className="px-6 py-4">Username</th>
-                                <th className="px-6 py-4">Role</th>
-                                <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4 text-right">Actions</th>
+                                <th className="px-6 py-4">{t('userManagement.username')}</th>
+                                <th className="px-6 py-4">{t('userManagement.role')}</th>
+                                <th className="px-6 py-4">{t('userManagement.status')}</th>
+                                <th className="px-6 py-4 text-right">{t('userManagement.actions')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-700/50">
@@ -166,9 +168,9 @@ export default function UserManagement() {
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-1.5 text-sm">
                                             {u.is_active ? (
-                                                <><CheckCircle2 className="w-4 h-4 text-green-500" /><span className="text-gray-300">Active</span></>
+                                                <><CheckCircle2 className="w-4 h-4 text-green-500" /><span className="text-gray-300">{t('common.active')}</span></>
                                             ) : (
-                                                <><XCircle className="w-4 h-4 text-gray-500" /><span className="text-gray-500">Disabled</span></>
+                                                <><XCircle className="w-4 h-4 text-gray-500" /><span className="text-gray-500">{t('common.disabled')}</span></>
                                             )}
                                         </div>
                                     </td>
@@ -200,14 +202,14 @@ export default function UserManagement() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
                     <div className="bg-gray-800 border border-gray-700 rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
                         <div className="px-6 py-4 border-b border-gray-700 bg-gray-900 flex justify-between items-center">
-                            <h3 className="font-bold text-lg">{editingUser ? 'Edit User' : 'Create New User'}</h3>
+                            <h3 className="font-bold text-lg">{editingUser ? t('userManagement.editUser') : t('userManagement.createUser')}</h3>
                             <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-white transition-colors">
                                 <XCircle className="w-6 h-6" />
                             </button>
                         </div>
                         <form onSubmit={handleSave} className="p-6 space-y-4">
                             <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Username</label>
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">{t('userManagement.username')}</label>
                                 <input
                                     type="text"
                                     value={form.username}
@@ -219,7 +221,7 @@ export default function UserManagement() {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Password {editingUser && '(Leave blank to keep)'}</label>
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">{editingUser ? t('userManagement.passwordKeep') : t('userManagement.password')}</label>
                                 <input
                                     type="password"
                                     value={form.password}
@@ -230,15 +232,15 @@ export default function UserManagement() {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Role</label>
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">{t('userManagement.role')}</label>
                                 <select
                                     value={form.role}
                                     onChange={e => setForm({ ...form, role: e.target.value })}
                                     className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:border-indigo-500 outline-none"
                                 >
-                                    <option value="general_user">General User (View Only)</option>
-                                    <option value="local_authority">Local Authority (Stations & Thresholds)</option>
-                                    <option value="admin">Admin (Full Access)</option>
+                                    <option value="general_user">{t('userManagement.roleGeneral')}</option>
+                                    <option value="local_authority">{t('userManagement.roleAuthority')}</option>
+                                    <option value="admin">{t('userManagement.roleAdmin')}</option>
                                 </select>
                             </div>
 
@@ -251,16 +253,16 @@ export default function UserManagement() {
                                         className="w-4 h-4 rounded bg-gray-900 border-gray-700"
                                         id="active-checkbox"
                                     />
-                                    <label htmlFor="active-checkbox" className="text-sm font-bold text-gray-300">Account is Active</label>
+                                    <label htmlFor="active-checkbox" className="text-sm font-bold text-gray-300">{t('userManagement.accountActive')}</label>
                                 </div>
                             )}
 
                             <div className="pt-4 flex justify-end gap-3">
                                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 rounded-lg text-sm font-bold text-gray-400 hover:text-white hover:bg-gray-700 transition">
-                                    Cancel
+                                    {t('common.cancel')}
                                 </button>
                                 <button type="submit" className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white text-sm font-bold transition shadow-lg">
-                                    Save User
+                                    {t('userManagement.saveUser')}
                                 </button>
                             </div>
                         </form>

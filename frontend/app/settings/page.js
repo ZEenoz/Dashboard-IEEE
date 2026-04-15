@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import ImagePositionModal from '@/components/ImagePositionModal';
 import SystemHealthDashboard from '@/components/SystemHealthDashboard';
 import UserManagement from '@/components/UserManagement';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 import {
@@ -33,6 +34,7 @@ import {
 
 export default function SettingsPage() {
     const { stations: socketStations } = useSocket();
+    const { t } = useLanguage();
     const { data: session, status } = useSession();
     const router = useRouter();
 
@@ -51,7 +53,7 @@ export default function SettingsPage() {
     }, [session, status, router]);
 
     const handleDeleteStation = (id) => {
-        if (!confirm(`Are you sure you want to delete station "${id}" from settings?`)) return;
+        if (!confirm(`${t('settings.confirmDeleteStation')} "${id}" ${t('settings.fromSettings')}?`)) return;
 
         setSettings(prev => {
             const newStations = { ...prev.stations };
@@ -61,7 +63,7 @@ export default function SettingsPage() {
     };
 
     const handleAddStation = (id, name, lat, lng) => {
-        if (!id) return toast.error("Station ID is required");
+        if (!id) return toast.error(t('settings.stationIdUnique'));
 
         setSettings(prev => ({
             ...prev,
@@ -90,7 +92,7 @@ export default function SettingsPage() {
             })
             .catch(err => {
                 console.error("Failed to fetch settings", err);
-                toast.error("Failed to load settings");
+                toast.error(t('settings.failedToLoad'));
                 setLoading(false);
             });
     }, []);
@@ -156,9 +158,9 @@ export default function SettingsPage() {
                 body: JSON.stringify(settings)
             });
             if (res.ok) {
-                toast.success('Settings Saved Successfully!');
+                toast.success(t('settings.settingsSaved'));
             } else {
-                toast.error('Failed to save settings');
+                toast.error(t('settings.failedToSave'));
             }
         } catch (e) {
             toast.error('Error saving settings: ' + e.message);
@@ -174,19 +176,19 @@ export default function SettingsPage() {
 
     if (session?.user?.role === 'general_user') return null; // Prevent flash before redirect
 
-    if (!settings) return <div className="p-8 text-white">Error loading settings. Check backend connection.</div>;
+    if (!settings) return <div className="p-8 text-white">{t('settings.errorLoadingSettings')}</div>;
 
     const role = session?.user?.role;
 
     // Filter tabs based on role
     const tabs = [
-        { id: 'notifications', label: 'Notifications', icon: <Bell className="w-5 h-5" /> },
-        { id: 'stations', label: 'Stations', icon: <Map className="w-5 h-5" /> }
+        { id: 'notifications', label: t('settings.tabNotifications'), icon: <Bell className="w-5 h-5" /> },
+        { id: 'stations', label: t('settings.tabStations'), icon: <Map className="w-5 h-5" /> }
     ];
-
+    
     if (role === 'admin') {
-        tabs.push({ id: 'system', label: 'System', icon: <Cpu className="w-5 h-5" /> });
-        tabs.push({ id: 'users', label: 'Users', icon: <Users className="w-5 h-5" /> });
+        tabs.push({ id: 'system', label: t('settings.tabSystem'), icon: <Cpu className="w-5 h-5" /> });
+        tabs.push({ id: 'users', label: t('settings.tabUsers'), icon: <Users className="w-5 h-5" /> });
     }
 
     // Calculate unconfigured stations
@@ -197,7 +199,7 @@ export default function SettingsPage() {
         <div className="p-8 text-white max-w-5xl mx-auto">
             <h1 className="text-3xl font-bold mb-8 text-blue-400 flex items-center gap-3">
                 <SettingsIcon className="w-8 h-8" />
-                System Settings
+                {t('settings.title')}
             </h1>
 
             {/* Tabs */}
@@ -225,7 +227,7 @@ export default function SettingsPage() {
                         <div>
                             <h2 className="text-xl font-bold mb-6 flex items-center gap-2 pb-2 border-b border-gray-700">
                                 <AlertTriangle className="w-6 h-6 text-yellow-500" />
-                                Alert Configuration
+                                {t('settings.alertConfig')}
                             </h2>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -233,7 +235,7 @@ export default function SettingsPage() {
                                 <div className="bg-yellow-900/20 p-6 rounded-xl border border-yellow-500/40">
                                     <label className="block text-sm font-bold text-yellow-400 mb-1 flex items-center gap-2">
                                         <AlertTriangle className="w-4 h-4" />
-                                        Warning Level (Global)
+                                        {t('settings.warningLevelGlobal')}
                                     </label>
                                     <div className="relative mt-2">
                                         <input
@@ -243,11 +245,11 @@ export default function SettingsPage() {
                                             onChange={(e) => handleChange('alertThresholds', 'warningLevel', parseFloat(e.target.value))}
                                             className="w-full bg-gray-800 border border-yellow-600/50 rounded-lg p-3 text-white focus:border-yellow-400 outline-none pr-16 text-lg font-mono"
                                         />
-                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">meters</span>
+                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">{t('common.meters')}</span>
                                     </div>
                                     <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
                                         <Activity className="w-3 h-3" />
-                                        Warning (⚠️) when water level exceeds this value
+                                        {t('settings.warningDesc')}
                                     </p>
                                 </div>
 
@@ -255,7 +257,7 @@ export default function SettingsPage() {
                                 <div className="bg-red-900/20 p-6 rounded-xl border border-red-500/40">
                                     <label className="block text-sm font-bold text-red-400 mb-1 flex items-center gap-2">
                                         <AlertTriangle className="w-4 h-4" />
-                                        Critical Level (Global)
+                                        {t('settings.criticalLevelGlobal')}
                                     </label>
                                     <div className="relative mt-2">
                                         <input
@@ -265,11 +267,11 @@ export default function SettingsPage() {
                                             onChange={(e) => handleChange('alertThresholds', 'criticalLevel', parseFloat(e.target.value))}
                                             className="w-full bg-gray-800 border border-red-600/50 rounded-lg p-3 text-white focus:border-red-400 outline-none pr-16 text-lg font-mono"
                                         />
-                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">meters</span>
+                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">{t('common.meters')}</span>
                                     </div>
                                     <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
                                         <Activity className="w-3 h-3" />
-                                        Critical (🚨) when water level exceeds this value
+                                        {t('settings.criticalDesc')}
                                     </p>
                                 </div>
 
@@ -280,7 +282,7 @@ export default function SettingsPage() {
                                             <div className="flex justify-between items-center mb-4">
                                                 <label className="block text-sm font-bold text-green-400 flex items-center gap-2">
                                                     <MessageCircle className="w-4 h-4" />
-                                                    LINE Notify Token
+                                                    {t('settings.lineNotifyToken')}
                                                 </label>
                                                 <div className="form-checkbox flex items-center gap-2">
                                                     <input
@@ -289,7 +291,7 @@ export default function SettingsPage() {
                                                         onChange={(e) => handleChange('lineNotify', 'active', e.target.checked)}
                                                         className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-green-500"
                                                     />
-                                                    <span className="text-xs text-gray-400">Enable</span>
+                                                    <span className="text-xs text-gray-400">{t('common.enable')}</span>
                                                 </div>
                                             </div>
 
@@ -303,7 +305,7 @@ export default function SettingsPage() {
 
                                             <div className="flex justify-between items-center">
                                                 <a href="https://developers.line.biz/console/channel/2008284216/messaging-api" target="_blank" rel="noreferrer" className="text-xs text-blue-400 hover:text-blue-300 underline">
-                                                    Get Token Here
+                                                    {t('settings.getTokenHere')}
                                                 </a>
                                                 <button
                                                     onClick={async () => {
@@ -318,14 +320,14 @@ export default function SettingsPage() {
                                                                 body: JSON.stringify({ token: settings.lineNotify?.token })
                                                             });
                                                             const data = await res.json();
-                                                            toast.success(data.message || 'Notification Sent');
+                                                            toast.success(data.message || t('common.success'));
                                                         } catch (err) {
-                                                            toast.error('Failed to test notification');
+                                                            toast.error(t('settings.failedToSave'));
                                                         }
                                                     }}
                                                     className="text-xs bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded-lg font-bold transition-colors"
                                                 >
-                                                    Test Notification
+                                                    {t('settings.testNotification')}
                                                 </button>
                                             </div>
                                         </div>
@@ -335,7 +337,7 @@ export default function SettingsPage() {
                                             <div className="flex justify-between items-center mb-4">
                                                 <label className="block text-sm font-bold text-blue-400 flex items-center gap-2">
                                                     <Smartphone className="w-4 h-4" />
-                                                    LINE OA Bot (Push Alerts)
+                                                    {t('settings.lineOABot')}
                                                 </label>
                                                 <div className="form-checkbox flex items-center gap-2">
                                                     <input
@@ -344,11 +346,11 @@ export default function SettingsPage() {
                                                         onChange={(e) => handleChange('lineBot', 'active', e.target.checked)}
                                                         className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-blue-500"
                                                     />
-                                                    <span className="text-xs text-gray-400">Enable</span>
+                                                    <span className="text-xs text-gray-400">{t('common.enable')}</span>
                                                 </div>
                                             </div>
                                             <p className="text-xs text-gray-400">
-                                                Toggle this off to mute automatic danger/warning push messages to subscribers. Useful for system testing or maintenance.
+                                                {t('settings.lineOABotDesc')}
                                             </p>
                                         </div>
                                     </>
@@ -365,14 +367,14 @@ export default function SettingsPage() {
                             <div className="flex justify-between items-end mb-6 border-b border-gray-700 pb-2">
                                 <h2 className="text-xl font-bold flex items-center gap-2">
                                     <Map className="w-6 h-6 text-blue-500" />
-                                    Configured Stations
+                                    {t('settings.configuredStations')}
                                 </h2>
                                 <button
                                     onClick={() => setShowAddModal(true)}
                                     className="text-xs bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 transition-colors"
                                 >
                                     <PlusCircle size={14} />
-                                    Manual Add
+                                    {t('settings.manualAdd')}
                                 </button>
                             </div>
 
@@ -401,7 +403,7 @@ export default function SettingsPage() {
                                             <div className="space-y-4">
                                                 <div className="flex gap-4 mb-4">
                                                     <div className="flex-1">
-                                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Display Name</label>
+                                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">{t('settings.displayName')}</label>
                                                         <input
                                                             type="text"
                                                             value={config.name}
@@ -410,7 +412,7 @@ export default function SettingsPage() {
                                                         />
                                                     </div>
                                                     <div className="w-1/4">
-                                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Type</label>
+                                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">{t('common.type')}</label>
                                                         <select
                                                             value={config.type || 'Static'}
                                                             onChange={(e) => handleStationChange(id, 'type', e.target.value)}
@@ -421,7 +423,7 @@ export default function SettingsPage() {
                                                         </select>
                                                     </div>
                                                     <div className="w-1/4">
-                                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block" title="Value added to Raw Data">Offset (m)</label>
+                                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block" title="Value added to Raw Data">{t('settings.offset')}</label>
                                                         <input
                                                             type="number"
                                                             step="0.01"
@@ -434,7 +436,7 @@ export default function SettingsPage() {
                                                 </div>
 
                                                 <div className="mb-4">
-                                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Description</label>
+                                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">{t('common.description')}</label>
                                                     <textarea
                                                         value={config.description || ''}
                                                         onChange={(e) => handleStationChange(id, 'description', e.target.value)}
@@ -443,7 +445,7 @@ export default function SettingsPage() {
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <div>
-                                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Latitude</label>
+                                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">{t('settings.latitude')}</label>
                                                         <div className="relative">
                                                             <Navigation className="w-3 h-3 absolute left-2 top-1/2 -translate-y-1/2 text-gray-500" />
                                                             <input
@@ -455,7 +457,7 @@ export default function SettingsPage() {
                                                         </div>
                                                     </div>
                                                     <div>
-                                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Longitude</label>
+                                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">{t('settings.longitude')}</label>
                                                         <div className="relative">
                                                             <Navigation className="w-3 h-3 absolute left-2 top-1/2 -translate-y-1/2 text-gray-500" />
                                                             <input
@@ -474,14 +476,14 @@ export default function SettingsPage() {
                                                 <div className="flex justify-between items-center mb-1">
                                                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
                                                         <ImageIcon className="w-3 h-3" />
-                                                        Station Image URL
+                                                        {t('settings.stationImageURL')}
                                                     </label>
                                                     {config.image && (
                                                         <button
                                                             onClick={() => setEditingImagePosition(id)}
                                                             className="text-[10px] text-blue-400 hover:text-white flex items-center gap-1 bg-blue-500/10 hover:bg-blue-600/50 px-2 py-0.5 rounded transition-all"
                                                         >
-                                                            <Move size={10} /> Position
+                                                            <Move size={10} /> {t('common.position')}
                                                         </button>
                                                     )}
                                                 </div>
@@ -502,7 +504,7 @@ export default function SettingsPage() {
                                                                 backgroundPosition: config.imagePosition ? `${config.imagePosition.x}% ${config.imagePosition.y}%` : 'center center'
                                                             }}
                                                         />
-                                                        <div className="absolute bottom-1 right-1 text-[10px] bg-black/70 px-1 rounded text-white z-10">Preview</div>
+                                                        <div className="absolute bottom-1 right-1 text-[10px] bg-black/70 px-1 rounded text-white z-10">{t('common.preview')}</div>
 
                                                         {/* Quick Adjust Button Overlay */}
                                                         <button
@@ -510,14 +512,14 @@ export default function SettingsPage() {
                                                             className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity"
                                                         >
                                                             <div className="bg-black/80 text-white text-xs px-3 py-1 rounded-full flex items-center gap-2">
-                                                                <Move size={12} /> Adjust Position
+                                                                <Move size={12} /> {t('settings.adjustPosition')}
                                                             </div>
                                                         </button>
                                                     </div>
                                                 )}
                                                 {!config.image && (
                                                     <div className="h-24 w-full rounded-lg border border-gray-700 border-dashed flex items-center justify-center text-gray-600 text-xs">
-                                                        No Image Set
+                                                        {t('settings.noImageSet')}
                                                     </div>
                                                 )}
                                             </div>
@@ -532,21 +534,21 @@ export default function SettingsPage() {
                             <div>
                                 <h2 className="text-xl font-bold mb-4 flex items-center gap-2 pb-2 border-b border-gray-700 text-green-400">
                                     <Activity className="w-6 h-6" />
-                                    Detected New Stations
+                                    {t('settings.detectedStations')}
                                 </h2>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {unconfiguredStations.map(station => (
                                         <div key={station.stationId} className="bg-green-900/20 border border-green-500/30 p-4 rounded-xl flex items-center justify-between">
                                             <div>
                                                 <div className="font-bold text-green-300">{station.stationId}</div>
-                                                <div className="text-xs text-gray-400">Detected from live feed</div>
+                                                <div className="text-xs text-gray-400">{t('settings.detectedFromLive')}</div>
                                             </div>
                                             <button
                                                 onClick={() => addStationToConfig(station.stationId, station)}
                                                 className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-bold flex items-center gap-2 transition-colors"
                                             >
                                                 <PlusCircle size={16} />
-                                                Add to Config
+                                                {t('settings.addToConfig')}
                                             </button>
                                         </div>
                                     ))}
@@ -560,11 +562,11 @@ export default function SettingsPage() {
                                 <div className="bg-gray-900 rounded-xl p-6 w-full max-w-md border border-gray-700 shadow-2xl">
                                     <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
                                         <PlusCircle className="text-blue-500" />
-                                        Manually Add Station
+                                        {t('settings.manuallyAddStation')}
                                     </h3>
                                     <div className="space-y-4">
                                         <div>
-                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">Station ID (Unique)</label>
+                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">{t('settings.stationIdUnique')}</label>
                                             <input
                                                 type="text"
                                                 placeholder="e.g. station-001"
@@ -573,17 +575,17 @@ export default function SettingsPage() {
                                             />
                                         </div>
                                         <div>
-                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">Display Name</label>
+                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">{t('settings.displayName')}</label>
                                             <input
                                                 type="text"
-                                                placeholder="My Station"
+                                                placeholder={t('settings.displayName')}
                                                 className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white focus:border-blue-500 outline-none"
                                                 id="new-station-name"
                                             />
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
-                                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">Latitude</label>
+                                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">{t('settings.latitude')}</label>
                                                 <input
                                                     type="number"
                                                     placeholder="13.75"
@@ -592,7 +594,7 @@ export default function SettingsPage() {
                                                 />
                                             </div>
                                             <div>
-                                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">Longitude</label>
+                                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">{t('settings.longitude')}</label>
                                                 <input
                                                     type="number"
                                                     placeholder="100.50"
@@ -607,7 +609,7 @@ export default function SettingsPage() {
                                             onClick={() => setShowAddModal(false)}
                                             className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
                                         >
-                                            Cancel
+                                            {t('common.cancel')}
                                         </button>
                                         <button
                                             onClick={() => {
@@ -622,7 +624,7 @@ export default function SettingsPage() {
                                             }}
                                             className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold"
                                         >
-                                            Add Station
+                                            {t('settings.addStation')}
                                         </button>
                                     </div>
                                 </div>
@@ -654,19 +656,19 @@ export default function SettingsPage() {
                     <div className="space-y-6 fade-in">
                         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                             <Cpu className="w-6 h-6 text-gray-400" />
-                            System Status & Health
+                            {t('settings.systemStatusHealth')}
                         </h2>
 
                         <SystemHealthDashboard />
 
                         <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-700/50 space-y-4 mt-8">
-                            <h3 className="text-lg font-bold text-gray-300">Application Info</h3>
+                            <h3 className="text-lg font-bold text-gray-300">{t('settings.applicationInfo')}</h3>
                             <div className="flex justify-between items-center border-b border-gray-800 pb-2">
-                                <span className="text-gray-400">Database</span>
+                                <span className="text-gray-400">{t('settings.database')}</span>
                                 <span className="font-mono text-white">PostgreSQL</span>
                             </div>
                             <div className="flex justify-between items-center border-b border-gray-800 pb-2">
-                                <span className="text-gray-400">Network Protocol Mode</span>
+                                <span className="text-gray-400">{t('settings.networkProtocolMode')}</span>
                                 <select
                                     value={settings.networkMode || 'TTN'}
                                     onChange={(e) => handleChange(null, 'networkMode', e.target.value)}
@@ -677,10 +679,10 @@ export default function SettingsPage() {
                                 </select>
                             </div>
                             <div className="flex justify-between items-center">
-                                <span className="text-gray-400">Operational Mode</span>
+                                <span className="text-gray-400">{t('settings.operationalMode')}</span>
                                 <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${settings.useSimulator ? 'bg-yellow-900/50 text-yellow-500' : 'bg-green-900/50 text-green-500'
                                     }`}>
-                                    {settings.useSimulator ? 'Simulator Mode' : `Production (${settings.networkMode || 'TTN'})`}
+                                    {settings.useSimulator ? t('settings.simulatorMode') : `${t('settings.production')} (${settings.networkMode || 'TTN'})`}
                                 </span>
                             </div>
                         </div>
@@ -690,17 +692,16 @@ export default function SettingsPage() {
                             <div className="bg-purple-900/20 p-6 rounded-xl border border-purple-500/30 space-y-4 mt-4">
                                 <h3 className="text-lg font-bold text-purple-300 flex items-center gap-2">
                                     <Activity className="w-5 h-5" />
-                                    ChirpStack v4 Connection
+                                    {t('settings.chirpstackConnection')}
                                 </h3>
                                 <p className="text-xs text-gray-400 mb-2">
-                                    Configure MQTT connection to your ChirpStack Network Server.
-                                    These can also be set via environment variables (CHIRPSTACK_MQTT_URL, CHIRPSTACK_APP_ID, etc.)
+                                    {t('settings.chirpstackDesc')}
                                 </p>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {/* MQTT URL */}
                                     <div>
-                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">MQTT Broker URL</label>
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">{t('settings.mqttBrokerURL')}</label>
                                         <input
                                             type="text"
                                             placeholder="mqtt://chirpstack.example.com:1883"
@@ -712,7 +713,7 @@ export default function SettingsPage() {
 
                                     {/* Application ID */}
                                     <div>
-                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Application ID</label>
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">{t('settings.applicationId')}</label>
                                         <input
                                             type="text"
                                             placeholder="UUID from ChirpStack (or leave empty for wildcard)"
@@ -724,7 +725,7 @@ export default function SettingsPage() {
 
                                     {/* MQTT Username */}
                                     <div>
-                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">MQTT Username</label>
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">{t('settings.mqttUsername')}</label>
                                         <input
                                             type="text"
                                             placeholder="(optional)"
@@ -736,7 +737,7 @@ export default function SettingsPage() {
 
                                     {/* MQTT Password */}
                                     <div>
-                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">MQTT Password</label>
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">{t('settings.mqttPassword')}</label>
                                         <input
                                             type="password"
                                             placeholder="(optional)"
@@ -755,7 +756,7 @@ export default function SettingsPage() {
                                         onChange={(e) => handleChange('chirpstack', 'useTls', e.target.checked)}
                                         className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-purple-500"
                                     />
-                                    <span className="text-sm text-gray-300">Use TLS (mqtts://)</span>
+                                    <span className="text-sm text-gray-300">{t('settings.useTLS')}</span>
                                 </div>
 
                                 {/* Info Box */}
@@ -785,7 +786,7 @@ export default function SettingsPage() {
                             }`}
                     >
                         <Save className="w-5 h-5" />
-                        {saving ? 'Saving...' : 'Save Changes'}
+                        {saving ? t('common.saving') : t('settings.saveChanges')}
                     </button>
                 </div>
 

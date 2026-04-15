@@ -1,12 +1,14 @@
 "use client";
 
 import { useSocket } from '@/contexts/SocketContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { LayoutGrid, List, Droplets, Gauge, Battery, Signal, WifiOff } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function ParametersPage() {
     const { stations, getTrend, displayMode } = useSocket();
+    const { t } = useLanguage();
     const router = useRouter();
     const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
     const [selectedDevice, setSelectedDevice] = useState('all');
@@ -23,13 +25,13 @@ export default function ParametersPage() {
     );
 
     const getStatus = (station) => {
-        if (!station.rawTimestamp) return { text: 'Unknown', color: 'text-gray-500', bg: 'bg-gray-500/20', icon: <span className="text-[10px]">●</span> };
+        if (!station.rawTimestamp) return { text: t('common.unknown'), color: 'text-gray-500', bg: 'bg-gray-500/20', icon: <span className="text-[10px]">●</span> };
 
         const diff = now.getTime() - station.rawTimestamp;
         const isOffline = diff > 60 * 60 * 1000; // 1 hour
 
-        if (isOffline) return { text: 'OFFLINE', color: 'text-red-500', bg: 'bg-red-500/20', icon: <WifiOff size={14} /> };
-        return { text: 'Online', color: 'text-green-400', bg: 'bg-green-500/20', icon: <span className="text-[10px]">●</span> };
+        if (isOffline) return { text: t('common.offline').toUpperCase(), color: 'text-red-500', bg: 'bg-red-500/20', icon: <WifiOff size={14} /> };
+        return { text: t('common.online'), color: 'text-green-400', bg: 'bg-green-500/20', icon: <span className="text-[10px]">●</span> };
     };
 
     // Helper to render battery icon
@@ -45,20 +47,20 @@ export default function ParametersPage() {
 
     // Helper to render signal icon
     const renderSignal = (rssi) => {
-        let status = { text: 'Good', color: 'text-green-400', bg: 'bg-green-500' };
+        let status = { text: t('common.good'), color: 'text-green-400', bg: 'bg-green-500' };
         let bars = 5;
 
         if (rssi >= -85) {
-            status = { text: 'Good', color: 'text-green-400', bg: 'bg-green-500' };
+            status = { text: t('common.good'), color: 'text-green-400', bg: 'bg-green-500' };
             bars = 5;
         } else if (rssi >= -90) {
-            status = { text: 'Fair', color: 'text-blue-400', bg: 'bg-blue-500' };
+            status = { text: t('common.fair'), color: 'text-blue-400', bg: 'bg-blue-500' };
             bars = 3;
         } else if (rssi >= -100) {
-            status = { text: 'Poor', color: 'text-orange-400', bg: 'bg-orange-500' };
+            status = { text: t('common.poor'), color: 'text-orange-400', bg: 'bg-orange-500' };
             bars = 2;
         } else {
-            status = { text: 'Very Poor', color: 'text-red-500', bg: 'bg-red-500' };
+            status = { text: t('common.veryPoor'), color: 'text-red-500', bg: 'bg-red-500' };
             bars = 1;
         }
 
@@ -90,9 +92,9 @@ export default function ParametersPage() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6 px-1">
                 <div className="flex flex-col">
                     <h1 className="text-3xl font-bold text-white tracking-tight border-l-4 border-blue-500 pl-4">
-                        Sensors Stations
+                        {t('parameters.title')}
                     </h1>
-                    <p className="text-gray-400 text-sm mt-1">Show all sensors stations.</p>
+                    <p className="text-gray-400 text-sm mt-1">{t('parameters.subtitle')}</p>
                 </div>
 
                 <div className="flex items-center space-x-4">
@@ -102,7 +104,7 @@ export default function ParametersPage() {
                         onChange={(e) => setSelectedDevice(e.target.value)}
                         className="bg-gray-800 text-white border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
                     >
-                        <option value="all">All Devices</option>
+                        <option value="all">{t('parameters.allDevices')}</option>
                         {Object.keys(stations).map(id => (
                             <option key={id} value={id}>{id}</option>
                         ))}
@@ -136,7 +138,7 @@ export default function ParametersPage() {
                             <div className="flex justify-between items-start mb-4">
                                 <div>
                                     <h3 className="text-gray-400 text-sm font-medium">
-                                        {station.stationId} - Water Level
+                                        {station.stationId} - {t('analytics.waterLevel')}
                                     </h3>
                                     <div className="mt-2 flex items-baseline">
                                         <span className="text-3xl font-bold text-white">
@@ -165,7 +167,7 @@ export default function ParametersPage() {
                                     {renderSignal(station.rssi || -100)}
                                 </div>
                                 <div className="flex items-center space-x-2">
-                                    <span className="text-gray-500">Updated: {station.timestamp}</span>
+                                    <span className="text-gray-500">{t('parameters.updated')}: {station.timestamp}</span>
                                     <span className={`${getStatus(station).bg} ${getStatus(station).color} px-2 py-1 rounded-full font-medium flex items-center gap-1`}>
                                         {getStatus(station).icon} {getStatus(station).text}
                                     </span>
@@ -179,11 +181,11 @@ export default function ParametersPage() {
                     <table className="w-full text-left">
                         <thead className="bg-gray-900 text-gray-400 uppercase text-xs">
                             <tr>
-                                <th className="px-6 py-4">Device ID</th>
-                                <th className="px-6 py-4">Value</th>
-                                <th className="px-6 py-4">Health</th>
-                                <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4">Last Update</th>
+                                <th className="px-6 py-4">{t('parameters.deviceId')}</th>
+                                <th className="px-6 py-4">{t('parameters.value')}</th>
+                                <th className="px-6 py-4">{t('parameters.health')}</th>
+                                <th className="px-6 py-4">{t('common.status')}</th>
+                                <th className="px-6 py-4">{t('parameters.lastUpdate')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-700">
@@ -230,7 +232,7 @@ export default function ParametersPage() {
 
             {filteredStations.length === 0 && (
                 <div className="text-center py-20 text-gray-500">
-                    Waiting for sensor data...
+                    {t('parameters.waitingForData')}
                 </div>
             )}
         </div>

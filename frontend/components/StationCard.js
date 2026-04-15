@@ -2,9 +2,11 @@ import React from 'react';
 import { Droplets, Gauge, Info, ArrowRight } from 'lucide-react';
 
 import { useSocket } from '@/contexts/SocketContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const StationCard = React.memo(({ station, onClick }) => {
     const { displayMode } = useSocket();
+    const { t } = useLanguage();
     // --- Status Calculation ---
     const now = new Date();
     const rawTs = station.rawTimestamp || station.timestamp;
@@ -19,7 +21,7 @@ const StationCard = React.memo(({ station, onClick }) => {
         ? station.type === 'Float'
         : (station.sensorType === 'Float' || (station.stationName && station.stationName.toLowerCase().includes('float')));
 
-    const typeLabel = isFloat ? 'Float' : 'Static';
+    const typeLabel = isFloat ? t('common.float') : t('common.static');
     const Icon = isFloat ? Droplets : Gauge;
 
     // Static classes to avoid Tailwind JIT purge issues with dynamic class names
@@ -48,13 +50,13 @@ const StationCard = React.memo(({ station, onClick }) => {
     // --- Status Badge ---
     let statusLabel, statusClasses;
     if (!rawTs) {
-        statusLabel = 'Unknown';
+        statusLabel = t('stationCard.unknown');
         statusClasses = 'bg-gray-700 text-gray-400 border-gray-600';
     } else if (!isActive) {
-        statusLabel = 'Offline';
+        statusLabel = t('stationCard.offline');
         statusClasses = 'bg-gray-800/80 text-gray-400 border-gray-700 backdrop-blur-md';
     } else {
-        statusLabel = 'Online';
+        statusLabel = t('stationCard.online');
         statusClasses = 'bg-green-500/80 text-white border-white/30 backdrop-blur-md';
     }
 
@@ -72,7 +74,7 @@ const StationCard = React.memo(({ station, onClick }) => {
         ? 'text-gray-500'
         : battery > 50 ? 'text-green-400' : battery > 25 ? 'text-orange-400' : 'text-red-400';
 
-    const stationName = station.stationName || station.stationId || 'Station';
+    const stationName = station.stationName || station.stationId || t('history.station');
 
     return (
         <div
@@ -80,8 +82,8 @@ const StationCard = React.memo(({ station, onClick }) => {
             tabIndex={0}
             onClick={onClick}
             onKeyDown={(e) => e.key === 'Enter' && onClick?.()}
-            aria-label={`สถานี ${stationName} — ระดับน้ำ ${waterLevelDisplay} ม. — กดเพื่อดูรายละเอียด`}
-            title={`${stationName}: กดเพื่อดูข้อมูลเชิงลึก`}
+            aria-label={`${t('common.ariaStation')} ${stationName} — ${t('common.ariaWaterLevel')} ${waterLevelDisplay} ${t('common.m')} — ${t('common.ariaPressToView')}`}
+            title={`${stationName}: ${t('common.ariaPressToView')}`}
             className={`
                 relative bg-gray-900/40 rounded-2xl overflow-hidden border transition-all duration-500 cursor-pointer
                 ${cardAlertClasses} ${alertGlow}
@@ -152,7 +154,7 @@ const StationCard = React.memo(({ station, onClick }) => {
                 <div className="flex items-end justify-between border-t border-white/5 pt-4 mt-3">
                     <div className="flex flex-col">
                         <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.25em] mb-1.5">
-                            Water Depth
+                            {t('stationCard.waterDepth')}
                         </span>
                         <div className="flex items-baseline gap-1">
                             <span className={`text-3xl font-bold tabular-nums tracking-tighter ${textAccent}`}>
@@ -164,7 +166,7 @@ const StationCard = React.memo(({ station, onClick }) => {
                             <div className="flex items-center gap-1.5 mt-1">
                                 <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
                                 <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">
-                                    Raw Data
+                                    {t('stationCard.rawData')}
                                 </span>
                             </div>
                         ) : (
@@ -179,7 +181,7 @@ const StationCard = React.memo(({ station, onClick }) => {
                     <div className="flex flex-col items-end gap-1">
                         {battery != null && (
                             <div className="flex flex-col items-end">
-                                <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1.5 text-right">Battery</span>
+                                <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1.5 text-right">{t('stationCard.battery')}</span>
                                 <div className="flex items-center gap-2">
                                     <div className="w-10 h-1.5 bg-gray-800 rounded-full overflow-hidden border border-white/5">
                                         <div

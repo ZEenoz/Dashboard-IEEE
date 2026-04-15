@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useSocket } from "@/contexts/SocketContext";
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import StationCard from "@/components/StationCard";
@@ -114,6 +115,7 @@ const SidebarStationItem = React.memo(({ st, type, onFly, onDetails }) => {
 
 export default function Home() {
   const { stations, history, displayMode, setDisplayMode } = useSocket();
+  const { t } = useLanguage();
   const router = useRouter();
   const mapRef = useRef(null);
   const [mapStyle, setMapStyle] = useState('dark'); // 'dark' | 'satellite'
@@ -231,14 +233,14 @@ export default function Home() {
       {/* SECTION 1: Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6 px-1">
         <div className="flex flex-col">
-          <h1 className="text-3xl font-bold text-white tracking-tight border-l-4 border-blue-500 pl-4">System Overview</h1>
-          <p className="text-gray-400 text-sm mt-1 max-w-lg">Monitoring all real-time water level stations and sensor.</p>
+          <h1 className="text-3xl font-bold text-white tracking-tight border-l-4 border-blue-500 pl-4">{t('overview.title')}</h1>
+          <p className="text-gray-400 text-sm mt-1 max-w-lg">{t('overview.subtitle')}</p>
         </div>
 
         {/* Display Mode Toggle */}
         <div className="flex flex-col items-start md:items-end gap-2 w-full md:w-auto">
           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 md:mr-2">
-            Data Mode
+            {t('overview.dataMode')}
           </span>
           <div className="mode-toggle-container w-full sm:w-auto" data-mode={displayMode}>
             <div className="mode-toggle-active-bg" />
@@ -247,14 +249,14 @@ export default function Home() {
               className={`mode-toggle-btn flex-1 sm:flex-none ${displayMode === 'calibrated' ? 'active' : ''}`}
             >
               <ShieldCheck size={14} className="shrink-0" />
-              <span>Calibrated</span>
+              <span>{t('overview.calibrated')}</span>
             </button>
             <button
               onClick={() => handleToggleMode('raw')}
               className={`mode-toggle-btn flex-1 sm:flex-none ${displayMode === 'raw' ? 'active' : ''}`}
             >
               <Database size={14} className="shrink-0" />
-              <span>Raw Data</span>
+              <span>{t('overview.rawData')}</span>
             </button>
           </div>
         </div>
@@ -281,7 +283,7 @@ export default function Home() {
             <div className="p-4 border-b border-gray-700 flex justify-between items-center bg-gray-800/50">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <Globe size={20} className="text-blue-400" />
-                Geographic View
+                {t('overview.geographicView')}
               </h2>
               <div className="flex gap-2">
                 <button
@@ -386,7 +388,7 @@ export default function Home() {
               <input
                 id="station-search"
                 type="text"
-                placeholder="Search nodes..."
+                placeholder={t('overview.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-gray-900 text-white rounded-lg pl-10 pr-4 py-3 border border-gray-700 focus:outline-none focus:border-blue-500 text-sm placeholder-gray-500"
@@ -397,26 +399,26 @@ export default function Home() {
                 onClick={() => setFilterType('all')}
                 className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${filterType === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}
               >
-                All
+                {t('overview.filterAll')}
               </button>
               <button
                 onClick={() => setFilterType('float')}
                 className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${filterType === 'float' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}
               >
-                Float
+                {t('overview.filterFloat')}
               </button>
               <button
                 onClick={() => setFilterType('static')}
                 className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${filterType === 'static' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}
               >
-                Static
+                {t('overview.filterStatic')}
               </button>
             </div>
           </div>
 
           {/* Float Nodes List */}
           <div>
-            <h4 className="text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">Float Nodes</h4>
+            <h4 className="text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">{t('overview.floatNodes')}</h4>
             <div className="space-y-3">
               {floatNodes.map((st, i) => (
                 <SidebarStationItem 
@@ -432,7 +434,7 @@ export default function Home() {
 
           {/* Static Nodes List */}
           <div>
-            <h4 className="text-xs font-bold text-gray-500 uppercase mb-2 mt-4 tracking-wider">Static Nodes</h4>
+            <h4 className="text-xs font-bold text-gray-500 uppercase mb-2 mt-4 tracking-wider">{t('overview.staticNodes')}</h4>
             <div className="space-y-3">
               {staticNodes.map((st, i) => (
                 <SidebarStationItem 

@@ -4,6 +4,7 @@ import { useSocket } from '@/contexts/SocketContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useMemo, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Brush } from 'recharts';
 import { PlayCircle, PauseCircle, CheckSquare, Square, Download } from 'lucide-react';
 
@@ -11,6 +12,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 export default function AnalyticsPage() {
     const { history, stations, displayMode } = useSocket();
+    const { t } = useLanguage();
     const { role } = useAuth();
     const [selectedStations, setSelectedStations] = useState([]);
     const [timeRange, setTimeRange] = useState('1h'); // '1h', '6h', '24h'
@@ -191,8 +193,8 @@ export default function AnalyticsPage() {
         <div className="flex flex-col h-full space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 px-1">
                 <div className="flex flex-col">
-                    <h1 className="text-3xl font-bold text-white tracking-tight border-l-4 border-blue-500 pl-4">Analytics</h1>
-                    <p className="text-gray-400 text-sm mt-1 max-w-lg">Comparative performance and trend analysis.</p>
+                    <h1 className="text-3xl font-bold text-white tracking-tight border-l-4 border-blue-500 pl-4">{t('analytics.title')}</h1>
+                    <p className="text-gray-400 text-sm mt-1">{t('analytics.subtitle')}</p>
                 </div>
 
                 <div className="flex flex-col gap-4 items-end">
@@ -204,7 +206,7 @@ export default function AnalyticsPage() {
                                 className="bg-gray-800 hover:bg-gray-700 text-white px-2 py-2 rounded-lg font-bold flex items-center gap-2 border border-gray-700 transition-all"
                             >
                                 <Download size={18} className="text-green-500" />
-                                Export CSV
+                                {t('analytics.exportCSV')}
                             </button>
                         )}
 
@@ -217,7 +219,7 @@ export default function AnalyticsPage() {
                                 }`}
                         >
                             {isPaused ? <PauseCircle className="w-5 h-5 text-sm" /> : <PlayCircle className="w-5 h-5 text-sm" />}
-                            <span className="text-xs">{isPaused ? 'Paused' : 'Live'}</span>
+                            <span className="text-xs">{isPaused ? t('analytics.paused') : t('analytics.live')}</span>
                         </button>
 
                         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
@@ -254,14 +256,14 @@ export default function AnalyticsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 flex-1 min-h-0">
                 {/* Left Column: Controls (Station Selection) */}
                 <div className="lg:col-span-1 bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg overflow-y-auto">
-                    <h3 className="font-bold text-gray-300 mb-4 uppercase text-xs tracking-wider">Select Sensors</h3>
+                    <h3 className="font-bold text-gray-300 mb-4 uppercase text-xs tracking-wider">{t('analytics.selectSensors')}</h3>
 
                     <div className="space-y-4">
                         {/* Group: Float Sensors */}
                         <div>
                             <h4 className="text-xs font-bold text-blue-400 mb-2 flex items-center gap-2">
                                 <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                                Float Nodes
+                                {t('overview.floatNodes')}
                             </h4>
                             <div className="space-y-2">
                                 {Object.values(stations).filter(s => isFloat(s.stationId)).map(station => (
@@ -283,7 +285,7 @@ export default function AnalyticsPage() {
                         <div>
                             <h4 className="text-xs font-bold text-purple-400 mb-2 flex items-center gap-2 mt-6">
                                 <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-                                Static Nodes
+                                {t('overview.staticNodes')}
                             </h4>
                             <div className="space-y-2">
                                 {Object.values(stations).filter(s => !isFloat(s.stationId)).map(station => (
@@ -307,15 +309,15 @@ export default function AnalyticsPage() {
                 <div className="lg:col-span-3 flex flex-col gap-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="bg-[#151E32] rounded-2xl p-4 border border-gray-700 shadow-xl">
-                            <h3 className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">Peak Level (Selected)</h3>
+                            <h3 className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">{t('analytics.peakLevel')}</h3>
                             <div className="text-2xl font-bold text-white tabular-nums">{stats.max} <span className="text-sm font-normal text-gray-400 font-mono">m</span></div>
                         </div>
                         <div className="bg-[#151E32] rounded-2xl p-4 border border-gray-700 shadow-xl">
-                            <h3 className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">Average Level</h3>
+                            <h3 className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">{t('analytics.avgLevel')}</h3>
                             <div className="text-2xl font-bold text-white tabular-nums">{stats.avg} <span className="text-sm font-normal text-gray-400 font-mono">m</span></div>
                         </div>
                         <div className="bg-[#151E32] rounded-2xl p-4 border border-gray-700 shadow-xl">
-                            <h3 className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">Minimum Level</h3>
+                            <h3 className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">{t('analytics.activeStations')}</h3>
                             <div className="text-2xl font-bold text-white tabular-nums">{stats.min} <span className="text-sm font-normal text-gray-400 font-mono">m</span></div>
                         </div>
                     </div>
@@ -417,12 +419,12 @@ export default function AnalyticsPage() {
 
                         <h2 className="text-xl font-bold flex items-center gap-2 mb-6 text-white">
                             <Download className="w-6 h-6 text-green-500" />
-                            Export Data
+                            {t('analytics.exportData')}
                         </h2>
 
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-bold text-gray-400 mb-1">Start Date</label>
+                                <label className="block text-sm font-bold text-gray-400 mb-1">{t('analytics.startDate')}</label>
                                 <input
                                     type="date"
                                     id="modal-start-date"
@@ -431,7 +433,7 @@ export default function AnalyticsPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold text-gray-400 mb-1">End Date</label>
+                                <label className="block text-sm font-bold text-gray-400 mb-1">{t('analytics.endDate')}</label>
                                 <input
                                     type="date"
                                     id="modal-end-date"
@@ -440,13 +442,13 @@ export default function AnalyticsPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold text-gray-400 mb-1">Station</label>
+                                <label className="block text-sm font-bold text-gray-400 mb-1">{t('analytics.station')}</label>
                                 <select
                                     id="modal-station-id"
                                     className="w-full bg-gray-800 border-gray-600 rounded-lg p-3 text-white focus:border-green-500 outline-none"
                                     defaultValue="all"
                                 >
-                                    <option value="all">Export All Stations</option>
+                                    <option value="all">{t('analytics.exportAllStations')}</option>
                                     {Object.values(stations).map(s => (
                                         <option key={s.stationId} value={s.stationId}>
                                             {s.stationName || s.stationId}
@@ -462,13 +464,13 @@ export default function AnalyticsPage() {
                                     const station = document.getElementById('modal-station-id').value;
 
                                     if (!start || !end) {
-                                        toast.error("Please select both start and end dates.");
+                                        toast.error(t('analytics.errorSelectDates'));
                                         return;
                                     }
 
                                     const url = `${API_URL}/export?start_date=${start}&end_date=${end}&station_id=${station}`;
                                     try {
-                                        toast.loading('Exporting CSV...', { id: 'csv-export' });
+                                        toast.loading(t('analytics.exporting'), { id: 'csv-export' });
                                         const res = await fetch(url, {
                                             headers: { 'ngrok-skip-browser-warning': 'true' }
                                         });
@@ -478,16 +480,16 @@ export default function AnalyticsPage() {
                                         link.href = URL.createObjectURL(blob);
                                         link.download = `${station}_${start}_to_${end}.csv`;
                                         link.click();
-                                        toast.success('Export completed!', { id: 'csv-export' });
+                                        toast.success(t('analytics.exportComplete'), { id: 'csv-export' });
                                     } catch (err) {
-                                        toast.error('Export failed: ' + err.message, { id: 'csv-export' });
+                                        toast.error(t('analytics.exportFailed') + ': ' + err.message, { id: 'csv-export' });
                                     }
                                     setShowExportModal(false);
                                 }}
                                 className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 mt-4 transition-all"
                             >
                                 <Download size={20} />
-                                Download CSV
+                                {t('analytics.downloadCSV')}
                             </button>
                         </div>
                     </div>

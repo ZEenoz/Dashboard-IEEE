@@ -1,16 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Menu, X, LogOut, User, Sliders, Settings, LayoutGrid } from 'lucide-react';
+import { Menu, X, LogOut, User, Sliders, Settings, LayoutGrid, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
-import { menuItems } from './Sidebar';
+import { menuItemDefs } from './Sidebar';
+import { useLanguage } from '@/contexts/LanguageContext';
+import LanguageToggle from '@/components/LanguageToggle';
 
 export default function MobileNav() {
     const [isOpen, setIsOpen] = useState(false);
     const pathname = usePathname();
     const { data: session } = useSession();
+    const { t } = useLanguage();
 
     // Close menu when route changes
     useEffect(() => {
@@ -34,12 +37,15 @@ export default function MobileNav() {
                     <h1 className="text-lg font-bold text-blue-500 leading-tight">Water Monitor</h1>
                     <p className="text-[10px] text-gray-500 uppercase tracking-widest font-medium">IoT Dashboard</p>
                 </div>
-                <button 
-                    onClick={() => setIsOpen(true)}
-                    className="p-2 text-gray-400 hover:text-white transition-colors"
-                >
-                    <Menu size={24} />
-                </button>
+                <div className="flex items-center gap-3">
+                    <LanguageToggle compact />
+                    <button 
+                        onClick={() => setIsOpen(true)}
+                        className="p-2 text-gray-400 hover:text-white transition-colors"
+                    >
+                        <Menu size={24} />
+                    </button>
+                </div>
             </header>
 
             {/* Sidebar Drawer Overlay */}
@@ -69,13 +75,14 @@ export default function MobileNav() {
 
                     {/* Mobile Navigation Links */}
                     <nav className="flex-1 py-6 px-4 space-y-1.5 overflow-y-auto">
-                        {menuItems.map((item) => {
+                        {menuItemDefs.map((item) => {
                             const isActive = pathname === item.href;
+                            const label = t(`sidebar.${item.key}`);
                             if (item.href === '/alerts' && session?.user?.role === 'general_user') return null;
 
                             return (
                                 <Link
-                                    key={item.name}
+                                    key={item.key}
                                     href={item.href}
                                     className={`flex items-center px-4 py-3.5 rounded-xl transition-all duration-200 group
                                         ${isActive
@@ -84,7 +91,7 @@ export default function MobileNav() {
                                         }`}
                                 >
                                     <item.icon className={`w-5 h-5 ${isActive ? 'text-blue-500' : 'text-gray-400 group-hover:text-white'}`} />
-                                    <span className="ml-3 font-semibold text-sm">{item.name}</span>
+                                    <span className="ml-3 font-semibold text-sm">{label}</span>
                                 </Link>
                             );
                         })}
@@ -92,7 +99,7 @@ export default function MobileNav() {
                         {/* Admin Tools for Mobile */}
                         {session?.user?.role !== 'general_user' && (
                             <div className="pt-6 mt-6 border-t border-gray-800 space-y-1.5">
-                                <span className="px-4 text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mb-2 block">System Configuration</span>
+                                <span className="px-4 text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mb-2 block">{t('sidebar.adminTools')}</span>
                                 {session?.user?.role === 'admin' && (
                                     <Link
                                         href="/offset-presets"
@@ -100,7 +107,7 @@ export default function MobileNav() {
                                             ${pathname === '/offset-presets' ? 'bg-blue-600/10 text-white border-l-4 border-blue-500 pl-3' : 'text-gray-400 hover:bg-gray-800/50'}`}
                                     >
                                         <Sliders size={18} />
-                                        <span className="ml-3 font-semibold text-sm">Offset Presets</span>
+                                        <span className="ml-3 font-semibold text-sm">{t('sidebar.offsetPresets')}</span>
                                     </Link>
                                 )}
                                 <Link
@@ -109,10 +116,21 @@ export default function MobileNav() {
                                         ${pathname === '/settings' ? 'bg-blue-600/10 text-white border-l-4 border-blue-500 pl-3' : 'text-gray-400 hover:bg-gray-800/50'}`}
                                 >
                                     <Settings size={18} />
-                                    <span className="ml-3 font-semibold text-sm">Settings</span>
+                                    <span className="ml-3 font-semibold text-sm">{t('sidebar.settings')}</span>
                                 </Link>
                             </div>
                         )}
+
+                        {/* Language Toggle in Drawer */}
+                        <div className="pt-6 mt-6 border-t border-gray-800">
+                            <div className="flex items-center justify-between px-4 py-2">
+                                <div className="flex items-center gap-2 text-gray-500">
+                                    <Globe size={14} />
+                                    <span className="text-[10px] font-bold uppercase tracking-widest">{t('sidebar.language')}</span>
+                                </div>
+                                <LanguageToggle />
+                            </div>
+                        </div>
                     </nav>
 
                     {/* Footer / User Profile */}
@@ -135,7 +153,7 @@ export default function MobileNav() {
                                     className="flex items-center justify-center gap-2 w-full py-3 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all text-xs font-bold border border-red-500/20 shadow-lg shadow-red-500/5"
                                 >
                                     <LogOut size={14} />
-                                    Sign Out from Dashboard
+                                    {t('sidebar.signOut')}
                                 </button>
                             </div>
                         ) : (
@@ -143,7 +161,7 @@ export default function MobileNav() {
                                 href="/login" 
                                 className="flex items-center justify-center w-full py-3 bg-gray-800 hover:bg-gray-700 rounded-xl text-xs font-bold text-gray-300 transition-colors"
                             >
-                                Admin Authentication
+                                {t('sidebar.signIn')}
                             </Link>
                         )}
                     </div>

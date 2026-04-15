@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useSocket } from '@/contexts/SocketContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import {
     Bell, BellRing, AlertTriangle, CheckCircle2, Clock,
     RefreshCw, Activity, TrendingUp, ShieldAlert, ShieldCheck
@@ -27,12 +28,13 @@ function formatTime(isoStr) {
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 function StatusBadge({ status }) {
+    const { t } = useLanguage();
     const map = {
-        'sent_to_bot': { color: 'bg-green-500/20 text-green-400 border-green-500/40', label: '✅ Sent' },
-        'pending': { color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40', label: '⏳ Pending' },
-        'failed': { color: 'bg-red-500/20 text-red-400 border-red-500/40', label: '❌ Failed' },
+        'sent_to_bot': { color: 'bg-green-500/20 text-green-400 border-green-500/40', label: t('alerts.sent') },
+        'pending': { color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40', label: t('alerts.pending') },
+        'failed': { color: 'bg-red-500/20 text-red-400 border-red-500/40', label: t('alerts.failed') },
     };
-    const s = map[status] || { color: 'bg-gray-500/20 text-gray-400 border-gray-500/40', label: status || 'Unknown' };
+    const s = map[status] || { color: 'bg-gray-500/20 text-gray-400 border-gray-500/40', label: status || t('common.unknown') };
     return (
         <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold border ${s.color}`}>
             {s.label}
@@ -42,11 +44,12 @@ function StatusBadge({ status }) {
 
 // ─── Alert Level Badge ────────────────────────────────────────────────────────
 function AlertLevelBadge({ alertLevel }) {
+    const { t } = useLanguage();
     if (alertLevel === 'dangerous') {
         return (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border bg-red-500/20 text-red-300 border-red-500/50 animate-pulse">
                 <ShieldAlert className="w-3 h-3" />
-                🚨 Dangerous
+                {t('alerts.dangerousLabel')}
             </span>
         );
     }
@@ -54,7 +57,7 @@ function AlertLevelBadge({ alertLevel }) {
         return (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border bg-yellow-500/20 text-yellow-300 border-yellow-500/50">
                 <ShieldCheck className="w-3 h-3" />
-                ⚠️ Warning
+                {t('alerts.warningLabel')}
             </span>
         );
     }
@@ -79,6 +82,7 @@ function SeverityBar({ level, threshold }) {
 
 export default function AlertsPage() {
     const { stations } = useSocket();
+    const { t } = useLanguage();
     const [alerts, setAlerts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [lastRefresh, setLastRefresh] = useState(null);
@@ -224,7 +228,7 @@ export default function AlertsPage() {
     if (status === 'loading' || loading) return (
         <div className="flex items-center justify-center h-[80vh] gap-3 text-gray-500">
             <RefreshCw className="w-8 h-8 animate-spin" />
-            <span>Loading...</span>
+            <span>{t('common.loading')}</span>
         </div>
     );
 
@@ -237,10 +241,10 @@ export default function AlertsPage() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
                 <div>
                     <h1 className="text-3xl font-bold text-white tracking-tight border-l-4 border-red-500 pl-4">
-                        Alerts &amp; Notifications
+                        {t('alerts.title')}
                     </h1>
                     <p className="text-gray-400 text-sm mt-1">
-                        Records of all water level threshold breach alerts
+                        {t('alerts.subtitle')}
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -255,7 +259,7 @@ export default function AlertsPage() {
                         className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 px-4 py-2 rounded-lg text-sm font-bold transition-all disabled:opacity-50"
                     >
                         <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                        Refresh
+                        {t('common.refresh')}
                     </button>
                 </div>
             </div>
@@ -268,7 +272,7 @@ export default function AlertsPage() {
                         <ShieldAlert className="w-6 h-6 text-red-400" />
                     </div>
                     <div>
-                        <p className="text-red-400 text-xs font-bold uppercase tracking-wider">🚨 Dangerous</p>
+                        <p className="text-red-400 text-xs font-bold uppercase tracking-wider">🚨 {t('common.dangerous')}</p>
                         <p className="text-3xl font-extrabold text-red-300 mt-1">{stats.dangerousCount}</p>
                     </div>
                 </div>
@@ -278,7 +282,7 @@ export default function AlertsPage() {
                         <ShieldCheck className="w-6 h-6 text-yellow-400" />
                     </div>
                     <div>
-                        <p className="text-yellow-400 text-xs font-bold uppercase tracking-wider">⚠️ Warning</p>
+                        <p className="text-yellow-400 text-xs font-bold uppercase tracking-wider">⚠️ {t('common.warning')}</p>
                         <p className="text-3xl font-extrabold text-yellow-300 mt-1">{stats.warningCount}</p>
                     </div>
                 </div>
@@ -288,7 +292,7 @@ export default function AlertsPage() {
                         <TrendingUp className="w-6 h-6 text-blue-400" />
                     </div>
                     <div>
-                        <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">Peak Level</p>
+                        <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">{t('stationDetail.peakLevel')}</p>
                         <p className="text-3xl font-extrabold text-white mt-1">
                             {stats.maxLevel > 0 ? `${stats.maxLevel.toFixed(2)}m` : '—'}
                         </p>
@@ -300,7 +304,7 @@ export default function AlertsPage() {
                         <Clock className="w-6 h-6 text-purple-400" />
                     </div>
                     <div className="min-w-0">
-                        <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">Last Alert</p>
+                        <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">{t('alerts.triggeredAt')}</p>
                         <p className="text-sm font-bold text-white mt-1 leading-tight">
                             {stats.lastAlert ? formatTime(stats.lastAlert) : '—'}
                         </p>
@@ -311,14 +315,14 @@ export default function AlertsPage() {
             {/* ── Filter Bar ─────────────────────────────────────────────────── */}
             <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 flex flex-wrap gap-4 items-end">
                 <div className="flex flex-col gap-1">
-                    <label htmlFor="station-filter" className="text-xs font-bold text-gray-400 uppercase tracking-wider">Station</label>
+                    <label htmlFor="station-filter" className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('alerts.station')}</label>
                     <select
                         id="station-filter"
                         value={filterStation}
                         onChange={e => setFilterStation(e.target.value)}
                         className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500"
                     >
-                        <option value="all">All Stations</option>
+                        <option value="all">{t('alerts.allStations')}</option>
                         {stationList.map(s => (
                             <option key={s.stationId} value={s.stationId}>
                                 {s.stationName || s.stationId}
@@ -327,7 +331,7 @@ export default function AlertsPage() {
                     </select>
                 </div>
                 <div className="flex flex-col gap-1">
-                    <label htmlFor="date-filter" className="text-xs font-bold text-gray-400 uppercase tracking-wider">Date</label>
+                    <label htmlFor="date-filter" className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('alerts.time')}</label>
                     <input
                         id="date-filter"
                         type="date"
@@ -337,16 +341,16 @@ export default function AlertsPage() {
                     />
                 </div>
                 <div className="flex flex-col gap-1">
-                    <label htmlFor="level-filter" className="text-xs font-bold text-gray-400 uppercase tracking-wider">Alert Level</label>
+                    <label htmlFor="level-filter" className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('alerts.alertLevel')}</label>
                     <select
                         id="level-filter"
                         value={filterLevel}
                         onChange={e => setFilterLevel(e.target.value)}
                         className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500"
                     >
-                        <option value="all">All Levels</option>
-                        <option value="warning">⚠️ Warning</option>
-                        <option value="dangerous">🚨 Dangerous</option>
+                        <option value="all">{t('alerts.filterAll')}</option>
+                        <option value="warning">⚠️ {t('alerts.filterWarning')}</option>
+                        <option value="dangerous">🚨 {t('alerts.filterCritical')}</option>
                     </select>
                 </div>
                 {(filterStation !== 'all' || filterDate || filterLevel !== 'all') && (
@@ -354,12 +358,12 @@ export default function AlertsPage() {
                         onClick={() => { setFilterStation('all'); setFilterDate(''); setFilterLevel('all'); }}
                         className="self-end px-4 py-2.5 text-xs font-bold text-gray-400 hover:text-white bg-gray-700 hover:bg-gray-600 rounded-lg transition-all"
                     >
-                        Clear Filters
+                        {t('alerts.clearFilters')}
                     </button>
                 )}
                 {filteredAlerts.length > 0 && (
                     <span className="self-end ml-auto text-xs text-gray-500">
-                        Showing {filteredAlerts.length} record{filteredAlerts.length !== 1 ? 's' : ''}
+                        {t('history.showing')} {filteredAlerts.length} {t('history.entries')}
                     </span>
                 )}
             </div>
@@ -369,15 +373,15 @@ export default function AlertsPage() {
                 {loading ? (
                     <div className="flex items-center justify-center py-24 gap-3 text-gray-500">
                         <RefreshCw className="w-6 h-6 animate-spin" />
-                        <span>Loading...</span>
+                        <span>{t('common.loading')}</span>
                     </div>
                 ) : filteredAlerts.length === 0 ? (
                     /* Empty State */
                     <div className="flex flex-col items-center justify-center py-24 gap-4 text-gray-500">
                         <Bell className="w-16 h-16 opacity-20" />
-                        <p className="text-lg font-bold">No Alerts Yet</p>
+                        <p className="text-lg font-bold">{t('alerts.noAlerts')}</p>
                         <p className="text-sm text-gray-400">
-                            Alerts will appear here when water level exceeds the configured threshold.
+                            {t('alerts.noAlertsDesc')}
                         </p>
                     </div>
                 ) : (
@@ -385,13 +389,13 @@ export default function AlertsPage() {
                         <table className="w-full text-left">
                             <thead className="bg-gray-900 text-gray-400 text-xs uppercase tracking-wider">
                                 <tr>
-                                    <th className="px-5 py-4">Timestamp</th>
-                                    <th className="px-5 py-4">Station</th>
-                                    <th className="px-5 py-4">Alert Level</th>
-                                    <th className="px-5 py-4">Water Level</th>
-                                    <th className="px-5 py-4">Threshold</th>
-                                    <th className="px-5 py-4">Battery</th>
-                                    <th className="px-5 py-4">LINE Status</th>
+                                    <th className="px-5 py-4">{t('alerts.triggeredAt')}</th>
+                                    <th className="px-5 py-4">{t('alerts.stationName')}</th>
+                                    <th className="px-5 py-4">{t('alerts.alertLevel')}</th>
+                                    <th className="px-5 py-4">{t('history.tableLevel')}</th>
+                                    <th className="px-5 py-4">{t('alerts.threshold')}</th>
+                                    <th className="px-5 py-4">{t('stationCard.battery')}</th>
+                                    <th className="px-5 py-4">LINE {t('common.status')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-700/60">
@@ -446,7 +450,7 @@ export default function AlertsPage() {
                                     className="px-6 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-sm font-bold transition-all disabled:opacity-50 flex items-center gap-2"
                                 >
                                     {isLoadingMore && <RefreshCw className="w-4 h-4 animate-spin text-red-500" />}
-                                    {isLoadingMore ? 'Loading...' : 'Load More'}
+                                    {isLoadingMore ? t('history.loadingMore') : t('history.loadMore')}
                                 </button>
                             </div>
                         )}
@@ -456,7 +460,7 @@ export default function AlertsPage() {
 
             {/* ── Footer Info ─────────────────────────────────────────────────── */}
             <p className="text-center text-xs text-gray-500">
-                Auto-refreshes every 30 seconds · Logs are session-only (max 200 entries)
+                {t('alerts.entriesInfo')}
             </p>
         </div>
     );

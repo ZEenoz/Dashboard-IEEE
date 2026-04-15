@@ -2,6 +2,7 @@
 
 import { useSocket } from '@/contexts/SocketContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -20,6 +21,7 @@ if (typeof window !== 'undefined') {
 
 // ─── Export CSV Modal ────────────────────────────────────────────────────────
 function ExportModal({ stationId, stationName, onClose }) {
+    const { t } = useLanguage();
     const today = new Date().toISOString().split('T')[0];
     const [fromDate, setFromDate] = useState(today);
     const [toDate, setToDate] = useState(today);
@@ -27,21 +29,20 @@ function ExportModal({ stationId, stationName, onClose }) {
 
     const handleExport = async () => {
         setLoading(true);
-        toast.loading('Exporting CSV...', { id: 'csv-export' });
+        toast.loading(t('stationDetail.exporting'), { id: 'csv-export' });
         try {
             const url = `${API}/export?start_date=${fromDate}&end_date=${toDate}&station_id=${stationId}`;
             const res = await fetch(url, {
                 headers: { 'ngrok-skip-browser-warning': 'true' }
             });
-            if (!res.ok) throw new Error('Export failed');
             const blob = await res.blob();
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
             link.download = `${stationId}_${fromDate}_to_${toDate}.csv`;
             link.click();
-            toast.success('Export completed!', { id: 'csv-export' });
+            toast.success(t('stationDetail.exportComplete'), { id: 'csv-export' });
         } catch (e) {
-            toast.error('Export failed: ' + e.message, { id: 'csv-export' });
+            toast.error(t('stationDetail.exportFailed') + ': ' + e.message, { id: 'csv-export' });
         } finally {
             setLoading(false);
         }
@@ -57,7 +58,7 @@ function ExportModal({ stationId, stationName, onClose }) {
                             <Download className="w-5 h-5 text-green-400" />
                         </div>
                         <div>
-                            <h2 className="text-white font-bold">Export CSV</h2>
+                            <h2 className="text-white font-bold">{t('stationDetail.exportCSV')}</h2>
                             <p className="text-xs text-gray-500 font-mono">{stationName}</p>
                         </div>
                     </div>
@@ -71,7 +72,7 @@ function ExportModal({ stationId, stationName, onClose }) {
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1 mb-2">
-                                <Calendar className="w-3 h-3" /> From
+                                <Calendar className="w-3 h-3" /> {t('stationDetail.exportFrom')}
                             </label>
                             <input
                                 type="date"
@@ -82,7 +83,7 @@ function ExportModal({ stationId, stationName, onClose }) {
                         </div>
                         <div>
                             <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1 mb-2">
-                                <Calendar className="w-3 h-3" /> To
+                                <Calendar className="w-3 h-3" /> {t('stationDetail.exportTo')}
                             </label>
                             <input
                                 type="date"
@@ -94,14 +95,14 @@ function ExportModal({ stationId, stationName, onClose }) {
                     </div>
 
                     <div className="bg-gray-900/50 rounded-xl p-3 border border-gray-700/50 text-xs text-gray-500">
-                        📋 Columns: Timestamp, Station ID, Station Name, Water Level (m), Battery (V), RSSI, SNR
+                        📋 {t('stationDetail.exportColumns')}
                     </div>
                 </div>
 
                 {/* Footer */}
                 <div className="px-6 pb-6 flex gap-3">
                     <button onClick={onClose} className="flex-1 px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-bold transition-colors">
-                        Cancel
+                        {t('common.cancel')}
                     </button>
                     <button
                         onClick={handleExport}
@@ -109,9 +110,9 @@ function ExportModal({ stationId, stationName, onClose }) {
                         className="flex-1 px-4 py-2.5 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2"
                     >
                         {loading ? (
-                            <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Exporting...</>
+                            <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t('stationDetail.exporting')}</>
                         ) : (
-                            <><Download className="w-4 h-4" /> Download CSV</>
+                            <><Download className="w-4 h-4" /> {t('stationDetail.downloadCSV')}</>
                         )}
                     </button>
                 </div>
@@ -122,6 +123,7 @@ function ExportModal({ stationId, stationName, onClose }) {
 
 // ─── Per-Station Threshold Panel ─────────────────────────────────────────────
 function ThresholdPanel({ stationId }) {
+    const { t } = useLanguage();
     const [warningLevel, setWarningLevel] = useState('');
     const [criticalLevel, setCriticalLevel] = useState('');
     const [saving, setSaving] = useState(false);
@@ -157,10 +159,10 @@ function ThresholdPanel({ stationId }) {
             });
             if (!res.ok) throw new Error('Save failed');
             setSaved(true);
-            toast.success('Thresholds saved successfully!');
+            toast.success(t('stationDetail.saved'));
             setTimeout(() => setSaved(false), 2500);
         } catch (e) {
-            toast.error('Failed to save: ' + e.message);
+            toast.error(t('settings.failedToSave') + ': ' + e.message);
         } finally {
             setSaving(false);
         }
@@ -170,13 +172,13 @@ function ThresholdPanel({ stationId }) {
         <div className="bg-[#151E32] rounded-2xl border border-gray-800 p-6 mb-6 shadow-xl">
             <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                 <ShieldAlert className="w-3.5 h-3.5 text-orange-400" />
-                Station-Specific Thresholds
+                {t('stationDetail.stationThresholds')}
             </h3>
             <div className="grid grid-cols-2 gap-4 mb-4">
                 {/* Warning */}
                 <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-xl p-4">
                     <label className="text-[10px] font-bold text-yellow-500 uppercase tracking-wider flex items-center gap-1 mb-2">
-                        <ShieldCheck className="w-3 h-3" /> Warning Level
+                        <ShieldCheck className="w-3 h-3" /> {t('stationDetail.warningLevel')}
                     </label>
                     <div className="relative">
                         <input
@@ -194,7 +196,7 @@ function ThresholdPanel({ stationId }) {
                 {/* Critical */}
                 <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-4">
                     <label className="text-[10px] font-bold text-red-500 uppercase tracking-wider flex items-center gap-1 mb-2">
-                        <ShieldAlert className="w-3 h-3" /> Critical Level
+                        <ShieldAlert className="w-3 h-3" /> {t('stationDetail.criticalLevel')}
                     </label>
                     <div className="relative">
                         <input
@@ -206,12 +208,12 @@ function ThresholdPanel({ stationId }) {
                             onChange={e => setCriticalLevel(e.target.value)}
                             className="w-full bg-gray-900 border border-red-600/40 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-red-400 pr-10"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs">m</span>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs">{t('common.m')}</span>
                     </div>
                 </div>
             </div>
             <p className="text-xs text-gray-600 mb-4">
-                Per-station settings override global thresholds from Settings page.
+                {t('stationDetail.perStationOverride')}
             </p>
             <button
                 onClick={handleSave}
@@ -222,11 +224,11 @@ function ThresholdPanel({ stationId }) {
                     }`}
             >
                 {saved ? (
-                    <><CheckCircle2 className="w-4 h-4" /> Saved!</>
+                    <><CheckCircle2 className="w-4 h-4" /> {t('stationDetail.saved')}</>
                 ) : saving ? (
-                    <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving...</>
+                    <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t('common.saving')}</>
                 ) : (
-                    <><Save className="w-4 h-4" /> Save Thresholds</>
+                    <><Save className="w-4 h-4" /> {t('stationDetail.saveThresholds')}</>
                 )}
             </button>
         </div>
@@ -237,6 +239,7 @@ function ThresholdPanel({ stationId }) {
 export default function SensorDetailsPage() {
     const params = useParams();
     const router = useRouter();
+    const { t } = useLanguage();
     const { stations, history, displayMode } = useSocket();
     const { isAdmin, role } = useAuth();
     const stationId = params.id;
@@ -261,7 +264,7 @@ export default function SensorDetailsPage() {
             .then(data => setSettings(data))
             .catch(err => {
                 console.error("Failed to fetch settings:", err.message);
-                toast.error("Failed to load global settings");
+                toast.error(t('settings.failedToLoad'));
             });
     }, []);
 
@@ -355,7 +358,7 @@ export default function SensorDetailsPage() {
         return (
             <div className="flex flex-col items-center justify-center h-screen bg-gray-950 text-white">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-                <h2 className="text-xl font-bold animate-pulse">Loading Station Data...</h2>
+                <h2 className="text-xl font-bold animate-pulse">{t('stationDetail.loadingStationData')}</h2>
             </div>
         );
     }
@@ -363,11 +366,11 @@ export default function SensorDetailsPage() {
     if (!station) {
         return (
             <div className="flex flex-col items-center justify-center h-screen bg-gray-950 text-white">
-                <h1 className="text-2xl font-bold mb-4">Station Not Found</h1>
-                <p className="text-gray-400 mb-6">Could not find data for ID: <span className="text-blue-400 font-mono">{stationId}</span></p>
+                <h1 className="text-2xl font-bold mb-4">{t('stationDetail.stationNotFound')}</h1>
+                <p className="text-gray-400 mb-6">{t('stationDetail.stationNotFoundDesc')} <span className="text-blue-400 font-mono">{stationId}</span></p>
                 <div className="flex gap-4">
-                    <button onClick={() => router.back()} className="px-6 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors">Go Back</button>
-                    <button onClick={() => window.location.reload()} className="px-6 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">Retry</button>
+                    <button onClick={() => router.back()} className="px-6 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors">{t('stationDetail.goBack')}</button>
+                    <button onClick={() => window.location.reload()} className="px-6 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">{t('common.retry')}</button>
                 </div>
             </div>
         );
@@ -406,10 +409,10 @@ export default function SensorDetailsPage() {
                                 </span>
                             </h1>
                             <span className={`px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest rounded-full w-fit ${isOffline ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-green-500/10 text-green-400 border border-green-500/20'}`}>
-                                {isOffline ? 'Offline' : 'Active'}
+                                {isOffline ? t('common.offline') : t('common.active')}
                             </span>
                         </div>
-                        <p className="text-[10px] text-gray-500 mt-1 pl-4 uppercase tracking-widest font-semibold opacity-70">Network Node Station Detail</p>
+                        <p className="text-[10px] text-gray-500 mt-1 pl-4 uppercase tracking-widest font-semibold opacity-70">{t('stationDetail.networkNodeDetail')}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -420,7 +423,7 @@ export default function SensorDetailsPage() {
                             className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 border border-gray-700 transition-all text-sm"
                         >
                             <Download size={16} className="text-green-500" />
-                            <span>Export CSV</span>
+                            <span>{t('stationDetail.exportCSV')}</span>
                         </button>
                     )}
                 </div>
@@ -432,14 +435,14 @@ export default function SensorDetailsPage() {
                 <div className="p-5 flex items-center gap-4 bg-gray-950/20 hover:bg-gray-800/20 transition-all group">
                     <div className="p-3 bg-blue-500/10 rounded-2xl text-blue-500 border border-blue-500/20 transition-transform group-hover:scale-110"><MapPin size={20} /></div>
                     <div className="overflow-hidden">
-                        <p className="text-[9px] uppercase font-bold text-gray-500 tracking-[0.25em] mb-1">Location</p>
+                        <p className="text-[9px] uppercase font-bold text-gray-500 tracking-[0.25em] mb-1">{t('stationDetail.location')}</p>
                         <p className="text-sm font-bold text-gray-200 tabular-nums truncate">{(Number(station.lat) || 0).toFixed(4)}°{station.lat >= 0 ? 'N' : 'S'} {(Number(station.lng) || 0).toFixed(4)}°{station.lng >= 0 ? 'E' : 'W'}</p>
                     </div>
                 </div>
                 <div className="p-5 flex items-center gap-4 bg-gray-950/20 hover:bg-gray-800/20 transition-all group">
                     <div className="p-3 bg-orange-500/10 rounded-2xl text-orange-500 border border-orange-500/20 transition-transform group-hover:scale-110"><Battery size={20} /></div>
                     <div className="flex-1 overflow-hidden">
-                        <p className="text-[9px] uppercase font-bold text-gray-500 tracking-[0.25em] mb-1">Power</p>
+                        <p className="text-[9px] uppercase font-bold text-gray-500 tracking-[0.25em] mb-1">{t('stationDetail.power')}</p>
                         <div className="flex items-center gap-3">
                             <span className="text-sm font-bold text-gray-200 tabular-nums">{station.battery ?? '--'}%</span>
                             <div className="h-1.5 flex-1 bg-gray-800 rounded-full overflow-hidden border border-white/5">
@@ -454,15 +457,15 @@ export default function SensorDetailsPage() {
                 <div className="p-5 flex items-center gap-4 bg-gray-950/20 hover:bg-gray-800/20 transition-all group">
                     <div className="p-3 bg-indigo-500/10 rounded-2xl text-indigo-500 border border-indigo-500/20 transition-transform group-hover:scale-110"><Signal size={20} /></div>
                     <div className="overflow-hidden">
-                        <p className="text-[9px] uppercase font-bold text-gray-500 tracking-[0.25em] mb-1">Signal</p>
+                        <p className="text-[9px] uppercase font-bold text-gray-500 tracking-[0.25em] mb-1">{t('stationDetail.signal')}</p>
                         <p className="text-sm font-bold text-gray-200 tabular-nums truncate">{station.rssi ?? '--'} dBm</p>
                     </div>
                 </div>
                 <div className="p-5 flex items-center gap-4 bg-gray-950/20 hover:bg-gray-800/20 transition-all group">
                     <div className="p-3 bg-cyan-500/10 rounded-2xl text-cyan-500 border border-cyan-500/20 transition-transform group-hover:scale-110"><Clock size={20} /></div>
                     <div className="overflow-hidden">
-                        <p className="text-[9px] uppercase font-bold text-gray-500 tracking-[0.25em] mb-1">Last Update</p>
-                        <p className="text-sm font-bold text-gray-200 tabular-nums truncate">{station.timestamp || station.rawTimestamp ? new Date(station.rawTimestamp || station.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Waiting...'}</p>
+                        <p className="text-[9px] uppercase font-bold text-gray-500 tracking-[0.25em] mb-1">{t('stationDetail.lastUpdate')}</p>
+                        <p className="text-sm font-bold text-gray-200 tabular-nums truncate">{station.timestamp || station.rawTimestamp ? new Date(station.rawTimestamp || station.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : t('stationDetail.waiting')}</p>
                     </div>
                 </div>
             </div>
@@ -478,7 +481,7 @@ export default function SensorDetailsPage() {
                             onClick={() => setMapStyle('dark')}
                             aria-label="Switch to Normal Map view"
                             className={`p-1.5 rounded-lg transition-all ${mapStyle === 'dark' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}
-                            title="Normal Map"
+                            title={t('stationDetail.normalMap')}
                         >
                             <Layers size={16} />
                         </button>
@@ -486,7 +489,7 @@ export default function SensorDetailsPage() {
                             onClick={() => setMapStyle('satellite')}
                             aria-label="Switch to Satellite Map view"
                             className={`p-1.5 rounded-lg transition-all ${mapStyle === 'satellite' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}
-                            title="Satellite Map"
+                            title={t('stationDetail.satelliteMap')}
                         >
                             <Globe size={16} />
                         </button>
@@ -537,7 +540,7 @@ export default function SensorDetailsPage() {
                                             <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] uppercase
                                               ${station.alertLevel === 'dangerous' ? 'bg-red-500/20 text-red-400' : 'bg-orange-500/20 text-orange-400'}`
                                             }>
-                                                {station.alertLevel}
+                                                {station.alertLevel === 'dangerous' ? t('common.critical') : t('common.warning')}
                                             </span>
                                         )}
                                     </div>
@@ -552,9 +555,9 @@ export default function SensorDetailsPage() {
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-2">
                             <Activity className="w-5 h-5 text-blue-500" />
-                            <h2 className="text-xl font-bold tracking-tight text-white">Station Insights</h2>
+                            <h2 className="text-xl font-bold tracking-tight text-white">{t('stationDetail.stationInsights')}</h2>
                         </div>
-                        <span className="px-3 py-1 bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.1)]">Live Node</span>
+                        <span className="px-3 py-1 bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.1)]">{t('stationDetail.liveNode')}</span>
                     </div>
 
                     <div className="flex flex-col gap-6 mb-8">
@@ -580,13 +583,13 @@ export default function SensorDetailsPage() {
                             <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
                             <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
                             <div className="absolute -top-10 -left-10 w-32 h-32 bg-indigo-400/20 rounded-full blur-2xl"></div>
-
-                            <p className="text-[13px] font-black text-indigo-100/60 uppercase tracking-[0.3em] mb-2 relative z-10">Current Water Level</p>
+                            
+                            <p className="text-[13px] font-black text-indigo-100/60 uppercase tracking-[0.3em] mb-2 relative z-10">{t('stationDetail.currentWaterLevel')}</p>
                             <div className="flex items-baseline justify-center relative z-10">
                                 <span className="text-5xl font-black tracking-tighter text-white drop-shadow-[0_10px_10px_rgba(0,0,0,0.3)]">
                                     {(Number(displayMode === 'raw' ? (station.rawLevel ?? station.waterLevel) : (station.waterLevel ?? 0)) || 0).toFixed(3)}
                                 </span>
-                                <span className="text-xl font-bold text-indigo-100/50 ml-1">m</span>
+                                <span className="text-xl font-bold text-indigo-100/50 ml-1">{t('common.m')}</span>
                             </div>
                         </div>
                     </div>
@@ -603,8 +606,8 @@ export default function SensorDetailsPage() {
                                     <Lock className="w-5 h-5 text-gray-400" />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-bold text-gray-300">Alert Thresholds</p>
-                                    <p className="text-xs opacity-60">Admin authorization required for threshold adjustments.</p>
+                                    <p className="text-sm font-bold text-gray-300">{t('stationDetail.alertThresholds')}</p>
+                                    <p className="text-xs opacity-60">{t('stationDetail.adminRequired')}</p>
                                 </div>
                             </div>
                         )}
@@ -612,14 +615,14 @@ export default function SensorDetailsPage() {
 
                     {/* Chart Section */}
                     <div className="mb-8">
-                        <div className="flex items-center justify-between mb-4 px-1">
-                            <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">24-Hour Trend</h3>
-                            <div className="flex items-center gap-2">
-                                <span className="px-3 py-1 bg-gray-800/80 border border-gray-700/50 rounded-lg text-[10px] text-gray-400 font-mono shadow-inner">
-                                    Range: <span className="text-blue-400 font-bold">{stats.min}m</span> - <span className="text-blue-400 font-bold">{stats.max}m</span>
-                                </span>
-                            </div>
+                    <div className="mb-4 px-1 flex items-center justify-between">
+                        <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">{t('stationDetail.hourTrend')}</h3>
+                        <div className="flex items-center gap-2">
+                            <span className="px-3 py-1 bg-gray-800/80 border border-gray-700/50 rounded-lg text-[10px] text-gray-400 font-mono shadow-inner">
+                                {t('stationDetail.range')}: <span className="text-blue-400 font-bold">{stats.min}{t('common.m')}</span> - <span className="text-blue-400 font-bold">{stats.max}{t('common.m')}</span>
+                            </span>
                         </div>
+                    </div>
                         <div style={{ width: '100%', height: 260 }} className="bg-gray-900/50 rounded-2xl border border-white/5 p-4 shadow-2xl relative">
                             {chartData.length > 0 ? (
                                 <ResponsiveContainer width="100%" height="100%">
@@ -675,7 +678,7 @@ export default function SensorDetailsPage() {
                                 <div className="w-full h-full flex items-center justify-center">
                                     <div className="flex flex-col items-center gap-3">
                                         <div className="w-8 h-8 rounded-full border-2 border-blue-500/20 border-t-blue-500 animate-spin"></div>
-                                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Loading History...</span>
+                                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{t('stationDetail.loadingHistory')}</span>
                                     </div>
                                 </div>
                             )}
@@ -685,24 +688,24 @@ export default function SensorDetailsPage() {
                     {/* Stats Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                         <div className="bg-gray-900 p-5 rounded-2xl border border-gray-800 shadow-xl transition-all hover:border-blue-500/20 group">
-                            <p className="text-[10px] uppercase font-bold text-gray-500 mb-2 tracking-[0.2em]">Peak Level</p>
+                            <p className="text-[10px] uppercase font-bold text-gray-500 mb-2 tracking-[0.2em]">{t('stationDetail.peakLevel')}</p>
                             <div className="flex items-baseline gap-2">
                                 <p className="text-3xl font-bold text-white tabular-nums group-hover:text-blue-400 transition-colors">{stats.max}</p>
-                                <span className="text-xs font-medium text-gray-500 font-mono">m</span>
+                                <span className="text-xs font-medium text-gray-500 font-mono">{t('common.m')}</span>
                             </div>
                         </div>
                         <div className="bg-gray-900 p-5 rounded-2xl border border-gray-800 shadow-xl transition-all hover:border-purple-500/20 group">
-                            <p className="text-[10px] uppercase font-bold text-gray-500 mb-2 tracking-[0.2em]">Median Level</p>
+                            <p className="text-[10px] uppercase font-bold text-gray-500 mb-2 tracking-[0.2em]">{t('stationDetail.medianLevel')}</p>
                             <div className="flex items-baseline gap-2">
                                 <p className="text-3xl font-bold text-white tabular-nums group-hover:text-purple-400 transition-colors">{stats.avg}</p>
-                                <span className="text-xs font-medium text-gray-500 font-mono">m</span>
+                                <span className="text-xs font-medium text-gray-500 font-mono">{t('common.m')}</span>
                             </div>
                         </div>
                         <div className="bg-gray-900 p-5 rounded-2xl border border-gray-800 shadow-xl transition-all hover:border-cyan-500/20 group">
-                            <p className="text-[10px] uppercase font-bold text-gray-500 mb-2 tracking-[0.2em]">Minimum Level</p>
+                            <p className="text-[10px] uppercase font-bold text-gray-500 mb-2 tracking-[0.2em]">{t('stationDetail.minimumLevel')}</p>
                             <div className="flex items-baseline gap-2">
                                 <p className="text-3xl font-bold text-white tabular-nums group-hover:text-cyan-400 transition-colors">{stats.min}</p>
-                                <span className="text-xs font-medium text-gray-500 font-mono">m</span>
+                                <span className="text-xs font-medium text-gray-500 font-mono">{t('common.m')}</span>
                             </div>
                         </div>
                     </div>

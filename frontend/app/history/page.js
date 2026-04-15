@@ -1,6 +1,7 @@
 "use client";
 
 import { useSocket } from '@/contexts/SocketContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
@@ -10,6 +11,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 export default function HistoryPage() {
     const { stations, socket, displayMode } = useSocket();
+    const { t } = useLanguage();
     const { data: session } = useSession();
     const [historyData, setHistoryData] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -123,7 +125,7 @@ export default function HistoryPage() {
                 <div className="flex flex-col">
                     <div className="flex items-center gap-4">
                         <h1 className="text-3xl font-bold text-white tracking-tight border-l-4 border-blue-500 pl-4">
-                            Event History
+                            {t('history.title')}
                         </h1>
                         <button
                             onClick={() => fetchHistory(true)}
@@ -131,11 +133,11 @@ export default function HistoryPage() {
                             className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-50"
                         >
                             <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
-                            Refresh
+                            {t('common.refresh')}
                         </button>
                     </div>
                     <p className="text-gray-400 text-sm mt-1">
-                        Viewing historical records for all connected stations.
+                        {t('history.subtitle')}
                     </p>
                 </div>
 
@@ -148,9 +150,9 @@ export default function HistoryPage() {
                             onChange={(e) => setSelectedSensorType(e.target.value)}
                             className="bg-gray-800 text-white border border-gray-700 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:border-blue-500 appearance-none shadow-sm w-full"
                         >
-                            <option value="all">All Types</option>
-                            <option value="Float">Float Sensor</option>
-                            <option value="Static">Static Sensor</option>
+                            <option value="all">{t('common.all')} Types</option>
+                            <option value="Float">{t('common.float')}</option>
+                            <option value="Static">{t('common.static')}</option>
                         </select>
                     </div>
 
@@ -173,7 +175,7 @@ export default function HistoryPage() {
                             onChange={(e) => setSelectedDevice(e.target.value)}
                             className="bg-gray-800 text-white border border-gray-700 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:border-blue-500 appearance-none shadow-sm w-full"
                         >
-                            <option value="all">All Devices</option>
+                            <option value="all">{t('parameters.allDevices')}</option>
                             {Object.keys(stations).map(id => (
                                 <option key={id} value={id}>{stations[id].stationName || id}</option>
                             ))}
@@ -188,26 +190,26 @@ export default function HistoryPage() {
                         <thead className="bg-gray-900 text-gray-400 uppercase text-xs sticky top-0 z-10 shadow-sm">
                             <tr>
                                 <th className="px-6 py-4 font-bold flex items-center gap-2">
-                                    <Calendar className="w-4 h-4" /> Date & Time
+                                    <Calendar className="w-4 h-4" /> {t('history.tableTime')}
                                 </th>
                                 <th className="px-6 py-4 font-bold">
                                     <div className="flex items-center gap-2">
-                                        <Smartphone className="w-4 h-4" /> Device
+                                        <Smartphone className="w-4 h-4" /> {t('history.tableStation')}
                                     </div>
                                 </th>
                                 <th className="px-6 py-4 font-bold hidden md:table-cell">
                                     <div className="flex items-center gap-2">
-                                        <Activity className="w-4 h-4" /> Type
+                                        <Activity className="w-4 h-4" /> {t('common.type')}
                                     </div>
                                 </th>
                                 <th className="px-6 py-4 font-bold">
                                     <div className="flex items-center gap-2">
-                                        <Droplets className="w-4 h-4" /> Level
+                                        <Droplets className="w-4 h-4" /> {t('history.tableLevel')}
                                     </div>
                                 </th>
                                 <th className="px-6 py-4 font-bold hidden lg:table-cell">
                                     <div className="flex items-center gap-2">
-                                        <Info className="w-4 h-4" /> Status
+                                        <Info className="w-4 h-4" /> {t('common.status')}
                                     </div>
                                 </th>
                             </tr>
@@ -218,7 +220,7 @@ export default function HistoryPage() {
                                     <td colSpan="5" className="px-6 py-16 text-center text-gray-500">
                                         <div className="flex flex-col items-center justify-center gap-3">
                                             <RefreshCw className="w-6 h-6 animate-spin text-blue-400" />
-                                            <span>Loading history from database...</span>
+                                            <span>{t('common.loading')}</span>
                                         </div>
                                     </td>
                                 </tr>
@@ -227,7 +229,7 @@ export default function HistoryPage() {
                                     <td colSpan="5" className="px-6 py-16 text-center text-gray-500">
                                         <div className="flex flex-col items-center gap-2">
                                             <History className="w-8 h-8 opacity-20" />
-                                            <span>No history data available for this selection.</span>
+                                            <span>{t('history.noRecords')}</span>
                                         </div>
                                     </td>
                                 </tr>
@@ -264,7 +266,7 @@ export default function HistoryPage() {
                                                 <span className={`px-2 py-1 rounded text-[10px] font-bold tracking-wide uppercase ${!item.sensorType ? 'bg-gray-700 text-gray-400' :
                                                     item.sensorType === 'Float' ? 'bg-cyan-900/50 text-cyan-400 border border-cyan-800' : 'bg-indigo-900/50 text-indigo-400 border border-indigo-800'
                                                     }`}>
-                                                    {item.sensorType || 'Unknown'}
+                                                    {item.sensorType || t('common.unknown')}
                                                 </span>
                                             </td>
                                             <td className="px-4 md:px-6 py-4 border-r border-gray-800/50">
@@ -277,7 +279,7 @@ export default function HistoryPage() {
                                             <td className="px-6 py-4 hidden lg:table-cell">
                                                 <div className="flex items-center gap-1.5 bg-green-900/20 text-green-400 px-3 py-1 rounded-full w-fit text-xs font-medium border border-green-900/50">
                                                     <AlertCircle className="w-3 h-3" />
-                                                    Active
+                                                    {t('common.active')}
                                                 </div>
                                             </td>
                                         </tr>
@@ -295,7 +297,7 @@ export default function HistoryPage() {
                                 className="px-6 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-sm font-bold transition-all disabled:opacity-50 flex items-center gap-2"
                             >
                                 {isLoadingMore && <RefreshCw className="w-4 h-4 animate-spin text-blue-400" />}
-                                {isLoadingMore ? 'Loading...' : 'Load More'}
+                                {isLoadingMore ? t('history.loadingMore') : t('history.loadMore')}
                             </button>
                         </div>
                     )}

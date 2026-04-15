@@ -1,21 +1,25 @@
 'use client';
 
-import { LayoutDashboard, Database, Activity, Map as MapIcon, Settings, Search, Menu, LogOut, User, Warehouse, SatelliteDish, LayoutGrid, History, Bell, Sliders } from 'lucide-react';
+import { LayoutDashboard, Database, Activity, Map as MapIcon, Settings, Search, Menu, LogOut, User, Warehouse, SatelliteDish, LayoutGrid, History, Bell, Sliders, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import LanguageToggle from '@/components/LanguageToggle';
 
-export const menuItems = [
-    { name: 'Overview', icon: LayoutGrid, href: '/' },
-    { name: 'Stations', icon: SatelliteDish, href: '/parameters' },
-    { name: 'Analytics', icon: Activity, href: '/analytics' },
-    { name: 'History', icon: History, href: '/history' },
-    { name: 'Alerts', icon: Bell, href: '/alerts' },
+// Menu items with translation keys (labels resolved at render time)
+export const menuItemDefs = [
+    { key: 'overview', icon: LayoutGrid, href: '/' },
+    { key: 'stations', icon: SatelliteDish, href: '/parameters' },
+    { key: 'analytics', icon: Activity, href: '/analytics' },
+    { key: 'history', icon: History, href: '/history' },
+    { key: 'alerts', icon: Bell, href: '/alerts' },
 ];
 
 export default function Sidebar() {
     const pathname = usePathname();
     const { data: session } = useSession();
+    const { t } = useLanguage();
 
     return (
         <aside className="hidden md:flex flex-col w-64 h-screen bg-[#0F172A] border-r border-gray-800 fixed left-0 top-0 z-50">
@@ -27,15 +31,16 @@ export default function Sidebar() {
 
             {/* Navigation */}
             <nav className="flex-1 py-6 px-3 flex flex-col gap-2">
-                {menuItems.map((item) => {
+                {menuItemDefs.map((item) => {
                     const isActive = pathname === item.href;
+                    const label = t(`sidebar.${item.key}`);
                     // Role-based filtering:
                     // General User cannot see Alerts
                     if (item.href === '/alerts' && session?.user?.role === 'general_user') return null;
 
                     return (
                         <Link
-                            key={item.name}
+                            key={item.key}
                             href={item.href}
                             className={`flex items-center px-4 py-3 rounded-lg transition-all duration-200 group
                 ${isActive
@@ -44,7 +49,7 @@ export default function Sidebar() {
                                 }`}
                         >
                             <item.icon className={`w-5 h-5 ${isActive ? 'text-blue-500' : 'text-gray-400 group-hover:text-white'}`} />
-                            <span className="ml-3 font-medium">{item.name}</span>
+                            <span className="ml-3 font-medium">{label}</span>
                         </Link>
                     );
                 })}
@@ -63,7 +68,7 @@ export default function Sidebar() {
                                     }`}
                             >
                                 <Sliders className={`w-5 h-5 ${pathname === '/offset-presets' ? 'text-blue-500' : 'text-gray-400 group-hover:text-white'}`} />
-                                <span className="ml-3 font-medium">Offset Presets</span>
+                                <span className="ml-3 font-medium">{t('sidebar.offsetPresets')}</span>
                             </Link>
                         )}
 
@@ -76,11 +81,22 @@ export default function Sidebar() {
                                 }`}
                         >
                             <Settings className={`w-5 h-5 ${pathname === '/settings' ? 'text-blue-500' : 'text-gray-400 group-hover:text-white'}`} />
-                            <span className="ml-3 font-medium">Settings</span>
+                            <span className="ml-3 font-medium">{t('sidebar.settings')}</span>
                         </Link>
                     </div>
                 )}
             </nav>
+
+            {/* Language Toggle */}
+            <div className="px-4 py-3 border-t border-gray-800">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-gray-500">
+                        <Globe size={14} />
+                        <span className="text-[10px] font-bold uppercase tracking-widest">{t('sidebar.language')}</span>
+                    </div>
+                    <LanguageToggle compact />
+                </div>
+            </div>
 
             {/* User Profile / Logout */}
             <div className="p-4 border-t border-gray-800 bg-[#0F172A]">
@@ -107,13 +123,13 @@ export default function Sidebar() {
                             className="flex items-center justify-center gap-2 w-full py-2 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white rounded-lg transition-all text-xs font-bold"
                         >
                             <LogOut size={14} />
-                            Sign Out
+                            {t('sidebar.signOut')}
                         </button>
                     </div>
                 ) : (
                     <div className="text-center">
                         <Link href="/login" className="text-xs text-gray-500 hover:text-white transition-colors">
-                            Admin Login
+                            {t('sidebar.signIn')}
                         </Link>
                     </div>
                 )}

@@ -86,6 +86,16 @@ async function startServer() {
     server.listen(4000, () => {
         console.log('🚀 Backend (Refactored) running on port 4000');
     });
+
+    server.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+            console.error('\n❌ ERROR: Port 4000 is already in use!');
+            console.error('👉 Suggestion: Run "start-backend.bat" to automatically clear port conflicts (Docker/Zombie Node).');
+            process.exit(1);
+        } else {
+            console.error('❌ Server error:', err.message);
+        }
+    });
 }
 
 startServer();

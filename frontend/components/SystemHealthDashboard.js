@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import {
     Activity,
     Server,
@@ -23,6 +24,7 @@ import {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 const SystemHealthDashboard = React.memo(() => {
+    const { t } = useLanguage();
     const [health, setHealth] = useState(null);
     const [loading, setLoading] = useState(true);
     const [history, setHistory] = useState([]);
@@ -61,8 +63,8 @@ const SystemHealthDashboard = React.memo(() => {
     // Helper for safe number formatting
     const safeFixed = (val, digits = 1) => (Number(val) || 0).toFixed(digits);
 
-    if (loading) return <div className="p-4 text-center text-gray-500">Loading System Health...</div>;
-    if (!health) return <div className="p-4 text-center text-red-500">System Offline</div>;
+    if (loading) return <div className="p-4 text-center text-gray-500">{t('systemHealth.loading')}</div>;
+    if (!health) return <div className="p-4 text-center text-red-500">{t('systemHealth.systemOffline')}</div>;
 
     // Helpers for status colors
     const getLoadColor = (value) => value > 80 ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.3)]' : value > 50 ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.3)]' : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.3)]';
@@ -76,7 +78,7 @@ const SystemHealthDashboard = React.memo(() => {
                         <Clock className="w-6 h-6" />
                     </div>
                     <div>
-                        <div className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-0.5">Uptime</div>
+                        <div className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-0.5">{t('systemHealth.uptime')}</div>
                         <div className="text-lg font-mono font-bold text-white tracking-tighter">
                             {safeFixed(health.server?.uptime / 3600, 1)}<span className="text-xs ml-0.5 opacity-50">h</span>
                         </div>
@@ -88,7 +90,7 @@ const SystemHealthDashboard = React.memo(() => {
                         <Database className="w-6 h-6" />
                     </div>
                     <div>
-                        <div className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-0.5">Database</div>
+                        <div className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-0.5">{t('systemHealth.database')}</div>
                         <div className={`text-lg font-black uppercase tracking-tight ${health.database?.status === 'connected' ? 'text-emerald-400' : 'text-red-400'}`}>
                             {health.database?.status || 'Unknown'}
                         </div>
@@ -100,7 +102,7 @@ const SystemHealthDashboard = React.memo(() => {
                         <Wifi className="w-6 h-6" />
                     </div>
                     <div>
-                        <div className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-0.5">MQTT Broker</div>
+                        <div className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-0.5">{t('systemHealth.mqttBroker')}</div>
                         <div className={`text-lg font-black tracking-tight ${health.network?.mqtt?.connected ? 'text-indigo-400' : 'text-red-400'}`}>
                             {health.network?.mqtt?.connected ? 'Online' : 'Offline'}
                         </div>
@@ -112,7 +114,7 @@ const SystemHealthDashboard = React.memo(() => {
                         <Radio className="w-6 h-6" />
                     </div>
                     <div>
-                        <div className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-0.5">Active Nodes</div>
+                        <div className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-0.5">{t('systemHealth.activeNodes')}</div>
                         <div className="text-lg font-black text-white tracking-tight">{health.nodes?.count ?? 0}</div>
                     </div>
                 </div>
@@ -124,7 +126,7 @@ const SystemHealthDashboard = React.memo(() => {
                 <div className="bg-gray-900/40 p-6 rounded-xl border border-white/5 group hover:bg-gray-800/40 transition-all">
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="flex items-center gap-2 font-black text-[11px] text-gray-400 uppercase tracking-widest">
-                            <Cpu className="w-4 h-4 text-blue-400" /> CPU Load
+                            <Cpu className="w-4 h-4 text-blue-400" /> {t('systemHealth.cpuLoad')}
                         </h3>
                         <span className="font-mono text-xl font-bold text-blue-400">{safeFixed(health.cpu?.currentLoad, 1)}%</span>
                     </div>
@@ -148,7 +150,7 @@ const SystemHealthDashboard = React.memo(() => {
                 <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-700">
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="flex items-center gap-2 font-bold text-gray-300">
-                            <Activity className="w-5 h-5 text-green-400" /> Memory
+                            <Activity className="w-5 h-5 text-green-400" /> {t('systemHealth.memory')}
                         </h3>
                         <span className="font-mono text-xl font-bold">{safeFixed(health.memory?.percent, 1)}%</span>
                     </div>
@@ -160,11 +162,11 @@ const SystemHealthDashboard = React.memo(() => {
                     </div>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                         <div className="bg-gray-800/50 p-2 rounded">
-                            <div className="text-gray-500 text-xs">Used</div>
+                            <div className="text-gray-500 text-xs">{t('systemHealth.used')}</div>
                             <div className="font-mono">{safeFixed(health.memory?.used / 1024 / 1024 / 1024, 2)} GB</div>
                         </div>
                         <div className="bg-gray-800/50 p-2 rounded">
-                            <div className="text-gray-500 text-xs">Total</div>
+                            <div className="text-gray-500 text-xs">{t('systemHealth.total')}</div>
                             <div className="font-mono">{safeFixed(health.memory?.total / 1024 / 1024 / 1024, 2)} GB</div>
                         </div>
                     </div>
@@ -174,7 +176,7 @@ const SystemHealthDashboard = React.memo(() => {
                 <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-700">
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="flex items-center gap-2 font-bold text-gray-300">
-                            <HardDrive className="w-5 h-5 text-purple-400" /> Disk Storage
+                            <HardDrive className="w-5 h-5 text-purple-400" /> {t('systemHealth.diskStorage')}
                         </h3>
                         <span className="font-mono text-xl font-bold">{safeFixed(health.disk?.percent, 1)}%</span>
                     </div>
@@ -184,7 +186,7 @@ const SystemHealthDashboard = React.memo(() => {
                             style={{ width: `${Math.min(100, Number(health.disk?.percent) || 0)}%` }}
                         ></div>
                     </div>
-                    <div className="text-xs text-gray-500 mb-2 font-bold uppercase tracking-tighter">System Info</div>
+                    <div className="text-xs text-gray-500 mb-2 font-bold uppercase tracking-tighter">{t('systemHealth.systemInfo')}</div>
                     <div className="font-mono text-[10px] bg-gray-800 p-2 rounded truncate text-gray-300">
                         {health.server?.distro} | {health.server?.platform}
                     </div>
@@ -197,22 +199,22 @@ const SystemHealthDashboard = React.memo(() => {
                 <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-700">
                     <h3 className="flex items-center gap-2 font-bold text-gray-300 mb-4">
                         <Radio className="w-5 h-5 text-yellow-400" />
-                        Gateways ({health.network?.gateways?.gateways?.length || 0})
+                        {t('systemHealth.gateways')} ({health.network?.gateways?.gateways?.length || 0})
                     </h3>
 
                     {(!health.network?.gateways?.gateways || health.network?.gateways?.gateways.length === 0) ? (
                         <div className="text-gray-500 text-sm italic py-4 text-center border border-dashed border-gray-700 rounded-lg">
-                            No Gateways detected in active metadata.
+                            {t('systemHealth.noGateways')}
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm text-gray-400">
                                 <thead className="bg-gray-800/50 text-gray-300 font-bold uppercase text-xs">
                                     <tr>
-                                        <th className="p-3 rounded-tl-lg">Gateway ID</th>
-                                        <th className="p-3">Signal (RSSI / SNR)</th>
-                                        <th className="p-3">Last Seen</th>
-                                        <th className="p-3 rounded-tr-lg text-right">Packets</th>
+                                        <th className="p-3 rounded-tl-lg">{t('systemHealth.gatewayId')}</th>
+                                        <th className="p-3">{t('systemHealth.signalRssiSnr')}</th>
+                                        <th className="p-3">{t('systemHealth.lastSeen')}</th>
+                                        <th className="p-3 rounded-tr-lg text-right">{t('systemHealth.packets')}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-800">
@@ -245,23 +247,23 @@ const SystemHealthDashboard = React.memo(() => {
                 <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-700">
                     <h3 className="flex items-center gap-2 font-bold text-gray-300 mb-4">
                         <Activity className="w-5 h-5 text-blue-400" />
-                        Active Nodes ({health.nodes?.count || 0})
+                        {t('systemHealth.activeNodes')} ({health.nodes?.count || 0})
                     </h3>
 
                     {(!Array.isArray(health.nodes?.active) || health.nodes.active.length === 0) ? (
                         <div className="text-gray-500 text-sm italic py-4 text-center border border-dashed border-gray-700 rounded-lg">
-                            No active nodes reporting.
+                            {t('systemHealth.noActiveNodes')}
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm text-gray-400">
                                 <thead className="bg-gray-800/50 text-gray-300 font-bold uppercase text-xs">
                                     <tr>
-                                        <th className="p-3 rounded-tl-lg">Station</th>
-                                        <th className="p-3">Level</th>
-                                        <th className="p-3">Battery</th>
-                                        <th className="p-3">Signal</th>
-                                        <th className="p-3 rounded-tr-lg text-right">Last Update</th>
+                                        <th className="p-3 rounded-tl-lg">{t('systemHealth.stationCol')}</th>
+                                        <th className="p-3">{t('systemHealth.levelCol')}</th>
+                                        <th className="p-3">{t('systemHealth.batteryCol')}</th>
+                                        <th className="p-3">{t('systemHealth.signalCol')}</th>
+                                        <th className="p-3 rounded-tr-lg text-right">{t('systemHealth.lastUpdateCol')}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-800">

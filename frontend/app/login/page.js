@@ -4,9 +4,11 @@ import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Lock, User, ArrowRight, AlertCircle } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function LoginPage() {
     const router = useRouter();
+    const { t } = useLanguage();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -25,14 +27,14 @@ export default function LoginPage() {
             });
 
             if (res?.error) {
-                setError('Username or password is incorrect');
+                setError(t('login.errorInvalidCredentials'));
                 setLoading(false);
             } else {
                 router.push('/');
                 router.refresh();
             }
         } catch (err) {
-            setError('An error occurred. Please try again.');
+            setError(t('login.errorOccurred'));
             setLoading(false);
         }
     };
@@ -50,8 +52,8 @@ export default function LoginPage() {
                         <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl mx-auto flex items-center justify-center shadow-lg mb-4 transform group-hover:rotate-12 transition-transform duration-500">
                             <Lock className="text-white w-8 h-8" />
                         </div>
-                        <h1 className="text-2xl font-bold text-white mb-2">Admin Access</h1>
-                        <p className="text-gray-400 text-sm">Please sign in to access settings</p>
+                        <h1 className="text-2xl font-bold text-white mb-2">{t('login.title')}</h1>
+                        <p className="text-gray-400 text-sm">{t('login.subtitle')}</p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
@@ -67,7 +69,7 @@ export default function LoginPage() {
                                 <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within/input:text-blue-500 transition-colors" size={18} />
                                 <input
                                     type="text"
-                                    placeholder="Username"
+                                    placeholder={t('login.usernamePlaceholder')}
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
                                     className="w-full bg-gray-800 border border-gray-700 rounded-lg py-3 pl-10 pr-4 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
@@ -79,7 +81,7 @@ export default function LoginPage() {
                                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within/input:text-purple-500 transition-colors" size={18} />
                                 <input
                                     type="password"
-                                    placeholder="Password"
+                                    placeholder={t('login.passwordPlaceholder')}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="w-full bg-gray-800 border border-gray-700 rounded-lg py-3 pl-10 pr-4 text-white placeholder-gray-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all"
@@ -102,7 +104,7 @@ export default function LoginPage() {
                                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                             ) : (
                                 <>
-                                    Sign In <ArrowRight size={18} />
+                                    {t('login.signIn')} <ArrowRight size={18} />
                                 </>
                             )}
                         </button>

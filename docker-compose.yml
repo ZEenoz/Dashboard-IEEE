@@ -14,6 +14,18 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  # --- 📤 MQTT BROKER ---
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: mosquitto_broker
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+
   # --- 🚀 DASHBOARD BACKEND ---
   backend:
     build:

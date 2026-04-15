@@ -1,0 +1,22 @@
+[Unit]
+Description=Dashboard IEEE Ngrok Tunnel (Auto-Start)
+After=network.target docker.service
+
+[Service]
+# ระบุ User ที่ใช้รัน (ในที่นี้คือ pi5 ตามในรูป)
+User=pi5
+WorkingDirectory=/home/pi5
+
+# ระบุคำสั่งรัน ngrok สำหรับพอร์ต 8888 (ทางเข้า Dashboard)
+# เปลี่ยนพาธ /usr/local/bin/ngrok หากติดตั้งไว้ที่อื่น (เช็คด้วยคำสั่ง which ngrok)
+ExecStart=/usr/local/bin/ngrok http 8888
+
+# ตั้งค่าให้ Restart อัตโนมัติหากโปรแกรมหลุด
+Restart=always
+RestartSec=10
+
+# เพิ่ม Environment Path เพื่อความชัวร์
+Environment=PATH=/usr/bin:/usr/local/bin:/home/pi5/bin
+
+[Install]
+WantedBy=multi-user.target

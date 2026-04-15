@@ -594,8 +594,12 @@ async function handleMessage(message, io) {
 
         // Apply Offset configured in Settings
         let offset = 0;
-        if (STATIONS_CONFIG[deviceId] && STATIONS_CONFIG[deviceId].offset !== undefined) {
-            offset = parseFloat(STATIONS_CONFIG[deviceId].offset) || 0;
+        let imageUrl = null;
+        if (STATIONS_CONFIG[deviceId]) {
+            if (STATIONS_CONFIG[deviceId].offset !== undefined) {
+                offset = parseFloat(STATIONS_CONFIG[deviceId].offset) || 0;
+            }
+            imageUrl = STATIONS_CONFIG[deviceId].image || STATIONS_CONFIG[deviceId].imageUrl || null;
         }
         waterLevel = parseFloat((rawLevel + offset).toFixed(3));
 
@@ -702,6 +706,7 @@ async function handleMessage(message, io) {
             batteryVoltage,
             sensorType,
             alertLevel,
+            imageUrl,
             networkMode: currentNetworkMode
         };
 
@@ -722,6 +727,7 @@ async function handleMessage(message, io) {
             battery,
             batteryVoltage,
             rssi,
+            imageUrl,
             timestamp: new Date().toISOString()
         });
 
@@ -762,6 +768,7 @@ async function handleMessage(message, io) {
                     battery,
                     rssi,
                     sensorType,
+                    imageUrl,
                     lineStatus: 'sent_to_bot'
                 };
 

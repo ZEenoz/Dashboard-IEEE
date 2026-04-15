@@ -27,21 +27,14 @@ else
     echo "❌ ngrok is NOT active or tunnel is not set up."
 fi
 
-# 3. ตรวจสอบการเชื่อมต่อ MQTT (Local)
+# 3. ตรวจสอบ MQTT (1883)
 echo ""
-echo "--- [3] MQTT (Mosquitto) Check ---"
+echo "--- [3] MQTT Broker Status ---"
 if command -v nc >/dev/null 2>&1; then
     if nc -z localhost 1883; then
-        echo "✅ MQTT Broker (1883) is LISTENING."
+        echo "✅ Port 1883 (MQTT): Open"
     else
-        echo "❌ MQTT Broker (1883) is NOT responding."
-    fi
-else
-    # Fallback to check if container is running
-    if docker ps | grep -q "mosquitto_broker"; then
-        echo "✅ MQTT Container is running."
-    else
-        echo "❌ MQTT Container is NOT running."
+        echo "❌ Port 1883 (MQTT): CLOSED"
     fi
 fi
 
@@ -49,29 +42,46 @@ fi
 echo ""
 echo "--- [4] Native Services Status ---"
 if systemctl is-active --quiet postgresql; then
-    echo "✅ PostgreSQL (Native): Active"
+    echo "✅ PostgreSQL (Native - Port 5432): Active"
 else
-    echo "❌ PostgreSQL (Native): DEAD (REQUIRED FOR CHIRPSTACK)"
+    echo "❌ PostgreSQL (Native - Port 5432): DEAD (REQUIRED FOR CHIRPSTACK)"
 fi
 
 if systemctl is-active --quiet chirpstack; then
-    echo "✅ ChirpStack Server: Active (Port 8080 is up)"
+    echo "✅ ChirpStack Server (Port 8080): Active"
 else
-    echo "❌ ChirpStack Server: DEAD"
+    echo "❌ ChirpStack Server (Port 8080): DEAD"
 fi
 
-# 5. ข้อมูลระบบเบื้องต้น (CPU / Temp)
+# 5. ตรวจสอบพอร์ตฐานข้อมูล (Database Ports)
 echo ""
-echo "--- [5] Pi 5 System Info ---"
+echo "--- [5] Database Ports Check ---"
+if command -v nc >/dev/null 2>&1; then
+    if nc -z localhost 5432; then
+        echo "✅ Port 5432 (Native DB): Active"
+    else
+        echo "❌ Port 5432 (Native DB): CLOSED"
+    fi
+    
+    if nc -z localhost 5433; then
+        echo "✅ Port 5433 (Docker DB): Active"
+    else
+        echo "❌ Port 5433 (Docker DB): CLOSED (Check docker-compose)"
+    fi
+fi
+
+# 6. ข้อมูลระบบเบื้องต้น (CPU / Temp)
+echo ""
+echo "--- [6] Pi 5 System Info ---"
 if [ -f /sys/class/thermal/thermal_zone0/temp ]; then
     TEMP=$(cat /sys/class/thermal/thermal_zone0/temp)
     echo "🌡️ CPU Temp: $(($TEMP/1000))'C"
 fi
 echo "📉 Load Average: $(uptime | awk -F'load average:' '{ print $2 }')"
 
-# 6. ตรวจสอบ Tailscale
+# 7. ตรวจสอบ Network & Tailscale
 echo ""
-echo "--- [6] Network & VPN ---"
+echo "--- [7] Network & VPN ---"
 if command -v tailscale >/dev/null 2>&1; then
     TS_STATUS=$(tailscale status | head -n 1)
     echo "🌐 Status: $TS_STATUS"

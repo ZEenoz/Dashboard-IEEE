@@ -65,14 +65,29 @@ function saveSettings(newSettings) {
         const { getPool } = require('./database');
         const pool = getPool();
         if (pool) {
+            // 1. Save Global config
             pool.query(`
                 INSERT INTO system_settings (setting_key, setting_value)
                 VALUES ('global_config', $1)
                 ON CONFLICT (setting_key) DO UPDATE 
                 SET setting_value = EXCLUDED.setting_value, updated_at = CURRENT_TIMESTAMP
             `, [JSON.stringify(settings)])
-                .then(() => console.log("💾 Settings synced to PostgreSQL!"))
+                .then(() => console.log("💾 Global settings synced to PostgreSQL!"))
                 .catch(e => console.error("⚠️ Failed to sync settings to PG:", e.message));
+
+            // 2. Sync individual stations (Name and Image URL)
+            if (settings.stations) {
+                Object.entries(settings.stations).forEach(([id, config]) => {
+                    pool.query(`
+                        INSERT INTO stations (station_id, name, image_url)
+                        VALUES ($1, $2, $3)
+                        ON CONFLICT (station_id) DO UPDATE SET
+                            name = EXCLUDED.name,
+                            image_url = EXCLUDED.image_url;
+                    `, [id, config.name, config.image || config.imageUrl || null])
+                    .catch(e => console.error(`⚠️ Failed to sync station ${id} to PG:`, e.message));
+                });
+            }
         }
     } catch (e) {
         console.error("⚠️ Could not load database pool during settings save");

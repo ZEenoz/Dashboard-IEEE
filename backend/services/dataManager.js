@@ -38,17 +38,22 @@ async function saveReading(data) {
         if (pool) {
             try {
                 // Upsert Station
+                const settings = getSettings();
+                const stationConfig = settings.stations?.[data.stationId] || {};
+                const imageUrl = stationConfig.image || stationConfig.imageUrl || null;
+
                 await pool.query(`
-                    INSERT INTO stations (station_id, name, latitude, longitude, location_source, network_mode, last_active_at)
-                    VALUES ($1, $2, $3, $4, $5, $6, NOW())
+                    INSERT INTO stations (station_id, name, latitude, longitude, location_source, network_mode, image_url, last_active_at)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
                     ON CONFLICT (station_id) DO UPDATE SET
                         name = EXCLUDED.name,
                         latitude = EXCLUDED.latitude,
                         longitude = EXCLUDED.longitude,
                         location_source = EXCLUDED.location_source,
                         network_mode = EXCLUDED.network_mode,
+                        image_url = COALESCE(EXCLUDED.image_url, stations.image_url),
                         last_active_at = NOW();
-                `, [data.stationId, data.stationName, data.lat, data.lng, data.src, data.networkMode || 'TTN']);
+                `, [data.stationId, data.stationName, data.lat, data.lng, data.src, data.networkMode || 'TTN', imageUrl]);
 
                 // Insert Reading
                 // Insert Reading

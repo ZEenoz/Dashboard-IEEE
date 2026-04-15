@@ -59,6 +59,8 @@ async function initDatabase() {
                 longitude NUMERIC,
                 location_source VARCHAR(50),
                 network_mode VARCHAR(20) DEFAULT 'TTN',
+                image_url TEXT,
+                custom_location TEXT,
                 last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         `);
@@ -86,6 +88,8 @@ async function initDatabase() {
         // Migration: Add columns if they don't exist (for existing tables)
         try {
             await pool.query(`ALTER TABLE stations ADD COLUMN IF NOT EXISTS network_mode VARCHAR(20) DEFAULT 'TTN';`);
+            await pool.query(`ALTER TABLE stations ADD COLUMN IF NOT EXISTS image_url TEXT;`);
+            await pool.query(`ALTER TABLE stations ADD COLUMN IF NOT EXISTS custom_location TEXT;`);
             await pool.query(`ALTER TABLE readings ADD COLUMN IF NOT EXISTS offset_water_level NUMERIC;`);
             await pool.query(`ALTER TABLE readings ADD COLUMN IF NOT EXISTS data_rate VARCHAR(50);`);
             await pool.query(`ALTER TABLE readings ADD COLUMN IF NOT EXISTS snr DOUBLE PRECISION;`);
@@ -176,32 +180,10 @@ async function initDatabase() {
             `);
         }
 
-        // Seeding: Default Station Configs
+        // Seeding: Default Station Configs (Removed hardcoded tdd-* stations)
         const configRes = await pool.query("SELECT COUNT(*) FROM station_configs");
         if (parseInt(configRes.rows[0].count) === 0) {
-            console.log("🌱 Seeding: Creating default station configs...");
-            // Seed for known simulator devices
-            const defaultStations = ['tdd-float-01', 'tdd-float-02', 'tdd-static-01', 'tdd-static-02', 'ST001', 'ST002'];
-            for (const st of defaultStations) {
-                // Check if station exists first to avoid FK error, or INSERT IGNORE equivalent
-                // For simplicity, we just try to insert config. If FK fails, we ignore.
-                // But stations might not exist yet if fresh DB!
-                // So we only insert if we can ensures stations exist?
-                // Actually, let's just insert a generic default rule linked to a 'default' station if we had one,
-                // but since station_id is FK, we must have the station first. 
-                // Creating stations first is safer.
-
-                await pool.query(`
-                    INSERT INTO stations (station_id, name, location_source) 
-                    VALUES ($1, $2, 'Config') 
-                    ON CONFLICT (station_id) DO NOTHING
-                `, [st, `Station ${st}`]);
-
-                await pool.query(`
-                    INSERT INTO station_configs (station_id, critical_level, warning_level, notify_interval)
-                    VALUES ($1, 2.5, 1.8, 30)
-                `, [st]);
-            }
+            console.log("🌱 Station configs table is empty. Ready for dynamic configuration.");
         }
 
         console.log("✅ Schema & Indexes Verified.");

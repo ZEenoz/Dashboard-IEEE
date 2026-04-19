@@ -56,7 +56,8 @@ function calculateWaterLevel(base) {
     const wave = Math.sin((hours / 12) * Math.PI * 2);
     const level = base + (wave * 2.4) + (Math.random() * 0.1); // แกว่งประมาณ +/- 2.4 เมตร
     
-    return Math.max(0, level).toFixed(3);
+    // Return in CM (centimeters) as expected by the backend
+    return (Math.max(0, level) * 100).toFixed(1);
 }
 
 function publishReading(device) {
@@ -94,5 +95,5 @@ function publishReading(device) {
     const topic = `application/${APPLICATION_ID}/device/${device.id}/event/up`;
     client.publish(topic, JSON.stringify(payload));
     
-    console.log(`📤 [${device.id}] Level: ${level}m | Batt: ${battery}% | Status: ${level > 2.5 ? '⚠️ ALERT' : 'OK'}`);
+    console.log(`📤 [${device.id}] Level: ${level}cm | Batt: ${battery}% | Status: ${parseFloat(level) > 250 ? '⚠️ ALERT' : 'OK'}`);
 }

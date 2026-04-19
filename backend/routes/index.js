@@ -279,6 +279,9 @@ router.get('/history', async (req, res) => {
             } else if (range === '30d') {
                 timeFilter = "r.timestamp >= NOW() - INTERVAL '30 days'";
                 truncateSQL = "date_trunc('day', r.timestamp)"; // 1 point per day
+            } else if (range === 'all') {
+                timeFilter = "1=1";
+                truncateSQL = "date_trunc('day', r.timestamp)"; 
             }
         }
 

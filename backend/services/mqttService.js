@@ -424,8 +424,8 @@ async function handleMessage(message, io) {
                     // If payload is 2 bytes, interpret as water level in cm
                     if (rawBytes.length >= 2) {
                         const rawCm = (rawBytes[0] << 8) | rawBytes[1];
-                        obj.waterLevel = rawCm / 100; // Convert cm to meters
-                        console.log(`   → Auto-decoded ${rawBytes.length} bytes → waterLevel: ${obj.waterLevel}m`);
+                        obj.waterLevel = rawCm; // Keep as cm, conversion happens in common processing
+                        console.log(`   → Auto-decoded ${rawBytes.length} bytes → waterLevel: ${obj.waterLevel}cm`);
                     }
                 } catch (decodeErr) {
                     console.error(`   → Base64 decode failed:`, decodeErr.message);
@@ -588,11 +588,9 @@ async function handleMessage(message, io) {
         // 📐 Common processing (both modes)
         // ──────────────────────────────────────────
 
-        // หากค่าที่ส่งมามากกว่า 40 (สันนิษฐานว่าเป็นหน่วย cm) ให้หาร 100
-        // ปรับจาก > 4 เป็น > 40 เพราะระดับน้ำจริงอาจลึกได้ถึง 5-10 เมตร
-        if (rawLevel > 40) {
-            rawLevel = rawLevel / 100;
-        }
+        // Standardized Conversion: Sensor data is received in Centimeters (cm)
+        // Convert to Meters (m) for system-wide consistency
+        rawLevel = rawLevel / 100;
 
         // Apply Offset configured in Settings
         let offset = 0;

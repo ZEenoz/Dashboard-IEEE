@@ -10,7 +10,7 @@ import { History, Filter, Calendar, Smartphone, Droplets, Gauge, AlertCircle, In
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 export default function HistoryPage() {
-    const { stations, socket, displayMode } = useSocket();
+    const { stations, socket, displayMode, systemMode } = useSocket();
     const { t } = useLanguage();
     const { data: session } = useSession();
     const [historyData, setHistoryData] = useState([]);
@@ -24,6 +24,7 @@ export default function HistoryPage() {
     const [selectedDevice, setSelectedDevice] = useState('all');
     const [selectedSensorType, setSelectedSensorType] = useState('all');
     const [selectedDate, setSelectedDate] = useState('');
+    const [selectedRange, setSelectedRange] = useState('24h');
 
     const fetchHistory = async (showSpinner = false, isLoadMore = false) => {
         if (showSpinner && !isLoadMore) setIsRefreshing(true);
@@ -38,6 +39,8 @@ export default function HistoryPage() {
 
             if (selectedDate) {
                 url += `&date=${selectedDate}`;
+            } else {
+                url += `&range=${selectedRange}`;
             }
 
             const res = await fetch(url, {
@@ -71,7 +74,7 @@ export default function HistoryPage() {
         setOffset(0);
         setHasMore(true);
         fetchHistory(true, false);
-    }, [selectedDevice, selectedDate]);
+    }, [selectedDevice, selectedDate, selectedRange]);
 
     // Listen for real-time history updates via socket
     useEffect(() => {
@@ -98,26 +101,15 @@ export default function HistoryPage() {
 
     const filteredHistory = useMemo(() => {
         return historyData.filter(item => {
-            const tsToUse = item.rawTimestamp || item.serverTimestamp || item.timestamp;
-            if (!tsToUse) return false;
-
             const matchDevice = selectedDevice === 'all' || item.stationId === selectedDevice;
-
-            let itemDate = '';
-            const d = new Date(tsToUse);
-            if (!isNaN(d.getTime())) {
-                const year = d.getFullYear();
-                const month = String(d.getMonth() + 1).padStart(2, '0');
-                const day = String(d.getDate()).padStart(2, '0');
-                itemDate = `${year}-${month}-${day}`;
-            }
-
-            const matchDate = selectedDate === '' || itemDate === selectedDate;
             const matchType = selectedSensorType === 'all' || (item.sensorType && item.sensorType === selectedSensorType);
 
-            return matchDevice && matchDate && matchType;
+            // Redundant date filtering removed here because server already filters by date/range.
+            // We only keep device and sensor type filtering for client-side flexibility if needed,
+            // though most is handled by the server now.
+            return matchDevice && matchType;
         });
-    }, [historyData, selectedDevice, selectedDate, selectedSensorType]);
+    }, [historyData, selectedDevice, selectedSensorType]);
 
     return (
         <div className="mb-20 space-y-6">
@@ -156,13 +148,34 @@ export default function HistoryPage() {
                         </select>
                     </div>
 
+                    {/* Range Selector */}
+                    <div className="relative flex-1 md:flex-none min-w-[140px]">
+                        <Activity className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        <select
+                            value={selectedRange}
+                            onChange={(e) => {
+                                setSelectedRange(e.target.value);
+                                setSelectedDate('');
+                            }}
+                            className="bg-gray-800 text-white border border-gray-700 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:border-blue-500 appearance-none shadow-sm w-full"
+                        >
+                            <option value="24h">{t('history.last24h')}</option>
+                            <option value="7d">{t('history.last7d')}</option>
+                            <option value="30d">{t('history.last30d')}</option>
+                            <option value="all">{t('history.allTime')}</option>
+                        </select>
+                    </div>
+
                     {/* Date Selector */}
                     <div className="relative flex-1 md:flex-none min-w-[140px]">
                         <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                         <input
                             type="date"
                             value={selectedDate}
-                            onChange={(e) => setSelectedDate(e.target.value)}
+                            onChange={(e) => {
+                                setSelectedDate(e.target.value);
+                                if (e.target.value) setSelectedRange('');
+                            }}
                             className="bg-gray-800 text-white border border-gray-700 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:border-blue-500 shadow-sm w-full"
                         />
                     </div>
@@ -229,7 +242,11 @@ export default function HistoryPage() {
                                     <td colSpan="5" className="px-6 py-16 text-center text-gray-500">
                                         <div className="flex flex-col items-center gap-2">
                                             <History className="w-8 h-8 opacity-20" />
-                                            <span>{t('history.noRecords')}</span>
+                                            <span className="font-bold">{t('history.noRecords')}</span>
+                                            <span className="text-xs opacity-60">
+                                                {selectedDate ? `Selected date: ${selectedDate}` : `Time range: ${t(`history.last${selectedRange}`) || t('history.allTime')}`}
+                                            </span>
+                                            <span className="text-xs opacity-40 italic">Mode: {systemMode} ({displayMode})</span>
                                         </div>
                                     </td>
                                 </tr>

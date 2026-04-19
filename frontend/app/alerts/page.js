@@ -151,7 +151,8 @@ export default function AlertsPage() {
 
     // Route Protection
     useEffect(() => {
-        if (status === 'unauthenticated' || (session && session.user?.role === 'general_user')) {
+        const allowedRoles = ['admin', 'local_authority'];
+        if (status === 'unauthenticated' || (session && !allowedRoles.includes(session.user?.role))) {
             router.replace('/');
         }
     }, [session, status, router]);
@@ -232,7 +233,7 @@ export default function AlertsPage() {
         </div>
     );
 
-    if (session?.user?.role === 'general_user') return null; // Prevent flash before redirect
+    if (!['admin', 'local_authority'].includes(session?.user?.role)) return null; // Prevent flash before redirect
 
     return (
         <div className="mb-20 space-y-6">

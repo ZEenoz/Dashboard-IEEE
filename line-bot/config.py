@@ -23,3 +23,6 @@ else:
 
 # Node API Configuration
 NODE_API_URL = os.getenv("NODE_API_URL", "http://localhost:4000/api")
+
+# Frontend Dashboard URL
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://dashboard-ieee-kappa.vercel.app")

@@ -25,7 +25,7 @@ export default function Sidebar() {
         <aside className="hidden md:flex flex-col w-64 h-screen bg-[#0F172A] border-r border-gray-800 fixed left-0 top-0 z-50">
             {/* Brand Area */}
             <div className="h-20 flex flex-col justify-center px-6 border-b border-gray-800">
-                <h1 className="text-xl font-bold text-blue-500">Water Monitor</h1>
+                <h1 className="text-xl font-bold text-blue-500">Water Level Monitor</h1>
                 <p className="text-xs text-gray-500">IoT Dashboard v1.0</p>
             </div>
 
@@ -35,8 +35,9 @@ export default function Sidebar() {
                     const isActive = pathname === item.href;
                     const label = t(`sidebar.${item.key}`);
                     // Role-based filtering:
-                    // General User cannot see Alerts
-                    if (item.href === '/alerts' && session?.user?.role === 'general_user') return null;
+                    // Only Admin and Local Authority can see Alerts
+                    const allowedAlertRoles = ['admin', 'local_authority'];
+                    if (item.href === '/alerts' && !allowedAlertRoles.includes(session?.user?.role)) return null;
 
                     return (
                         <Link
@@ -109,8 +110,8 @@ export default function Sidebar() {
                             <div className="flex-1 overflow-hidden">
                                 <p className="text-sm font-bold truncate text-white">{session.user?.name || 'User'}</p>
                                 <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${session.user?.role === 'admin' ? 'bg-blue-500/20 text-blue-300' :
-                                        session.user?.role === 'local_authority' ? 'bg-yellow-500/20 text-yellow-300' :
-                                            'bg-gray-600/30 text-gray-400'
+                                    session.user?.role === 'local_authority' ? 'bg-yellow-500/20 text-yellow-300' :
+                                        'bg-gray-600/30 text-gray-400'
                                     }`}>
                                     {session.user?.role === 'admin' ? '🔑 Admin' :
                                         session.user?.role === 'local_authority' ? '🛡️ Auth' :

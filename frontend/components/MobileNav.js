@@ -78,7 +78,8 @@ export default function MobileNav() {
                         {menuItemDefs.map((item) => {
                             const isActive = pathname === item.href;
                             const label = t(`sidebar.${item.key}`);
-                            if (item.href === '/alerts' && session?.user?.role === 'general_user') return null;
+                            const allowedAlertRoles = ['admin', 'local_authority'];
+                            if (item.href === '/alerts' && !allowedAlertRoles.includes(session?.user?.role)) return null;
 
                             return (
                                 <Link

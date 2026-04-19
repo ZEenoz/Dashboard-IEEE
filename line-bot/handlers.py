@@ -85,6 +85,7 @@ def handle_message(event):
                         color = "#1DB446" if level < 1.5 else "#F5BA00" if level < 2.5 else "#DB2424"
                         
                         monitor_data.append({
+                            "id": sid,
                             "name": st_info['name'] + (" [LIVE]" if live_info else ""),
                             "level": level,
                             "status": status,

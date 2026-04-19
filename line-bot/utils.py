@@ -1,3 +1,6 @@
+import urllib.parse
+from config import FRONTEND_URL
+
 def create_dashboard_flex_dict(selected_ids, all_stations=None):
     # ฟังก์ชันนี้คืนค่าเป็น Dictionary (JSON Structure)
     # param: all_stations: list of dicts from database (id, name, location, image_url)
@@ -168,6 +171,28 @@ def create_monitor_flex_message(stations_data):
                 }
             })
 
+        # --- Add "เช็คสถานี" Button ---
+        if FRONTEND_URL and st.get('id'):
+            quoted_id = urllib.parse.quote(str(st['id']))
+            station_url = f"{FRONTEND_URL}/parameters/{quoted_id}"
+            
+            body_contents.append({
+                "type": "separator",
+                "margin": "md"
+            })
+            body_contents.append({
+                "type": "button",
+                "style": "secondary",
+                "color": "#06C755",
+                "margin": "md",
+                "height": "sm",
+                "action": {
+                    "type": "uri",
+                    "label": "📊 เช็คสถานี",
+                    "uri": station_url
+                }
+            })
+
         bubble = {
             "type": "bubble",
             "size": "giga",
@@ -277,7 +302,7 @@ def create_alert_flex_message(station_id, station_name, water_level, alert_level
                     "type": "separator",
                     "margin": "md"
                 },
-               {
+                {
                     "type": "text",
                     "text": description,
                     "wrap": True,
@@ -286,6 +311,22 @@ def create_alert_flex_message(station_id, station_name, water_level, alert_level
                     "weight": "bold",
                     "margin": "md",
                     "align": "center"
+                }
+            ]
+        },
+        "footer": {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+                {
+                    "type": "button",
+                    "style": "link",
+                    "height": "sm",
+                    "action": {
+                        "type": "uri",
+                        "label": "📊 เช็คสถานี (Open Dashboard)",
+                        "uri": f"{FRONTEND_URL}/parameters/{urllib.parse.quote(str(station_id))}"
+                    }
                 }
             ]
         }

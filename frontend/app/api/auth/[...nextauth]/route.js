@@ -4,14 +4,21 @@ import { Pool } from "pg"
 import bcrypt from "bcryptjs"
 
 // PostgreSQL Configuration (Supports DATABASE_URL or individual vars)
-const authPool = process.env.DATABASE_URL 
-    ? new Pool({ connectionString: process.env.DATABASE_URL })
+const dbUrl = process.env.DATABASE_URL || "";
+const isCloudDB = dbUrl.includes("supabase.com") || dbUrl.includes("rlwy.net");
+
+const authPool = process.env.DATABASE_URL
+    ? new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: isCloudDB ? { rejectUnauthorized: false } : false
+    })
     : new Pool({
         user: process.env.DB_USER || 'postgres',
         host: process.env.DB_HOST || 'localhost',
         password: process.env.DB_PASSWORD || 'Waterretention1',
         port: parseInt(process.env.DB_PORT || '5432'),
-        database: process.env.DB_NAME || 'water_monitoring'
+        database: process.env.DB_NAME || 'water_monitoring',
+        ssl: isCloudDB ? { rejectUnauthorized: false } : false
     });
 
 const handler = NextAuth({

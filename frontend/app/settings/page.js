@@ -77,13 +77,13 @@ export default function SettingsPage() {
 
     // Fetch Settings
     useEffect(() => {
-        fetch(`${API_URL}/settings`, { 
-            cache: 'no-store', 
-            headers: { 
-                'Cache-Control': 'no-cache', 
+        fetch(`${API_URL}/settings`, {
+            cache: 'no-store',
+            headers: {
+                'Cache-Control': 'no-cache',
                 'Pragma': 'no-cache',
                 'ngrok-skip-browser-warning': 'true'
-            } 
+            }
         })
             .then(res => res.json())
             .then(data => {
@@ -150,8 +150,8 @@ export default function SettingsPage() {
         try {
             const res = await fetch(`${API_URL}/settings`, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json', 
+                headers: {
+                    'Content-Type': 'application/json',
                     'x-api-key': 'IEEE_SECURE_API_KEY_2025',
                     'ngrok-skip-browser-warning': 'true'
                 },
@@ -185,7 +185,7 @@ export default function SettingsPage() {
         { id: 'notifications', label: t('settings.tabNotifications'), icon: <Bell className="w-5 h-5" /> },
         { id: 'stations', label: t('settings.tabStations'), icon: <Map className="w-5 h-5" /> }
     ];
-    
+
     if (role === 'admin') {
         tabs.push({ id: 'system', label: t('settings.tabSystem'), icon: <Cpu className="w-5 h-5" /> });
         tabs.push({ id: 'users', label: t('settings.tabUsers'), icon: <Users className="w-5 h-5" /> });
@@ -197,10 +197,15 @@ export default function SettingsPage() {
 
     return (
         <div className="p-8 text-white max-w-5xl mx-auto">
-            <h1 className="text-3xl font-bold mb-8 text-blue-400 flex items-center gap-3">
-                <SettingsIcon className="w-8 h-8" />
-                {t('settings.title')}
-            </h1>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6 px-1">
+                <div className="flex flex-col">
+                    <div className="flex items-center gap-4">
+                        <h1 className="text-3xl font-bold text-white tracking-tight border-l-4 border-blue-500 pl-4">
+                            {t('settings.title')}
+                        </h1>
+                    </div>
+                </div>
+            </div>
 
             {/* Tabs */}
             <div className="flex border-b border-gray-700 mb-8">
@@ -278,60 +283,6 @@ export default function SettingsPage() {
                                 {/* LINE Notify Configuration (Admin Only) */}
                                 {role === 'admin' && (
                                     <>
-                                        <div className="bg-green-900/20 p-6 rounded-xl border border-green-500/30">
-                                            <div className="flex justify-between items-center mb-4">
-                                                <label className="block text-sm font-bold text-green-400 flex items-center gap-2">
-                                                    <MessageCircle className="w-4 h-4" />
-                                                    {t('settings.lineNotifyToken')}
-                                                </label>
-                                                <div className="form-checkbox flex items-center gap-2">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={settings.lineNotify?.active || false}
-                                                        onChange={(e) => handleChange('lineNotify', 'active', e.target.checked)}
-                                                        className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-green-500"
-                                                    />
-                                                    <span className="text-xs text-gray-400">{t('common.enable')}</span>
-                                                </div>
-                                            </div>
-
-                                            <input
-                                                type="password"
-                                                value={settings.lineNotify?.token || ''}
-                                                onChange={(e) => handleChange('lineNotify', 'token', e.target.value)}
-                                                placeholder="Enter LINE Notify Token"
-                                                className="w-full bg-gray-800 border border-gray-600 rounded-lg p-3 text-white focus:border-green-500 outline-none font-mono text-sm mb-3"
-                                            />
-
-                                            <div className="flex justify-between items-center">
-                                                <a href="https://developers.line.biz/console/channel/2008284216/messaging-api" target="_blank" rel="noreferrer" className="text-xs text-blue-400 hover:text-blue-300 underline">
-                                                    {t('settings.getTokenHere')}
-                                                </a>
-                                                <button
-                                                    onClick={async () => {
-                                                        try {
-                                                            const res = await fetch(`${API_URL}/test-notify`, {
-                                                                method: 'POST',
-                                                                headers: { 
-                                                                    'Content-Type': 'application/json', 
-                                                                    'x-api-key': 'IEEE_SECURE_API_KEY_2025',
-                                                                    'ngrok-skip-browser-warning': 'true'
-                                                                },
-                                                                body: JSON.stringify({ token: settings.lineNotify?.token })
-                                                            });
-                                                            const data = await res.json();
-                                                            toast.success(data.message || t('common.success'));
-                                                        } catch (err) {
-                                                            toast.error(t('settings.failedToSave'));
-                                                        }
-                                                    }}
-                                                    className="text-xs bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded-lg font-bold transition-colors"
-                                                >
-                                                    {t('settings.testNotification')}
-                                                </button>
-                                            </div>
-                                        </div>
-
                                         {/* LINE Official Account Bot */}
                                         <div className="bg-blue-900/20 p-6 rounded-xl border border-blue-500/30">
                                             <div className="flex justify-between items-center mb-4">

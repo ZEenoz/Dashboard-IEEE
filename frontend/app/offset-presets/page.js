@@ -50,13 +50,13 @@ export default function OffsetPresetsPage() {
 
     // Fetch settings & presets
     useEffect(() => {
-        const fetchOpts = { 
-            cache: 'no-store', 
-            headers: { 
-                'Cache-Control': 'no-cache', 
+        const fetchOpts = {
+            cache: 'no-store',
+            headers: {
+                'Cache-Control': 'no-cache',
                 'Pragma': 'no-cache',
                 'ngrok-skip-browser-warning': 'true'
-            } 
+            }
         };
 
         const fetchData = async () => {
@@ -68,7 +68,7 @@ export default function OffsetPresetsPage() {
 
                 const settingsData = await settingsRes.json();
                 let presetsData = [];
-                
+
                 try {
                     presetsData = await presetsRes.json();
                     // Ensure presetsData is an array
@@ -197,8 +197,8 @@ export default function OffsetPresetsPage() {
             // 1. Save presets config
             const resPresets = await fetch(`${API_URL}/offset-presets`, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json', 
+                headers: {
+                    'Content-Type': 'application/json',
                     'x-api-key': 'IEEE_SECURE_API_KEY_2025',
                     'ngrok-skip-browser-warning': 'true'
                 },
@@ -218,8 +218,8 @@ export default function OffsetPresetsPage() {
 
             const resSettings = await fetch(`${API_URL}/settings`, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json', 
+                headers: {
+                    'Content-Type': 'application/json',
                     'x-api-key': 'IEEE_SECURE_API_KEY_2025',
                     'ngrok-skip-browser-warning': 'true'
                 },
@@ -253,10 +253,10 @@ export default function OffsetPresetsPage() {
     return (
         <div className="p-8 text-white h-[calc(100vh-64px)] overflow-hidden flex flex-col">
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start mb-8 gap-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6 px-1">
                 <div className="flex flex-col">
                     <div className="flex items-center gap-4">
-                        <h1 className="text-3xl font-extrabold text-blue-400 flex items-center gap-3">
+                        <h1 className="text-3xl font-bold text-white tracking-tight border-l-4 border-blue-500 pl-4">
                             {t('offsetPresets.title')}
                         </h1>
                     </div>

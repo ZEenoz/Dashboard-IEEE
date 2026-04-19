@@ -56,10 +56,10 @@ async function saveReading(data) {
                 `, [data.stationId, data.stationName, data.lat, data.lng, data.src, data.networkMode || 'TTN', imageUrl]);
 
                 // Insert Reading
-                // Insert Reading
-                await pool.query(`
+                const res = await pool.query(`
                     INSERT INTO readings (station_id, water_level, offset_water_level, data_rate, rssi, snr, battery, battery_voltage, sensor_type, latitude, longitude, location_source, timestamp)
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
+                    RETURNING id
                 `, [
                     data.stationId, 
                     data.rawLevel,          // Raw Data -> water_level
@@ -75,9 +75,11 @@ async function saveReading(data) {
                     data.src
                 ]);
 
-                console.log(`💾 Saved to DB: ${data.stationId} | Raw=${data.rawLevel} | Offset=${data.waterLevel}`);
+                const newId = res.rows[0]?.id;
+                console.log(`💾 Saved to DB: ${data.stationId} | ID=${newId} | Raw=${data.rawLevel} | Offset=${data.waterLevel}`);
             } catch (err) {
-                console.error(`⚠️ DB Save Error: ${err.message}`);
+                console.error(`❌ DB Save Error [${data.stationId}]: ${err.message}`);
+                if (err.detail) console.error(`   Detail: ${err.detail}`);
             }
         }
     }

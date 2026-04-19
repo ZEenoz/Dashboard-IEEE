@@ -179,6 +179,15 @@ async function initDatabase() {
         }
 
         console.log("✅ Schema & Indexes Verified.");
+        
+        // [Safety] Fix duplicate key violations by syncing the SERIAL sequence
+        // This is common after manual data imports or migrations.
+        try {
+            await pool.query(`SELECT setval(pg_get_serial_sequence('readings', 'id'), COALESCE(MAX(id), 1)) FROM readings;`);
+            console.log("✅ Database sequence for 'readings' synchronized.");
+        } catch (seqErr) {
+            console.log("ℹ️ Sequence Sync:", seqErr.message);
+        }
 
         // System Settings Table (Global settings)
         await pool.query(`

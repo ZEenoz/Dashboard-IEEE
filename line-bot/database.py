@@ -1,8 +1,24 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from config import PG_HOST, PG_PORT, PG_DATABASE, PG_USER, PG_PASSWORD
+from config import PG_HOST, PG_PORT, PG_DATABASE, PG_USER, PG_PASSWORD, DATABASE_URL
 
 def get_db_connection():
+    # If DATABASE_URL is present, use it directly (safer for special characters)
+    if DATABASE_URL:
+        # Check if it's a cloud database (Supabase, Railway, etc.)
+        is_cloud = "supabase.com" in DATABASE_URL or "rlwy.net" in DATABASE_URL or "render.com" in DATABASE_URL
+        
+        # Add sslmode=require for cloud databases
+        if is_cloud and "sslmode" not in DATABASE_URL:
+            # Append sslmode if not present
+            connector = "&" if "?" in DATABASE_URL else "?"
+            conn_string = f"{DATABASE_URL}{connector}sslmode=require"
+        else:
+            conn_string = DATABASE_URL
+            
+        return psycopg2.connect(conn_string)
+        
+    # Fallback to individual parameters
     return psycopg2.connect(
         host=PG_HOST,
         port=PG_PORT,

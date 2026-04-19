@@ -3,14 +3,20 @@ const fs = require('fs');
 const bcrypt = require('bcryptjs');
 
 // PostgreSQL Configuration (Supports Railway defaults and DATABASE_URL)
+const isCloudDB = process.env.DATABASE_URL && (process.env.DATABASE_URL.includes('supabase.com') || process.env.DATABASE_URL.includes('rlwy.net') || process.env.DATABASE_URL.includes('render.com'));
+
 const dbConfig = process.env.DATABASE_URL 
-    ? { connectionString: process.env.DATABASE_URL }
+    ? { 
+        connectionString: process.env.DATABASE_URL,
+        ssl: isCloudDB ? { rejectUnauthorized: false } : false
+    }
     : {
         user: process.env.DB_USER || process.env.PGUSER || 'postgres',
         host: process.env.DB_HOST || process.env.PGHOST || 'localhost',
         password: process.env.DB_PASSWORD || process.env.PGPASSWORD || 'Waterretention1',
         port: parseInt(process.env.DB_PORT || process.env.PGPORT || '5432'),
-        database: process.env.DB_NAME || process.env.PGDATABASE || 'water_monitoring'
+        database: process.env.DB_NAME || process.env.PGDATABASE || 'water_monitoring',
+        ssl: isCloudDB ? { rejectUnauthorized: false } : false
     };
 
 let pool;
@@ -21,23 +27,7 @@ async function initDatabase() {
         console.warn("⚠️ Database configuration (DB_HOST/DATABASE_URL) is missing. Using defaults (localhost).");
     }
 
-    // 1. Check & Create 'water_monitoring' database
-    // Note: If using a managed DB like Railway Postgres, this might fail, which is fine if it already exists.
-    const tempPool = new Pool({ ...dbConfig, database: 'postgres' });
-    try {
-        const res = await tempPool.query("SELECT 1 FROM pg_database WHERE datname = 'water_monitoring'");
-        if (res.rowCount === 0) {
-            console.log("⚠️ Database 'water_monitoring' not found. Creating...");
-            await tempPool.query('CREATE DATABASE "water_monitoring"');
-            console.log("✅ Database 'water_monitoring' created.");
-        }
-    } catch (e) {
-        console.error("❌ Init DB (Database Check) Error:", e.message || e);
-    } finally {
-        await tempPool.end();
-    }
-
-    // 2. Connect to the actual database
+    // Connect to the actual database
     pool = new Pool(dbConfig);
 
     // 3. Ensure every new connection in the pool uses Bangkok timezone

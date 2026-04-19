@@ -251,7 +251,7 @@ export default function OffsetPresetsPage() {
     if (session?.user?.role !== 'admin') return null;
 
     return (
-        <div className="p-8 text-white h-[calc(100vh-64px)] overflow-hidden flex flex-col">
+        <div className="p-4 md:p-8 text-white min-h-screen lg:h-[calc(100vh-64px)] lg:overflow-hidden flex flex-col">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6 px-1">
                 <div className="flex flex-col">
@@ -273,10 +273,10 @@ export default function OffsetPresetsPage() {
             </div>
 
             {/* Main 2-column layout */}
-            <div className="flex gap-8 items-start flex-1 min-h-0">
+            <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start flex-1 min-h-0">
 
                 {/* ─── Left: Available Stations ─── */}
-                <div className="w-64 flex-shrink-0 h-full flex flex-col">
+                <div className="w-full lg:w-72 flex-shrink-0 lg:h-full flex flex-col">
                     <div className="text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-4 flex-shrink-0">
                         {t('offsetPresets.availableStations')}
                     </div>
@@ -342,6 +342,23 @@ export default function OffsetPresetsPage() {
                                                     : <span className="text-purple-400">Static</span>
                                                 }
                                             </span>
+                                        </div>
+
+                                        {/* 📱 Mobile Transfer Controls */}
+                                        <div className="mt-3 pt-3 border-t border-gray-700/50 flex lg:hidden gap-2">
+                                            <select 
+                                                className="flex-1 bg-gray-800 text-[10px] px-2 py-1.5 rounded border border-gray-600 focus:outline-none focus:border-blue-500"
+                                                onChange={(e) => {
+                                                    const pIdx = parseInt(e.target.value);
+                                                    if (!isNaN(pIdx)) handleDrop({ preventDefault: () => {}, dataTransfer: { getData: () => id } }, pIdx);
+                                                    e.target.value = "";
+                                                }}
+                                            >
+                                                <option value="">{t('offsetPresets.moveToPreset') || 'Assign to Preset...'}</option>
+                                                {presets.map((p, idx) => (
+                                                    <option key={idx} value={idx}>{p.name} ({p.offset}m)</option>
+                                                ))}
+                                            </select>
                                         </div>
                                     </div>
 
@@ -432,7 +449,7 @@ export default function OffsetPresetsPage() {
                             </div>
                         )}
 
-                        <div className="grid grid-cols-2 gap-5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
                             {presets.map((preset, idx) => {
                                 const isPositive = preset.offset > 0;
                                 const isNegative = preset.offset < 0;

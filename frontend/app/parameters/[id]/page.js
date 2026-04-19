@@ -379,7 +379,7 @@ export default function SensorDetailsPage() {
     const isOffline = (new Date().getTime() - (station.rawTimestamp || 0)) > 60 * 60 * 1000;
 
     return (
-        <div className="flex flex-col h-screen bg-gray-950 text-white font-sans overflow-hidden">
+        <div className="flex flex-col min-h-screen bg-gray-950 text-white font-sans overflow-x-hidden">
             {/* Export Modal */}
             {showExportModal && (
                 <ExportModal
@@ -390,39 +390,39 @@ export default function SensorDetailsPage() {
             )}
 
             {/* Header */}
-            <header className="flex items-center justify-between px-6 py-5 bg-gray-900/50 border-b border-gray-800 shadow-md backdrop-blur-md z-20">
-                <div className="flex items-center gap-4">
+            <header className="flex flex-col md:flex-row items-start md:items-center justify-between px-4 md:px-6 py-4 md:py-5 bg-gray-900/50 border-b border-gray-800 shadow-md backdrop-blur-md z-20 gap-4">
+                <div className="flex items-center gap-3 md:gap-4 w-full md:w-auto">
                     <button
                         onClick={() => router.back()}
                         aria-label="กลับไปหน้าหลัก"
-                        className="p-2 rounded-xl bg-gray-800 hover:bg-gray-700 transition-all text-gray-400 hover:text-white border border-gray-700"
+                        className="p-2 rounded-xl bg-gray-800 hover:bg-gray-700 transition-all text-gray-400 hover:text-white border border-gray-700 shrink-0"
                     >
-                        <ArrowLeft size={18} />
+                        <ArrowLeft className="w-4 h-4 md:w-[18px] md:h-[18px]" />
                     </button>
-                    <div>
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                            <h1 className="text-2xl font-bold tracking-tight text-white border-l-4 border-blue-500 pl-4 flex items-center gap-3">
+                    <div className="min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
+                            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-white border-l-4 border-blue-500 pl-3 md:pl-4 flex items-center gap-2 md:gap-3 truncate">
                                 {station.stationName || stationId}
-                                <span className="relative flex h-3 w-3">
+                                <span className="relative flex h-2.5 w-2.5 shrink-0">
                                     <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isOffline ? 'bg-red-400' : 'bg-green-400'}`}></span>
-                                    <span className={`relative inline-flex rounded-full h-3 w-3 ${isOffline ? 'bg-red-500' : 'bg-green-500'}`}></span>
+                                    <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isOffline ? 'bg-red-500' : 'bg-green-500'}`}></span>
                                 </span>
                             </h1>
-                            <span className={`px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest rounded-full w-fit ${isOffline ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-green-500/10 text-green-400 border border-green-500/20'}`}>
+                            <span className={`px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest rounded-full w-fit ${isOffline ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-green-500/10 text-green-400 border border-green-500/20'}`}>
                                 {isOffline ? t('common.offline') : t('common.active')}
                             </span>
                         </div>
-                        <p className="text-[10px] text-gray-500 mt-1 pl-4 uppercase tracking-widest font-semibold opacity-70">{t('stationDetail.networkNodeDetail')}</p>
+                        <p className="text-[9px] text-gray-500 mt-0.5 pl-3 md:pl-4 uppercase tracking-widest font-semibold opacity-70 truncate">{t('stationDetail.networkNodeDetail')}</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 w-full md:w-auto">
                     {(role === 'admin' || role === 'local_authority') && (
                         <button
                             onClick={() => setShowExportModal(true)}
                             aria-label="Export history to CSV"
-                            className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 border border-gray-700 transition-all text-sm"
+                            className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-xl font-bold flex items-center justify-center gap-2 border border-gray-700 transition-all text-xs md:text-sm w-full md:w-auto"
                         >
-                            <Download size={16} className="text-green-500" />
+                            <Download className="w-3.5 h-3.5 md:w-4 md:h-4 text-green-500" />
                             <span>{t('stationDetail.exportCSV')}</span>
                         </button>
                     )}
@@ -431,21 +431,21 @@ export default function SensorDetailsPage() {
 
             {/* Top Stats Row */}
             {/* Top Stats Cards Row */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-gray-800/50 border-b border-gray-800">
-                <div className="p-5 flex items-center gap-4 bg-gray-950/20 hover:bg-gray-800/20 transition-all group">
-                    <div className="p-3 bg-blue-500/10 rounded-2xl text-blue-500 border border-blue-500/20 transition-transform group-hover:scale-110"><MapPin size={20} /></div>
-                    <div className="overflow-hidden">
-                        <p className="text-[9px] uppercase font-bold text-gray-500 tracking-[0.25em] mb-1">{t('stationDetail.location')}</p>
-                        <p className="text-sm font-bold text-gray-200 tabular-nums truncate">{(Number(station.lat) || 0).toFixed(4)}°{station.lat >= 0 ? 'N' : 'S'} {(Number(station.lng) || 0).toFixed(4)}°{station.lng >= 0 ? 'E' : 'W'}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-gray-800/50 border-b border-gray-800">
+                <div className="p-4 md:p-5 flex items-center gap-3 md:gap-4 bg-gray-950/20 hover:bg-gray-800/20 transition-all group">
+                    <div className="p-2.5 md:p-3 bg-blue-500/10 rounded-2xl text-blue-500 border border-blue-500/20 transition-transform group-hover:scale-110 shrink-0"><MapPin className="w-[18px] h-[18px] md:w-5 md:h-5" /></div>
+                    <div className="min-w-0">
+                        <p className="text-[8px] md:text-[9px] uppercase font-bold text-gray-500 tracking-[0.2em] md:tracking-[0.25em] mb-0.5 md:mb-1">{t('stationDetail.location')}</p>
+                        <p className="text-xs md:text-sm font-bold text-gray-200 tabular-nums truncate">{(Number(station.lat) || 0).toFixed(4)}°{station.lat >= 0 ? 'N' : 'S'} {(Number(station.lng) || 0).toFixed(4)}°{station.lng >= 0 ? 'E' : 'W'}</p>
                     </div>
                 </div>
-                <div className="p-5 flex items-center gap-4 bg-gray-950/20 hover:bg-gray-800/20 transition-all group">
-                    <div className="p-3 bg-orange-500/10 rounded-2xl text-orange-500 border border-orange-500/20 transition-transform group-hover:scale-110"><Battery size={20} /></div>
-                    <div className="flex-1 overflow-hidden">
-                        <p className="text-[9px] uppercase font-bold text-gray-500 tracking-[0.25em] mb-1">{t('stationDetail.power')}</p>
+                <div className="p-4 md:p-5 flex items-center gap-3 md:gap-4 bg-gray-950/20 hover:bg-gray-800/20 transition-all group">
+                    <div className="p-2.5 md:p-3 bg-orange-500/10 rounded-2xl text-orange-500 border border-orange-500/20 transition-transform group-hover:scale-110 shrink-0"><Battery className="w-[18px] h-[18px] md:w-5 md:h-5" /></div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-[8px] md:text-[9px] uppercase font-bold text-gray-500 tracking-[0.2em] md:tracking-[0.25em] mb-0.5 md:mb-1">{t('stationDetail.power')}</p>
                         <div className="flex items-center gap-3">
-                            <span className="text-sm font-bold text-gray-200 tabular-nums">{station.battery ?? '--'}%</span>
-                            <div className="h-1.5 flex-1 bg-gray-800 rounded-full overflow-hidden border border-white/5">
+                            <span className="text-xs md:text-sm font-bold text-gray-200 tabular-nums">{station.battery ?? '--'}%</span>
+                            <div className="h-1 flex-1 bg-gray-800 rounded-full overflow-hidden border border-white/5">
                                 <div
                                     className={`h-full rounded-full transition-all duration-1000 ${Number(station.battery || 0) > 50 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : Number(station.battery || 0) > 25 ? 'bg-orange-500' : 'bg-red-500'}`}
                                     style={{ width: `${Number(station.battery || 0)}%` }}
@@ -454,44 +454,43 @@ export default function SensorDetailsPage() {
                         </div>
                     </div>
                 </div>
-                <div className="p-5 flex items-center gap-4 bg-gray-950/20 hover:bg-gray-800/20 transition-all group">
-                    <div className="p-3 bg-indigo-500/10 rounded-2xl text-indigo-500 border border-indigo-500/20 transition-transform group-hover:scale-110"><Signal size={20} /></div>
-                    <div className="overflow-hidden">
-                        <p className="text-[9px] uppercase font-bold text-gray-500 tracking-[0.25em] mb-1">{t('stationDetail.signal')}</p>
-                        <p className="text-sm font-bold text-gray-200 tabular-nums truncate">{station.rssi ?? '--'} dBm</p>
+                <div className="p-4 md:p-5 flex items-center gap-3 md:gap-4 bg-gray-950/20 hover:bg-gray-800/20 transition-all group">
+                    <div className="p-2.5 md:p-3 bg-indigo-500/10 rounded-2xl text-indigo-500 border border-indigo-500/20 transition-transform group-hover:scale-110 shrink-0"><Signal className="w-[18px] h-[18px] md:w-5 md:h-5" /></div>
+                    <div className="min-w-0">
+                        <p className="text-[8px] md:text-[9px] uppercase font-bold text-gray-500 tracking-[0.2em] md:tracking-[0.25em] mb-0.5 md:mb-1">{t('stationDetail.signal')}</p>
+                        <p className="text-xs md:text-sm font-bold text-gray-200 tabular-nums truncate">{station.rssi ?? '--'} dBm</p>
                     </div>
                 </div>
-                <div className="p-5 flex items-center gap-4 bg-gray-950/20 hover:bg-gray-800/20 transition-all group">
-                    <div className="p-3 bg-cyan-500/10 rounded-2xl text-cyan-500 border border-cyan-500/20 transition-transform group-hover:scale-110"><Clock size={20} /></div>
-                    <div className="overflow-hidden">
-                        <p className="text-[9px] uppercase font-bold text-gray-500 tracking-[0.25em] mb-1">{t('stationDetail.lastUpdate')}</p>
-                        <p className="text-sm font-bold text-gray-200 tabular-nums truncate">{station.timestamp || station.rawTimestamp ? new Date(station.rawTimestamp || station.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : t('stationDetail.waiting')}</p>
+                <div className="p-4 md:p-5 flex items-center gap-3 md:gap-4 bg-gray-950/20 hover:bg-gray-800/20 transition-all group">
+                    <div className="p-2.5 md:p-3 bg-cyan-500/10 rounded-2xl text-cyan-500 border border-cyan-500/20 transition-transform group-hover:scale-110 shrink-0"><Clock className="w-[18px] h-[18px] md:w-5 md:h-5" /></div>
+                    <div className="min-w-0">
+                        <p className="text-[8px] md:text-[9px] uppercase font-bold text-gray-500 tracking-[0.2em] md:tracking-[0.25em] mb-0.5 md:mb-1">{t('stationDetail.lastUpdate')}</p>
+                        <p className="text-xs md:text-sm font-bold text-gray-200 tabular-nums truncate">{station.timestamp || station.rawTimestamp ? new Date(station.rawTimestamp || station.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : t('stationDetail.waiting')}</p>
                     </div>
                 </div>
             </div>
 
             {/* Main Content */}
-            {/* Main Content */}
-            <main className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-hidden">
+            <main className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
                 {/* Left Column: Map */}
-                <div className="w-full lg:w-[55%] h-[400px] lg:h-full relative border-b lg:border-b-0 lg:border-r border-gray-800 flex flex-col">
+                <div className="w-full lg:w-[55%] h-[350px] md:h-[450px] lg:h-full relative border-b lg:border-b-0 lg:border-r border-gray-800 flex flex-col">
                     {/* Map Controls Overlay */}
-                    <div className="absolute top-4 right-4 z-10 flex gap-2 bg-gray-900/60 backdrop-blur-md rounded-2xl p-2 border border-white/10 shadow-2xl" style={{ WebkitBackdropFilter: 'blur(12px)' }}>
+                    <div className="absolute top-2 right-2 md:top-4 md:right-4 z-10 flex gap-2 bg-gray-900/60 backdrop-blur-md rounded-2xl p-1.5 md:p-2 border border-white/10 shadow-2xl" style={{ WebkitBackdropFilter: 'blur(12px)' }}>
                         <button
                             onClick={() => setMapStyle('dark')}
                             aria-label="Switch to Normal Map view"
-                            className={`p-1.5 rounded-lg transition-all ${mapStyle === 'dark' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}
+                            className={`p-1.5 rounded-lg transition-all ${mapStyle === 'dark' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}
                             title={t('stationDetail.normalMap')}
                         >
-                            <Layers size={16} />
+                            <Layers className="w-3.5 h-3.5 md:w-4 md:h-4" />
                         </button>
                         <button
                             onClick={() => setMapStyle('satellite')}
                             aria-label="Switch to Satellite Map view"
-                            className={`p-1.5 rounded-lg transition-all ${mapStyle === 'satellite' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}
+                            className={`p-1.5 rounded-lg transition-all ${mapStyle === 'satellite' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}
                             title={t('stationDetail.satelliteMap')}
                         >
-                            <Globe size={16} />
+                            <Globe className="w-3.5 h-3.5 md:w-4 md:h-4" />
                         </button>
                     </div>
 
@@ -583,7 +582,7 @@ export default function SensorDetailsPage() {
                             <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
                             <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
                             <div className="absolute -top-10 -left-10 w-32 h-32 bg-indigo-400/20 rounded-full blur-2xl"></div>
-                            
+
                             <p className="text-[13px] font-black text-indigo-100/60 uppercase tracking-[0.3em] mb-2 relative z-10">{t('stationDetail.currentWaterLevel')}</p>
                             <div className="flex items-baseline justify-center relative z-10">
                                 <span className="text-5xl font-black tracking-tighter text-white drop-shadow-[0_10px_10px_rgba(0,0,0,0.3)]">
@@ -615,14 +614,14 @@ export default function SensorDetailsPage() {
 
                     {/* Chart Section */}
                     <div className="mb-8">
-                    <div className="mb-4 px-1 flex items-center justify-between">
-                        <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">{t('stationDetail.hourTrend')}</h3>
-                        <div className="flex items-center gap-2">
-                            <span className="px-3 py-1 bg-gray-800/80 border border-gray-700/50 rounded-lg text-[10px] text-gray-400 font-mono shadow-inner">
-                                {t('stationDetail.range')}: <span className="text-blue-400 font-bold">{stats.min}{t('common.m')}</span> - <span className="text-blue-400 font-bold">{stats.max}{t('common.m')}</span>
-                            </span>
+                        <div className="mb-4 px-1 flex items-center justify-between">
+                            <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">{t('stationDetail.hourTrend')}</h3>
+                            <div className="flex items-center gap-2">
+                                <span className="px-3 py-1 bg-gray-800/80 border border-gray-700/50 rounded-lg text-[10px] text-gray-400 font-mono shadow-inner">
+                                    {t('stationDetail.range')}: <span className="text-blue-400 font-bold">{stats.min}{t('common.m')}</span> - <span className="text-blue-400 font-bold">{stats.max}{t('common.m')}</span>
+                                </span>
+                            </div>
                         </div>
-                    </div>
                         <div style={{ width: '100%', height: 260 }} className="bg-gray-900/50 rounded-2xl border border-white/5 p-4 shadow-2xl relative">
                             {chartData.length > 0 ? (
                                 <ResponsiveContainer width="100%" height="100%">
@@ -635,13 +634,13 @@ export default function SensorDetailsPage() {
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} strokeOpacity={0.15} />
                                         <XAxis dataKey="time" tick={{ fill: '#6B7280', fontSize: 10 }} axisLine={false} tickLine={false} />
-                                        <YAxis 
+                                        <YAxis
                                             domain={[
                                                 (dataMin) => Math.floor((dataMin - 0.5) * 10) / 10,
                                                 (dataMax) => Math.ceil((dataMax + 0.5) * 10) / 10
                                             ]}
-                                            tick={{ fill: '#6B7280', fontSize: 10 }} 
-                                            axisLine={false} 
+                                            tick={{ fill: '#6B7280', fontSize: 10 }}
+                                            axisLine={false}
                                             tickLine={false}
                                             width={40}
                                         />

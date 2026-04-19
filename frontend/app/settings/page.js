@@ -196,7 +196,7 @@ export default function SettingsPage() {
     const unconfiguredStations = Object.values(socketStations || {}).filter(s => !configuredStationIds.includes(s.stationId));
 
     return (
-        <div className="p-8 text-white max-w-5xl mx-auto">
+        <div className="p-4 md:p-8 text-white max-w-5xl mx-auto min-h-screen">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6 px-1">
                 <div className="flex flex-col">
                     <div className="flex items-center gap-4">
@@ -208,7 +208,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-gray-700 mb-8">
+            <div className="flex border-b border-gray-700 mb-6 md:mb-8 overflow-x-auto no-scrollbar">
                 {tabs.map(tab => (
                     <button
                         key={tab.id}
@@ -224,7 +224,7 @@ export default function SettingsPage() {
                 ))}
             </div>
 
-            <div className="bg-gray-800 rounded-xl p-8 border border-gray-700 shadow-xl min-h-[500px]">
+            <div className="bg-gray-800 rounded-xl p-4 md:p-8 border border-gray-700 shadow-xl min-h-[500px]">
 
                 {/* 🔔 Notifications Tab */}
                 {activeTab === 'notifications' && (
@@ -349,10 +349,10 @@ export default function SettingsPage() {
                                             <span className="text-xs bg-gray-800 px-2 py-1 rounded text-gray-500">ID</span>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="flex flex-col lg:flex-row gap-6">
                                             {/* Left Column: Basic Info */}
-                                            <div className="space-y-4">
-                                                <div className="flex gap-4 mb-4">
+                                            <div className="space-y-4 flex-1">
+                                                <div className="flex flex-col sm:flex-row gap-4 mb-4">
                                                     <div className="flex-1">
                                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">{t('settings.displayName')}</label>
                                                         <input
@@ -362,7 +362,7 @@ export default function SettingsPage() {
                                                             className="w-full bg-gray-800 border-gray-600 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none"
                                                         />
                                                     </div>
-                                                    <div className="w-1/4">
+                                                    <div className="w-full sm:w-1/4">
                                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">{t('common.type')}</label>
                                                         <select
                                                             value={config.type || 'Static'}
@@ -373,7 +373,7 @@ export default function SettingsPage() {
                                                             <option value="Float">Float</option>
                                                         </select>
                                                     </div>
-                                                    <div className="w-1/4">
+                                                    <div className="w-full sm:w-1/4">
                                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block" title="Value added to Raw Data">{t('settings.offset')}</label>
                                                         <input
                                                             type="number"
@@ -423,7 +423,7 @@ export default function SettingsPage() {
                                             </div>
 
                                             {/* Right Column: Image URL */}
-                                            <div>
+                                            <div className="w-full lg:w-72">
                                                 <div className="flex justify-between items-center mb-1">
                                                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
                                                         <ImageIcon className="w-3 h-3" />
@@ -729,11 +729,11 @@ export default function SettingsPage() {
                 )}
 
                 {/* Global Save Button */}
-                <div className="mt-8 flex justify-end pt-6 border-t border-gray-700">
+                <div className="mt-8 flex justify-center md:justify-end pt-6 border-t border-gray-700">
                     <button
                         onClick={saveSettings}
                         disabled={saving}
-                        className={`px-8 py-3 rounded-lg font-bold text-lg shadow-lg flex items-center gap-2 transition-all ${saving ? 'bg-gray-600 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 hover:scale-105 active:scale-95'
+                        className={`w-full md:w-auto px-8 py-3 rounded-lg font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition-all ${saving ? 'bg-gray-600 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 hover:scale-105 active:scale-95'
                             }`}
                     >
                         <Save className="w-5 h-5" />

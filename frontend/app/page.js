@@ -101,7 +101,7 @@ const SidebarStationItem = React.memo(({ st, type, onFly, onDetails }) => {
           )}
         </div>
         <button
-          onClick={() => handleGoToDetails(st.stationId)}
+          onClick={() => onDetails(st.stationId)}
           aria-label={`View details for ${st.stationName || 'station'}`}
           className="p-2 rounded-lg bg-gray-800/80 hover:bg-white hover:text-black text-gray-400 transition-all border border-gray-700 shadow-sm"
           title="View Details"
@@ -231,10 +231,10 @@ export default function Home() {
     <div className="mb-20 space-y-6">
 
       {/* SECTION 1: Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6 px-1">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-8 gap-4 md:gap-6 px-1">
         <div className="flex flex-col">
-          <h1 className="text-3xl font-bold text-white tracking-tight border-l-4 border-blue-500 pl-4">{t('overview.title')}</h1>
-          <p className="text-gray-400 text-sm mt-1 max-w-lg">{t('overview.subtitle')}</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight border-l-4 border-blue-500 pl-4">{t('overview.title')}</h1>
+          <p className="text-gray-400 text-xs md:text-sm mt-1 max-w-lg">{t('overview.subtitle')}</p>
         </div>
 
         {/* Display Mode Toggle */}
@@ -305,7 +305,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="h-[500px] w-full relative">
+            <div className="h-[350px] md:h-[500px] w-full relative">
               <Map
                 {...viewState}
                 onMove={evt => setViewState(evt.viewState)}

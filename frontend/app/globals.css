@@ -98,3 +98,52 @@ body {
 .mode-toggle-btn:hover:not(.active) {
   color: #d1d5db;
 }
+
+/* 📱 Responsive Utilities */
+.hide-on-mobile {
+  display: none !important;
+}
+
+@media (min-width: 768px) {
+  .hide-on-mobile {
+    display: flex !important;
+  }
+}
+
+.hide-on-desktop {
+  display: flex !important;
+}
+
+@media (min-width: 768px) {
+  .hide-on-desktop {
+    display: none !important;
+  }
+}
+
+/* Mobile Scroll Fixes */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+@media (max-width: 768px) {
+  .mode-toggle-container {
+    width: 100%;
+    display: flex;
+  }
+  
+  .mode-toggle-btn {
+    flex: 1;
+    justify-content: center;
+    font-size: 0.75rem;
+    padding: 10px 4px;
+  }
+}

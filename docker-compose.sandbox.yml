@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  # --- ⚙️ Backend (Sandbox) ---
+  backend-sandbox:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dashboard-backend-sandbox
+    restart: always
+    ports:
+      - "4001:4000" # Host 4001 -> Container 4000
+    env_file:
+      - ./backend/.env.sandbox
+
+  # --- 🤖 LINE Bot (Sandbox) ---
+  line-bot-sandbox:
+    build:
+      context: ./line-bot
+      dockerfile: Dockerfile
+    container_name: dashboard-line-bot-sandbox
+    restart: always
+    ports:
+      - "5001:5000" # Host 5001 -> Container 5000
+    env_file:
+      - ./line-bot/.env.sandbox
+    depends_on:
+      - backend-sandbox

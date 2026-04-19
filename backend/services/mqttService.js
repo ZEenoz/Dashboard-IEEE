@@ -588,7 +588,9 @@ async function handleMessage(message, io) {
         // 📐 Common processing (both modes)
         // ──────────────────────────────────────────
 
-        if (rawLevel > 4) {
+        // หากค่าที่ส่งมามากกว่า 40 (สันนิษฐานว่าเป็นหน่วย cm) ให้หาร 100
+        // ปรับจาก > 4 เป็น > 40 เพราะระดับน้ำจริงอาจลึกได้ถึง 5-10 เมตร
+        if (rawLevel > 40) {
             rawLevel = rawLevel / 100;
         }
 

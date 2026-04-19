@@ -332,13 +332,13 @@ export const translations = {
 
     // ─── Station Detail (app/parameters/[id]/page.js) ──────────────────────
     stationDetail: {
-      networkNodeDetail: 'Network Node Station Detail',
+      networkNodeDetail: 'Sensing Node Real-time Monitoring',
       location: 'Location',
       power: 'Power',
-      signal: 'Signal',
+      signal: 'Signal Strength',
       lastUpdate: 'Last Update',
       waiting: 'Waiting...',
-      stationInsights: 'Station Insights',
+      stationInsights: 'Water Level Analysis',
       liveNode: 'Live Node',
       currentWaterLevel: 'Current Water Level',
       stationThresholds: 'Station-Specific Thresholds',
@@ -754,19 +754,19 @@ export const translations = {
       value: 'ค่า',
       health: 'สุขภาพ',
       lastUpdate: 'อัปเดตล่าสุด',
-      waitingForData: 'กำลังรอข้อมูลเซ็นเซอร์...',
+      waitingForData: 'กำลังรอรับสัญญาณจากเซ็นเซอร์...',
       updated: 'อัปเดต',
     },
 
     // ─── Station Detail (app/parameters/[id]/page.js) ──────────────────────
     stationDetail: {
-      networkNodeDetail: 'รายละเอียดสถานีเครือข่าย',
+      networkNodeDetail: 'ข้อมูลตรวจวัดและเฝ้าระวังแบบเรียลไทม์',
       location: 'ตำแหน่ง',
       power: 'พลังงาน',
-      signal: 'สัญญาณ',
+      signal: 'ความแรงสัญญาณ',
       lastUpdate: 'อัปเดตล่าสุด',
-      waiting: 'กำลังรอ...',
-      stationInsights: 'ข้อมูลเชิงลึก',
+      waiting: 'กำลังรอข้อมูลจากสถานี...',
+      stationInsights: 'การวิเคราะห์ระดับน้ำ',
       liveNode: 'สดจากสถานี',
       currentWaterLevel: 'ระดับน้ำปัจจุบัน',
       stationThresholds: 'เกณฑ์เฉพาะสถานี',

@@ -412,7 +412,7 @@ export default function SensorDetailsPage() {
                                 {isOffline ? t('common.offline') : t('common.active')}
                             </span>
                         </div>
-                        <p className="text-[9px] text-gray-500 mt-0.5 pl-3 md:pl-4 uppercase tracking-widest font-semibold opacity-70 truncate">{t('stationDetail.networkNodeDetail')}</p>
+                        <p className="text-[10px] text-gray-500 mt-1 pl-3 md:pl-4 uppercase tracking-[0.2em] font-bold opacity-60 truncate">{t('stationDetail.networkNodeDetail')}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3 w-full md:w-auto">
@@ -473,7 +473,7 @@ export default function SensorDetailsPage() {
             {/* Main Content */}
             <main className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
                 {/* Left Column: Map */}
-                <div className="w-full lg:w-[55%] h-[350px] md:h-[450px] lg:h-full relative border-b lg:border-b-0 lg:border-r border-gray-800 flex flex-col">
+                <div className="w-full lg:w-[60%] h-[350px] md:h-[450px] lg:h-auto lg:min-h-0 relative border-b lg:border-b-0 lg:border-r border-gray-800 flex flex-col bg-gray-900/10">
                     {/* Map Controls Overlay */}
                     <div className="absolute top-2 right-2 md:top-4 md:right-4 z-10 flex gap-2 bg-gray-900/60 backdrop-blur-md rounded-2xl p-1.5 md:p-2 border border-white/10 shadow-2xl" style={{ WebkitBackdropFilter: 'blur(12px)' }}>
                         <button
@@ -494,11 +494,11 @@ export default function SensorDetailsPage() {
                         </button>
                     </div>
 
-                    <div className="flex-1 relative min-h-0">
+                    <div className="flex-1 relative min-h-[400px] lg:min-h-0">
                         <Map
                             {...viewState}
                             onMove={evt => setViewState(evt.viewState)}
-                            style={{ position: 'absolute', width: '100%', height: '100%' }}
+                            style={{ width: '100%', height: '100%' }}
                             mapLib={maplibregl}
                             mapStyle={mapStyle === 'dark'
                                 ? `https://api.maptiler.com/maps/base-v4-dark/style.json?key=${MAPTILER_KEY}`

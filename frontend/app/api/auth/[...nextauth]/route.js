@@ -1,6 +1,7 @@
 import NextAuth from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { Pool } from "pg"
+import bcrypt from "bcryptjs"
 
 // PostgreSQL Configuration (Supports DATABASE_URL or individual vars)
 const authPool = process.env.DATABASE_URL 
@@ -38,9 +39,18 @@ const handler = NextAuth({
                     // Check account is active
                     if (!user.is_active) return null;
 
-                    // NOTE: In production, use bcrypt.compare() here
-                    // Currently passwords are stored as plain text in the seed
-                    const passwordMatch = credentials.password === user.password_hash;
+                    // 🟢 Password Verification Logic
+                    // Support both bcrypt hashes (for new users) and plain text (for legacy/seed users)
+                    let passwordMatch = false;
+
+                    if (user.password_hash.startsWith('$2b$')) {
+                        // Bcrypt Hash
+                        passwordMatch = bcrypt.compareSync(credentials.password, user.password_hash);
+                    } else {
+                        // Legacy Plain Text Fallback
+                        passwordMatch = credentials.password === user.password_hash;
+                    }
+
                     if (!passwordMatch) return null;
 
                     return {

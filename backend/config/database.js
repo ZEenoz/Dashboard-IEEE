@@ -1,5 +1,6 @@
 const { Pool } = require('pg');
 const fs = require('fs');
+const bcrypt = require('bcryptjs');
 
 // PostgreSQL Configuration (Supports Railway defaults and DATABASE_URL)
 const dbConfig = process.env.DATABASE_URL 
@@ -174,10 +175,11 @@ async function initDatabase() {
         const userRes = await pool.query("SELECT COUNT(*) FROM users");
         if (parseInt(userRes.rows[0].count) === 0) {
             console.log("🌱 Seeding: Creating default admin user...");
+            const hashedAdmin = bcrypt.hashSync('admin123', 10);
             await pool.query(`
                 INSERT INTO users (username, password_hash, role, is_active)
-                VALUES ('admin', 'admin123', 'admin', true)
-            `);
+                VALUES ('admin', $1, 'admin', true)
+            `, [hashedAdmin]);
         }
 
         // Seeding: Default Station Configs (Removed hardcoded tdd-* stations)

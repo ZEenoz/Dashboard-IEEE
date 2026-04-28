@@ -45,19 +45,27 @@ function loadSettings() {
 
 function saveSettings(newSettings) {
     const previousMode = settings.networkMode;
+    // Deep compare ChirpStack config to detect App ID or Broker changes
+    const previousCS = JSON.stringify(settings.chirpstack || {});
+    
     settings = newSettings;
     fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
-    console.log("💾 Settings saved!");
+    console.log("💾 Settings saved to settings.json");
 
-    // If networkMode changed, reconnect MQTT to the new broker
-    if (previousMode !== settings.networkMode) {
-        console.log(`🔄 Network mode changed: ${previousMode} → ${settings.networkMode}`);
-        try {
-            const { reconnectMQTT } = require('../services/mqttService');
-            reconnectMQTT();
-        } catch (e) {
-            console.error("⚠️ Failed to trigger MQTT reconnect:", e.message);
-        }
+    const modeChanged = previousMode !== settings.networkMode;
+    const csChanged = previousCS !== JSON.stringify(settings.chirpstack || {});
+
+    // If networkMode or ChirpStack configuration changed, trigger a full backend restart.
+    // This is more reliable than just reconnecting MQTT as it re-initializes all services.
+    if (modeChanged || csChanged) {
+        console.log(`🔄 Critical settings changed: Mode=${modeChanged}, ChirpStack=${csChanged}`);
+        console.log("🚀 Triggering automatic backend restart in 1.5s to apply changes...");
+        
+        // Delay exit to allow the HTTP response to be sent back to the frontend
+        setTimeout(() => {
+            console.log("👋 Shutting down process for automatic restart (Docker restart policy: unless-stopped)...");
+            process.exit(0);
+        }, 1500);
     }
 
     // Concurrently save to PostgreSQL without blocking

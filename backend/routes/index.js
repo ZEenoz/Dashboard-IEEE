@@ -51,8 +51,25 @@ router.get('/settings', (req, res) => {
 router.post('/settings', requireApiKey, (req, res) => {
     const newSettings = req.body;
     if (!newSettings) return res.status(400).send("Invalid Body");
+
+    // Detect critical changes to notify the frontend before restart
+    const oldSettings = getSettings();
+    const modeChanged = oldSettings.networkMode !== newSettings.networkMode;
+    const csChanged = JSON.stringify(oldSettings.chirpstack || {}) !== JSON.stringify(newSettings.chirpstack || {});
+
+    if (modeChanged || csChanged) {
+        console.log("📢 Emitting system-restarting event to clients");
+        if (req.io) {
+            req.io.emit('system-restarting', { 
+                message: "Critical settings changed. Applying and restarting backend...",
+                modeChanged,
+                csChanged
+            });
+        }
+    }
+
     saveSettings(newSettings);
-    res.json({ success: true });
+    res.json({ success: true, restarting: modeChanged || csChanged });
 });
 
 const { testLineNotify } = require('../services/notificationService');

@@ -474,7 +474,8 @@ async function handleMessage(message, io) {
                     gateway_id: gw.gatewayId || "unknown-gateway",
                     rssi: gw.rssi,
                     snr: gw.snr,
-                    location: gw.location || null
+                    location: gw.location || null,
+                    temperature: gw.temperature || gw.boardTemp || null
                 }));
             }
 
@@ -571,7 +572,8 @@ async function handleMessage(message, io) {
                 gateways = uplink.rx_metadata.map(gw => ({
                     gateway_id: gw.gateway_ids?.gateway_id || "unknown-gateway",
                     rssi: gw.rssi,
-                    snr: gw.snr
+                    snr: gw.snr,
+                    temperature: gw.gateway_status?.board_temp || gw.gateway_status?.temp || null
                 }));
             }
 
@@ -667,6 +669,7 @@ async function handleMessage(message, io) {
                     id: gwId,
                     rssi: gw.rssi,
                     snr: gw.snr,
+                    temperature: gw.temperature !== undefined ? gw.temperature : gatewayStatus[gwId].temperature,
                     lastSeen: new Date(),
                     lastNode: deviceId,
                     count: gatewayStatus[gwId].count + 1

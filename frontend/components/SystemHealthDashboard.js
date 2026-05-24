@@ -213,6 +213,7 @@ const SystemHealthDashboard = React.memo(() => {
                                     <tr>
                                         <th className="p-3 rounded-tl-lg">{t('systemHealth.gatewayId')}</th>
                                         <th className="p-3">{t('systemHealth.signalRssiSnr')}</th>
+                                        <th className="p-3">{t('systemHealth.temperature')}</th>
                                         <th className="p-3">{t('systemHealth.lastSeen')}</th>
                                         <th className="p-3 rounded-tr-lg text-right">{t('systemHealth.packets')}</th>
                                     </tr>
@@ -230,6 +231,9 @@ const SystemHealthDashboard = React.memo(() => {
                                                 <span className={gw.snr > 0 ? 'text-blue-400' : 'text-gray-500'}>
                                                     {gw.snr} SNR
                                                 </span>
+                                            </td>
+                                            <td className="p-3 font-mono text-xs text-orange-400">
+                                                {gw.temperature != null ? `${safeFixed(gw.temperature, 1)} °C` : '—'}
                                             </td>
                                             <td className="p-3 font-mono text-xs">
                                                 {new Date(gw.lastSeen).toLocaleTimeString()}

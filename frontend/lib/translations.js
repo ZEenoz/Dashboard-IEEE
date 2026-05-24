@@ -408,6 +408,7 @@ export const translations = {
       batteryCol: 'Battery',
       signalCol: 'Signal',
       lastUpdateCol: 'Last Update',
+      temperature: 'Temperature',
     },
 
     // ─── UserManagement (components/UserManagement.js) ─────────────────────
@@ -837,6 +838,7 @@ export const translations = {
       batteryCol: 'แบตเตอรี่',
       signalCol: 'สัญญาณ',
       lastUpdateCol: 'อัปเดตล่าสุด',
+      temperature: 'อุณหภูมิ',
     },
 
     // ─── UserManagement (components/UserManagement.js) ─────────────────────

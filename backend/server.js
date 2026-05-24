@@ -24,7 +24,7 @@ app.use(express.json());
 // ngrok Interstitial Page Skip & CORS Headers
 app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, ngrok-skip-browser-warning");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, ngrok-skip-browser-warning, Cache-Control, Pragma, Authorization, x-api-key");
     
     // Auto-skip ngrok warning if the client forgot the header
     if (req.headers['user-agent'] && !req.headers['ngrok-skip-browser-warning']) {

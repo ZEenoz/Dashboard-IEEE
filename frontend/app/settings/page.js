@@ -147,6 +147,10 @@ export default function SettingsPage() {
 
     const saveSettings = async () => {
         setSaving(true);
+        // Ensure ignoredStations is an array
+        if (!settings.ignoredStations) {
+            settings.ignoredStations = [];
+        }
         try {
             const res = await fetch(`${API_URL}/settings`, {
                 method: 'POST',
@@ -193,7 +197,18 @@ export default function SettingsPage() {
 
     // Calculate unconfigured stations
     const configuredStationIds = Object.keys(settings.stations || {});
-    const unconfiguredStations = Object.values(socketStations || {}).filter(s => !configuredStationIds.includes(s.stationId));
+    const ignoredStationIds = settings.ignoredStations || [];
+    const unconfiguredStations = Object.values(socketStations || {}).filter(s => 
+        !configuredStationIds.includes(s.stationId) && !ignoredStationIds.includes(s.stationId)
+    );
+
+    const handleIgnoreStation = (stationId) => {
+        setSettings(prev => ({
+            ...prev,
+            ignoredStations: [...(prev.ignoredStations || []), stationId]
+        }));
+        setHasChanges(true);
+    };
 
     return (
         <div className="p-4 md:p-8 text-white max-w-5xl mx-auto min-h-screen">
@@ -494,13 +509,22 @@ export default function SettingsPage() {
                                                 <div className="font-bold text-green-300">{station.stationId}</div>
                                                 <div className="text-xs text-gray-400">{t('settings.detectedFromLive')}</div>
                                             </div>
-                                            <button
-                                                onClick={() => addStationToConfig(station.stationId, station)}
-                                                className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-bold flex items-center gap-2 transition-colors"
-                                            >
-                                                <PlusCircle size={16} />
-                                                {t('settings.addToConfig')}
-                                            </button>
+                                            <div className="flex gap-2 items-center">
+                                                <button
+                                                    onClick={() => addStationToConfig(station.stationId, station)}
+                                                    className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-bold flex items-center gap-2 transition-colors"
+                                                >
+                                                    <PlusCircle size={16} />
+                                                    {t('settings.addToConfig')}
+                                                </button>
+                                                <button
+                                                    onClick={() => handleIgnoreStation(station.stationId)}
+                                                    className="p-1.5 bg-red-900/30 hover:bg-red-500 text-red-400 hover:text-white rounded-lg transition-colors border border-red-500/30"
+                                                    title="Delete/Ignore Station"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>

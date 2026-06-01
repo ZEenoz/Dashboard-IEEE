@@ -81,7 +81,7 @@ export default function Sidebar() {
                                         }`}
                                 >
                                     <Eye className={`w-5 h-5 ${pathname === '/display-stations' ? 'text-blue-500' : 'text-gray-400 group-hover:text-white'}`} />
-                                    <span className="ml-3 font-medium">Display Layout</span>
+                                    <span className="ml-3 font-medium">{t('sidebar.displayLayout')}</span>
                                 </Link>
                             </>
                         )}

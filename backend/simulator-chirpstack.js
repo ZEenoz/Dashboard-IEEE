@@ -67,10 +67,10 @@ client.on('connect', () => {
     // Publish immediately
     devices.forEach(publishChirpStackUplink);
 
-    // Then every 60 seconds
+    // Then every 5 minutes (300000 ms)
     setInterval(() => {
         devices.forEach(publishChirpStackUplink);
-    }, 60000);
+    }, 300000);
 });
 
 client.on('error', (err) => {
@@ -87,8 +87,22 @@ process.on('SIGINT', () => {
 
 function publishChirpStackUplink(device) {
     // Generate random water level
-    const noise = (Math.random() - 0.5) * device.variance;
-    const currentLevel = (device.baseLevel + noise).toFixed(3);
+    let noise = (Math.random() - 0.5) * device.variance;
+    let currentLevel = device.baseLevel + noise;
+
+    // Random alert trigger (~2.5 times per 24h = 0.868% chance per 5 min interval)
+    if (Math.random() < 0.00868) {
+        // 50% chance for warning (1.8-2.6), 50% for dangerous (> 2.7)
+        if (Math.random() > 0.5) {
+            currentLevel = 1.9 + (Math.random() * 0.7); // 1.9 to 2.6
+            console.log(`⚠️ TRIGGER WARNING on ${device.devEui}: ${currentLevel.toFixed(3)}m`);
+        } else {
+            currentLevel = 2.8 + (Math.random() * 0.5); // 2.8 to 3.3
+            console.log(`🚨 TRIGGER DANGEROUS on ${device.devEui}: ${currentLevel.toFixed(3)}m`);
+        }
+    }
+    
+    currentLevel = currentLevel.toFixed(3);
 
     // Simulate Battery (0-100%)
     const battery = (100 - Math.random() * 100).toFixed(2);

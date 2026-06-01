@@ -42,6 +42,7 @@ services:
     # เมาท์ไฟล์ JSON ของ Google Sheet เข้าไปใช้งาน
     volumes:
       - ./backend/service-account.json:/app/service-account.json
+      - ./backend/simulator-chirpstack.js:/app/simulator-chirpstack.js
 
   # --- 🤖 LINE BOT (FLASK) ---
   line-bot:

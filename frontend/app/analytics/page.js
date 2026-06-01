@@ -266,7 +266,7 @@ export default function AnalyticsPage() {
                                 {t('overview.floatNodes')}
                             </h4>
                             <div className="space-y-2">
-                                {Object.values(stations).filter(s => isFloat(s.stationId)).map(station => (
+                                {Object.values(stations).filter(s => isFloat(s.stationId) && settings?.stations?.[s.stationId] && settings.stations[s.stationId].isVisible !== false).map(station => (
                                     <div
                                         key={station.stationId}
                                         onClick={() => toggleStation(station.stationId)}
@@ -288,7 +288,7 @@ export default function AnalyticsPage() {
                                 {t('overview.staticNodes')}
                             </h4>
                             <div className="space-y-2">
-                                {Object.values(stations).filter(s => !isFloat(s.stationId)).map(station => (
+                                {Object.values(stations).filter(s => !isFloat(s.stationId) && settings?.stations?.[s.stationId] && settings.stations[s.stationId].isVisible !== false).map(station => (
                                     <div
                                         key={station.stationId}
                                         onClick={() => toggleStation(station.stationId)}
@@ -449,7 +449,7 @@ export default function AnalyticsPage() {
                                     defaultValue="all"
                                 >
                                     <option value="all">{t('analytics.exportAllStations')}</option>
-                                    {Object.values(stations).map(s => (
+                                    {Object.values(stations).filter(s => settings?.stations?.[s.stationId] && settings.stations[s.stationId].isVisible !== false).map(s => (
                                         <option key={s.stationId} value={s.stationId}>
                                             {s.stationName || s.stationId}
                                         </option>

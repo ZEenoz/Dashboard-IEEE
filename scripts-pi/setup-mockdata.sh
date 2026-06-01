@@ -7,21 +7,19 @@ echo "🛠️ Creating Mockdata Service..."
 # หาพาธที่แท้จริง
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$(cd "$SCRIPT_DIR/../backend" && pwd)"
-
-# สร้างไฟล์ service
+# สร้างไฟล์ service โดยใช้ Docker (ไม่ต้องลง Node ที่เครื่อง)
 cat <<EOF | sudo tee /etc/systemd/system/dashboard-simulator.service > /dev/null
 [Unit]
-Description=Dashboard IEEE - Mockdata Simulator
-After=network.target postgresql.service mosquitto.service
+Description=Dashboard IEEE - Mockdata Simulator (via Docker)
+After=network.target docker.service
+Requires=docker.service
 
 [Service]
 Type=simple
-User=$USER
-WorkingDirectory=$BACKEND_DIR
-ExecStart=/usr/bin/node simulator-chirpstack.js
+# รันผ่าน Container ของ Backend ที่มี Node อยู่แล้ว
+ExecStart=/usr/bin/docker exec dashboard_backend node simulator-chirpstack.js
 Restart=always
 RestartSec=10
-Environment="NODE_ENV=development"
 
 [Install]
 WantedBy=multi-user.target

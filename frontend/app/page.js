@@ -172,7 +172,7 @@ export default function Home() {
 
   // Memoize data calculations to prevent re-renders during map pan (viewState changes)
   const mapData = useMemo(() => {
-    const stationList = Object.values(stations);
+    const stationList = Object.values(stations).filter(s => settings?.stations?.[s.stationId] && settings.stations[s.stationId].isVisible !== false);
 
     // Apply Settings Overrides (Name, Image, Offset)
     const enrichedStations = stationList.map(s => {

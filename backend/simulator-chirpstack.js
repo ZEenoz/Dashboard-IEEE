@@ -19,7 +19,7 @@ const APPLICATION_ID = 'e9e6da7c-161e-402a-a4c9-8d8473f1bbc9'; // Simulated Chir
 // Simulated devices (using devEui as device ID, matching ChirpStack behavior)
 const devices = [
     {
-        devEui: 'tdd-float-01',
+        devEui: 'tdd-float-01 (Sim)',
         deviceName: 'สถานีวัดระดับน้ำ (ลอยน้ำ 1)',
         type: 'Float',
         baseLevel: 1.5,
@@ -28,7 +28,7 @@ const devices = [
         lng: 100.507556
     },
     {
-        devEui: 'tdd-float-02',
+        devEui: 'tdd-float-02 (Sim)',
         deviceName: 'สถานีวัดระดับน้ำ (ลอยน้ำ 2)',
         type: 'Float',
         baseLevel: 2.0,
@@ -37,7 +37,7 @@ const devices = [
         lng: 100.510262
     },
     {
-        devEui: 'tdd-static-01',
+        devEui: 'tdd-static-01 (Sim)',
         deviceName: 'สถานีวัดระดับน้ำ (ปักพื้น 1)',
         type: 'Static',
         baseLevel: 1.5,
@@ -46,7 +46,7 @@ const devices = [
         lng: 100.510366
     },
     {
-        devEui: 'tdd-static-02',
+        devEui: 'tdd-static-02 (Sim)',
         deviceName: 'สถานีวัดระดับน้ำ (ปักพื้น 2)',
         type: 'Static',
         baseLevel: 2.0,
@@ -101,7 +101,7 @@ function publishChirpStackUplink(device) {
             console.log(`🚨 TRIGGER DANGEROUS on ${device.devEui}: ${currentLevel.toFixed(3)}m`);
         }
     }
-    
+
     currentLevel = currentLevel.toFixed(3);
 
     // Simulate Battery (0-100%)

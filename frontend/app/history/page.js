@@ -14,6 +14,7 @@ export default function HistoryPage() {
     const { t } = useLanguage();
     const { data: session } = useSession();
     const [historyData, setHistoryData] = useState([]);
+    const [settings, setSettings] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [offset, setOffset] = useState(0);
@@ -71,6 +72,11 @@ export default function HistoryPage() {
 
     // Fetch initial data or when filters change
     useEffect(() => {
+        fetch(`${API_URL}/settings`, { headers: { 'ngrok-skip-browser-warning': 'true' } })
+            .then(res => res.json())
+            .then(data => setSettings(data))
+            .catch(err => console.error("Failed to load settings:", err));
+            
         setOffset(0);
         setHasMore(true);
         fetchHistory(true, false);
@@ -101,15 +107,15 @@ export default function HistoryPage() {
 
     const filteredHistory = useMemo(() => {
         return historyData.filter(item => {
+            const isConfigured = settings?.stations?.[item.stationId] && settings.stations[item.stationId].isVisible !== false;
+            if (!isConfigured) return false;
+
             const matchDevice = selectedDevice === 'all' || item.stationId === selectedDevice;
             const matchType = selectedSensorType === 'all' || (item.sensorType && item.sensorType === selectedSensorType);
 
-            // Redundant date filtering removed here because server already filters by date/range.
-            // We only keep device and sensor type filtering for client-side flexibility if needed,
-            // though most is handled by the server now.
             return matchDevice && matchType;
         });
-    }, [historyData, selectedDevice, selectedSensorType]);
+    }, [historyData, selectedDevice, selectedSensorType, settings]);
 
     return (
         <div className="mb-20 space-y-6">
@@ -189,7 +195,9 @@ export default function HistoryPage() {
                             className="bg-gray-800 text-white border border-gray-700 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:border-blue-500 appearance-none shadow-sm w-full"
                         >
                             <option value="all">{t('parameters.allDevices')}</option>
-                            {Object.keys(stations).map(id => (
+                            {Object.keys(stations)
+                                .filter(id => settings?.stations?.[id] && settings.stations[id].isVisible !== false)
+                                .map(id => (
                                 <option key={id} value={id}>{stations[id].stationName || id}</option>
                             ))}
                         </select>

@@ -101,6 +101,7 @@ export default function AlertsPage() {
     const [filterDate, setFilterDate] = useState('');
     const [filterLevel, setFilterLevel] = useState('all'); // 'all' | 'warning' | 'dangerous'
     const { socket } = useSocket();
+    const [settings, setSettings] = useState(null);
 
     // Fetch alerts from backend
     const fetchAlerts = async (showSpinner = false, isLoadMore = false) => {
@@ -144,6 +145,11 @@ export default function AlertsPage() {
 
     useEffect(() => {
         if (status === 'loading' || !session) return;
+        fetch(`${API_URL}/settings`, { headers: { 'ngrok-skip-browser-warning': 'true' } })
+            .then(res => res.json())
+            .then(data => setSettings(data))
+            .catch(err => console.error("Failed to load settings:", err));
+
         setOffset(0);
         setHasMore(true);
         fetchAlerts(true, false);
@@ -186,23 +192,24 @@ export default function AlertsPage() {
         };
     }, [socket]);
 
-    // Compute Stats
+    // Compute Stats (only for configured & visible stations)
     const stats = useMemo(() => {
+        const configuredAlerts = alerts.filter(a => settings?.stations?.[a.stationId] && settings.stations[a.stationId].isVisible !== false);
         const now = new Date();
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const todayAlerts = alerts.filter(a => new Date(a.timestamp) >= todayStart);
-        const maxLevel = alerts.reduce((max, a) => Math.max(max, a.waterLevel || 0), 0);
-        const dangerousCount = alerts.filter(a => a.alertLevel === 'dangerous').length;
-        const warningCount = alerts.filter(a => a.alertLevel === 'warning').length;
+        const todayAlerts = configuredAlerts.filter(a => new Date(a.timestamp) >= todayStart);
+        const maxLevel = configuredAlerts.reduce((max, a) => Math.max(max, a.waterLevel || 0), 0);
+        const dangerousCount = configuredAlerts.filter(a => a.alertLevel === 'dangerous').length;
+        const warningCount = configuredAlerts.filter(a => a.alertLevel === 'warning').length;
         return {
-            total: alerts.length,
+            total: configuredAlerts.length,
             today: todayAlerts.length,
             maxLevel,
-            lastAlert: alerts[0]?.timestamp || null,
+            lastAlert: configuredAlerts[0]?.timestamp || null,
             dangerousCount,
             warningCount,
         };
-    }, [alerts]);
+    }, [alerts, settings]);
 
     // Client-side date + level filter
     const filteredAlerts = useMemo(() => {
@@ -221,10 +228,12 @@ export default function AlertsPage() {
         if (filterLevel !== 'all') {
             result = result.filter(a => a.alertLevel === filterLevel);
         }
+        // Filter out unconfigured or hidden stations
+        result = result.filter(a => settings?.stations?.[a.stationId] && settings.stations[a.stationId].isVisible !== false);
         return result;
-    }, [alerts, filterDate, filterLevel]);
+    }, [alerts, filterDate, filterLevel, settings]);
 
-    const stationList = useMemo(() => Object.values(stations), [stations]);
+    const stationList = useMemo(() => Object.values(stations).filter(s => settings?.stations?.[s.stationId] && settings.stations[s.stationId].isVisible !== false), [stations, settings]);
 
     if (status === 'loading' || loading) return (
         <div className="flex items-center justify-center h-[80vh] gap-3 text-gray-500">

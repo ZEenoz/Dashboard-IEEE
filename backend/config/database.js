@@ -89,6 +89,10 @@ async function initDatabase() {
             await pool.query(`ALTER TABLE readings ADD COLUMN IF NOT EXISTS latitude NUMERIC;`);
             await pool.query(`ALTER TABLE readings ADD COLUMN IF NOT EXISTS longitude NUMERIC;`);
             await pool.query(`ALTER TABLE readings ADD COLUMN IF NOT EXISTS location_source VARCHAR(50);`);
+            await pool.query(`ALTER TABLE readings ADD COLUMN IF NOT EXISTS temperature NUMERIC;`);
+            await pool.query(`ALTER TABLE readings ADD COLUMN IF NOT EXISTS humidity NUMERIC;`);
+            await pool.query(`ALTER TABLE readings ADD COLUMN IF NOT EXISTS gyro_x NUMERIC;`);
+            await pool.query(`ALTER TABLE readings ADD COLUMN IF NOT EXISTS gyro_y NUMERIC;`);
 
             // Alerts migration
             await pool.query(`ALTER TABLE alerts ADD COLUMN IF NOT EXISTS alert_level VARCHAR(50);`);

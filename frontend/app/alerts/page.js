@@ -269,32 +269,32 @@ export default function AlertsPage() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Dangerous */}
                 <div className="bg-gray-800 border border-red-500/40 rounded-xl p-5 flex items-start gap-4">
-                    <div className="p-3 rounded-lg bg-red-500/15">
+                    <div className="p-3 rounded-lg bg-red-500/15 shrink-0">
                         <ShieldAlert className="w-6 h-6 text-red-400" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                         <p className="text-red-400 text-xs font-bold uppercase tracking-wider">🚨 {t('common.dangerous')}</p>
                         <p className="text-3xl font-extrabold text-red-300 mt-1">{stats.dangerousCount}</p>
                     </div>
                 </div>
                 {/* Warning */}
                 <div className="bg-gray-800 border border-yellow-500/40 rounded-xl p-5 flex items-start gap-4">
-                    <div className="p-3 rounded-lg bg-yellow-500/10">
+                    <div className="p-3 rounded-lg bg-yellow-500/10 shrink-0">
                         <ShieldCheck className="w-6 h-6 text-yellow-400" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                         <p className="text-yellow-400 text-xs font-bold uppercase tracking-wider">⚠️ {t('common.warning')}</p>
                         <p className="text-3xl font-extrabold text-yellow-300 mt-1">{stats.warningCount}</p>
                     </div>
                 </div>
                 {/* Peak Level */}
                 <div className="bg-gray-800 border border-gray-700 rounded-xl p-5 flex items-start gap-4">
-                    <div className="p-3 rounded-lg bg-blue-500/10">
+                    <div className="p-3 rounded-lg bg-blue-500/10 shrink-0">
                         <TrendingUp className="w-6 h-6 text-blue-400" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                         <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">{t('stationDetail.peakLevel')}</p>
-                        <p className="text-3xl font-extrabold text-white mt-1">
+                        <p className="text-2xl sm:text-3xl font-extrabold text-white mt-1 truncate">
                             {stats.maxLevel > 0 ? `${stats.maxLevel.toFixed(2)}m` : '—'}
                         </p>
                     </div>
@@ -306,7 +306,7 @@ export default function AlertsPage() {
                     </div>
                     <div className="min-w-0">
                         <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">{t('alerts.triggeredAt')}</p>
-                        <p className="text-sm font-bold text-white mt-1 leading-tight">
+                        <p className="text-sm font-bold text-white mt-1 leading-tight truncate">
                             {stats.lastAlert ? formatTime(stats.lastAlert) : '—'}
                         </p>
                     </div>

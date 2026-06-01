@@ -347,6 +347,7 @@ async function handleMessage(message, io) {
         let deviceId, stationName, waterLevel, isFloat, sensorType, rawLevel;
         let finalLat = 13.7563, finalLng = 100.5018, locationSource = "Default";
         let rssi = -999, snr = 0, battery = 0, batteryVoltage = 0, dataRateStr = 0;
+        let temperature = null, humidity = null, gyro_x = null, gyro_y = null;
         let gateways = [];
 
         const STATIONS_CONFIG = settings.stations || {};
@@ -494,6 +495,10 @@ async function handleMessage(message, io) {
             batteryVoltage = parseFloat(
                 obj.battery_voltage ?? obj.batteryVoltage ?? obj.vbat ?? 0
             );
+            temperature = obj.temperature !== undefined ? parseFloat(obj.temperature) : (obj.temp !== undefined ? parseFloat(obj.temp) : null);
+            humidity = obj.humidity !== undefined ? parseFloat(obj.humidity) : (obj.hum !== undefined ? parseFloat(obj.hum) : null);
+            gyro_x = obj.gyro_x !== undefined ? parseFloat(obj.gyro_x) : (obj.gyrox !== undefined ? parseFloat(obj.gyrox) : null);
+            gyro_y = obj.gyro_y !== undefined ? parseFloat(obj.gyro_y) : (obj.gyroy !== undefined ? parseFloat(obj.gyroy) : null);
 
         } else {
             // ──────────────────────────────────────────
@@ -584,6 +589,10 @@ async function handleMessage(message, io) {
             }
             battery = parseFloat(decoded.battery_percentage !== undefined ? decoded.battery_percentage : (decoded.battery || decoded.bat || decoded.Battery || 0));
             batteryVoltage = parseFloat(decoded.battery_voltage !== undefined ? decoded.battery_voltage : 0);
+            temperature = decoded.temperature !== undefined ? parseFloat(decoded.temperature) : (decoded.temp !== undefined ? parseFloat(decoded.temp) : null);
+            humidity = decoded.humidity !== undefined ? parseFloat(decoded.humidity) : (decoded.hum !== undefined ? parseFloat(decoded.hum) : null);
+            gyro_x = decoded.gyro_x !== undefined ? parseFloat(decoded.gyro_x) : (decoded.gyrox !== undefined ? parseFloat(decoded.gyrox) : null);
+            gyro_y = decoded.gyro_y !== undefined ? parseFloat(decoded.gyro_y) : (decoded.gyroy !== undefined ? parseFloat(decoded.gyroy) : null);
         }
 
         // ──────────────────────────────────────────
@@ -650,6 +659,10 @@ async function handleMessage(message, io) {
             snr,
             battery,
             batteryVoltage,
+            temperature,
+            humidity,
+            gyro_x,
+            gyro_y,
             waterLevel: waterLevel, // Calibrated
             rawLevel: rawLevel,     // Original Sensor Value
             sensorType: sensorType,
@@ -685,6 +698,10 @@ async function handleMessage(message, io) {
             snr,
             battery,
             batteryVoltage,
+            temperature,
+            humidity,
+            gyro_x,
+            gyro_y,
             sensorType,
             rawTimestamp: new Date()
         };
@@ -707,6 +724,10 @@ async function handleMessage(message, io) {
             snr,
             battery,
             batteryVoltage,
+            temperature,
+            humidity,
+            gyro_x,
+            gyro_y,
             sensorType,
             alertLevel,
             imageUrl,

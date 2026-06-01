@@ -73,49 +73,49 @@ const SystemHealthDashboard = React.memo(() => {
         <div className="space-y-6 fade-in px-1">
             {/* Top Status Bar - Refined Glassmorphism */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-gray-900/40 p-4 rounded-xl border border-white/5 backdrop-blur-sm flex items-center gap-4 hover:bg-gray-800/40 transition-all">
-                    <div className={`p-3 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20`}>
+                <div className="bg-gray-900/40 p-4 rounded-xl border border-white/5 backdrop-blur-sm flex items-center gap-4 hover:bg-gray-800/40 transition-all min-w-0">
+                    <div className={`p-3 rounded-lg shrink-0 bg-blue-500/10 text-blue-400 border border-blue-500/20`}>
                         <Clock className="w-6 h-6" />
                     </div>
                     <div>
                         <div className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-0.5">{t('systemHealth.uptime')}</div>
-                        <div className="text-lg font-mono font-bold text-white tracking-tighter">
+                        <div className="text-base lg:text-lg font-mono font-bold text-white tracking-tighter truncate">
                             {safeFixed(health.server?.uptime / 3600, 1)}<span className="text-xs ml-0.5 opacity-50">h</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-gray-900/40 p-4 rounded-xl border border-white/5 backdrop-blur-sm flex items-center gap-4 hover:bg-gray-800/40 transition-all">
-                    <div className={`p-3 rounded-lg ${health.database?.status === 'connected' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
+                <div className="bg-gray-900/40 p-4 rounded-xl border border-white/5 backdrop-blur-sm flex items-center gap-4 hover:bg-gray-800/40 transition-all min-w-0">
+                    <div className={`p-3 rounded-lg shrink-0 ${health.database?.status === 'connected' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
                         <Database className="w-6 h-6" />
                     </div>
                     <div>
                         <div className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-0.5">{t('systemHealth.database')}</div>
-                        <div className={`text-lg font-black uppercase tracking-tight ${health.database?.status === 'connected' ? 'text-emerald-400' : 'text-red-400'}`}>
+                        <div className={`text-base lg:text-lg font-black uppercase tracking-tight truncate ${health.database?.status === 'connected' ? 'text-emerald-400' : 'text-red-400'}`}>
                             {health.database?.status || 'Unknown'}
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-gray-900/40 p-4 rounded-xl border border-white/5 backdrop-blur-sm flex items-center gap-4 hover:bg-gray-800/40 transition-all">
-                    <div className={`p-3 rounded-lg ${health.network?.mqtt?.connected ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
+                <div className="bg-gray-900/40 p-4 rounded-xl border border-white/5 backdrop-blur-sm flex items-center gap-4 hover:bg-gray-800/40 transition-all min-w-0">
+                    <div className={`p-3 rounded-lg shrink-0 ${health.network?.mqtt?.connected ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
                         <Wifi className="w-6 h-6" />
                     </div>
                     <div>
                         <div className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-0.5">{t('systemHealth.mqttBroker')}</div>
-                        <div className={`text-lg font-black tracking-tight ${health.network?.mqtt?.connected ? 'text-indigo-400' : 'text-red-400'}`}>
+                        <div className={`text-base lg:text-lg font-black tracking-tight truncate ${health.network?.mqtt?.connected ? 'text-indigo-400' : 'text-red-400'}`}>
                             {health.network?.mqtt?.connected ? 'Online' : 'Offline'}
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-gray-900/40 p-4 rounded-xl border border-white/5 backdrop-blur-sm flex items-center gap-4 hover:bg-gray-800/40 transition-all">
-                    <div className="p-3 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                <div className="bg-gray-900/40 p-4 rounded-xl border border-white/5 backdrop-blur-sm flex items-center gap-4 hover:bg-gray-800/40 transition-all min-w-0">
+                    <div className="p-3 rounded-lg shrink-0 bg-amber-500/10 text-amber-400 border border-amber-500/20">
                         <Radio className="w-6 h-6" />
                     </div>
                     <div>
                         <div className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-0.5">{t('systemHealth.activeNodes')}</div>
-                        <div className="text-lg font-black text-white tracking-tight">{health.nodes?.count ?? 0}</div>
+                        <div className="text-base lg:text-lg font-black text-white tracking-tight truncate">{health.nodes?.count ?? 0}</div>
                     </div>
                 </div>
             </div>

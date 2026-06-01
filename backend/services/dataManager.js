@@ -57,8 +57,8 @@ async function saveReading(data) {
 
                 // Insert Reading
                 const res = await pool.query(`
-                    INSERT INTO readings (station_id, water_level, offset_water_level, data_rate, rssi, snr, battery, battery_voltage, sensor_type, latitude, longitude, location_source, timestamp)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
+                    INSERT INTO readings (station_id, water_level, offset_water_level, data_rate, rssi, snr, battery, battery_voltage, sensor_type, latitude, longitude, location_source, temperature, humidity, gyro_x, gyro_y, timestamp)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW())
                     RETURNING id
                 `, [
                     data.stationId, 
@@ -72,7 +72,11 @@ async function saveReading(data) {
                     data.sensorType, 
                     data.lat, 
                     data.lng, 
-                    data.src
+                    data.src,
+                    data.temperature,
+                    data.humidity,
+                    data.gyro_x,
+                    data.gyro_y
                 ]);
 
                 const newId = res.rows[0]?.id;
@@ -114,6 +118,10 @@ async function getHistory(hours = 48) {
                         r.latitude,
                         r.longitude,
                         r.location_source,
+                        r.temperature,
+                        r.humidity,
+                        r.gyro_x,
+                        r.gyro_y,
                         s.network_mode
                     FROM readings r
                     LEFT JOIN stations s ON r.station_id = s.station_id
@@ -145,6 +153,10 @@ async function getHistory(hours = 48) {
                         lat: parseFloat(row.latitude || 0),
                         lng: parseFloat(row.longitude || 0),
                         src: row.location_source || 'Unknown',
+                        temperature: row.temperature != null ? parseFloat(row.temperature) : null,
+                        humidity: row.humidity != null ? parseFloat(row.humidity) : null,
+                        gyro_x: row.gyro_x != null ? parseFloat(row.gyro_x) : null,
+                        gyro_y: row.gyro_y != null ? parseFloat(row.gyro_y) : null,
                         networkMode: row.network_mode || 'TTN',
                         stationId: deviceId
                     });
@@ -186,6 +198,10 @@ async function getLatestReadings() {
                 r.latitude as lat, 
                 r.longitude as lng, 
                 r.location_source as src, 
+                r.temperature,
+                r.humidity,
+                r.gyro_x,
+                r.gyro_y,
                 r.timestamp,
                 s.network_mode as "networkMode"
             FROM readings r

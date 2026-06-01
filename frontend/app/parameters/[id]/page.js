@@ -6,7 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { ArrowLeft, Download, MapPin, Battery, Signal, Clock, X, Calendar, ShieldAlert, ShieldCheck, Save, CheckCircle2, Lock, Layers, Globe, Wifi, Activity } from 'lucide-react';
+import { ArrowLeft, Download, MapPin, Battery, Signal, Clock, X, Calendar, ShieldAlert, ShieldCheck, Save, CheckCircle2, Lock, Layers, Globe, Wifi, Activity, Thermometer, Droplets, Compass } from 'lucide-react';
 import Map, { Marker, NavigationControl } from 'react-map-gl/maplibre';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -431,7 +431,7 @@ export default function SensorDetailsPage() {
 
             {/* Top Stats Row */}
             {/* Top Stats Cards Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-gray-800/50 border-b border-gray-800">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px bg-gray-800/50 border-b border-gray-800">
                 <div className="p-4 md:p-5 flex items-center gap-3 md:gap-4 bg-gray-950/20 hover:bg-gray-800/20 transition-all group">
                     <div className="p-2.5 md:p-3 bg-blue-500/10 rounded-2xl text-blue-500 border border-blue-500/20 transition-transform group-hover:scale-110 shrink-0"><MapPin className="w-[18px] h-[18px] md:w-5 md:h-5" /></div>
                     <div className="min-w-0">
@@ -468,6 +468,38 @@ export default function SensorDetailsPage() {
                         <p className="text-xs md:text-sm font-bold text-gray-200 tabular-nums truncate">{station.timestamp || station.rawTimestamp ? new Date(station.rawTimestamp || station.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : t('stationDetail.waiting')}</p>
                     </div>
                 </div>
+                <div className="p-4 md:p-5 flex items-center gap-3 md:gap-4 bg-gray-950/20 hover:bg-gray-800/20 transition-all group">
+                    <div className="p-2.5 md:p-3 bg-red-500/10 rounded-2xl text-red-500 border border-red-500/20 transition-transform group-hover:scale-110 shrink-0"><Thermometer className="w-[18px] h-[18px] md:w-5 md:h-5" /></div>
+                    <div className="min-w-0">
+                        <p className="text-[8px] md:text-[9px] uppercase font-bold text-gray-500 tracking-[0.2em] md:tracking-[0.25em] mb-0.5 md:mb-1">TEMP.</p>
+                        <p className="text-xs md:text-sm font-bold text-gray-200 tabular-nums truncate">{station.temperature != null ? `${station.temperature} °C` : '--'}</p>
+                    </div>
+                </div>
+                <div className="p-4 md:p-5 flex items-center gap-3 md:gap-4 bg-gray-950/20 hover:bg-gray-800/20 transition-all group">
+                    <div className="p-2.5 md:p-3 bg-blue-400/10 rounded-2xl text-blue-400 border border-blue-400/20 transition-transform group-hover:scale-110 shrink-0"><Droplets className="w-[18px] h-[18px] md:w-5 md:h-5" /></div>
+                    <div className="min-w-0">
+                        <p className="text-[8px] md:text-[9px] uppercase font-bold text-gray-500 tracking-[0.2em] md:tracking-[0.25em] mb-0.5 md:mb-1">HUMIDITY</p>
+                        <p className="text-xs md:text-sm font-bold text-gray-200 tabular-nums truncate">{station.humidity != null ? `${station.humidity} %` : '--'}</p>
+                    </div>
+                </div>
+                {station.sensorType === 'Float' && (
+                    <>
+                        <div className="p-4 md:p-5 flex items-center gap-3 md:gap-4 bg-gray-950/20 hover:bg-gray-800/20 transition-all group">
+                            <div className="p-2.5 md:p-3 bg-purple-500/10 rounded-2xl text-purple-500 border border-purple-500/20 transition-transform group-hover:scale-110 shrink-0"><Compass className="w-[18px] h-[18px] md:w-5 md:h-5" /></div>
+                            <div className="min-w-0">
+                                <p className="text-[8px] md:text-[9px] uppercase font-bold text-gray-500 tracking-[0.2em] md:tracking-[0.25em] mb-0.5 md:mb-1">GYRO X</p>
+                                <p className="text-xs md:text-sm font-bold text-gray-200 tabular-nums truncate">{station.gyro_x != null ? `${station.gyro_x}°` : '--'}</p>
+                            </div>
+                        </div>
+                        <div className="p-4 md:p-5 flex items-center gap-3 md:gap-4 bg-gray-950/20 hover:bg-gray-800/20 transition-all group">
+                            <div className="p-2.5 md:p-3 bg-purple-500/10 rounded-2xl text-purple-500 border border-purple-500/20 transition-transform group-hover:scale-110 shrink-0"><Compass className="w-[18px] h-[18px] md:w-5 md:h-5" /></div>
+                            <div className="min-w-0">
+                                <p className="text-[8px] md:text-[9px] uppercase font-bold text-gray-500 tracking-[0.2em] md:tracking-[0.25em] mb-0.5 md:mb-1">GYRO Y</p>
+                                <p className="text-xs md:text-sm font-bold text-gray-200 tabular-nums truncate">{station.gyro_y != null ? `${station.gyro_y}°` : '--'}</p>
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
 
             {/* Main Content */}

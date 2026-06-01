@@ -478,19 +478,19 @@ export default function OffsetPresetsPage() {
                                         onDrop={(e) => handleDrop(e, idx)}
                                     >
                                         {/* Preset header */}
-                                        <div className="flex items-start justify-between mb-4">
-                                            <div className="flex items-baseline gap-3">
-                                                <span className={`text-2xl font-mono font-bold tracking-tight ${accentColor}`}>
+                                        <div className="flex items-start justify-between mb-4 gap-2">
+                                            <div className="flex items-baseline gap-2 min-w-0 flex-1">
+                                                <span className={`text-xl sm:text-2xl font-mono font-bold tracking-tight shrink-0 ${accentColor}`}>
                                                     {isPositive ? '+' : ''}{(Number(preset?.offset) || 0).toFixed(2)}{t('common.m')}
                                                 </span>
                                                 <input
                                                     type="text"
                                                     value={preset?.name || ''}
                                                     onChange={e => updatePresetName(idx, e.target.value)}
-                                                    className="text-[13px] uppercase tracking-widest bg-transparent border-none text-blue-500 focus:text-gray-300"
+                                                    className="text-[13px] uppercase tracking-widest bg-transparent border-none text-blue-500 focus:text-gray-300 w-full min-w-0 truncate"
                                                 />
                                             </div>
-                                            <div className="flex items-center gap-1">
+                                            <div className="flex items-center gap-1 shrink-0">
                                                 <input
                                                     type="number"
                                                     step="0.01"

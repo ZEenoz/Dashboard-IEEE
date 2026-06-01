@@ -94,8 +94,10 @@ export default function OffsetPresetsPage() {
         fetchData();
     }, []);
 
-    // All configured stations
-    const allStations = settings?.stations || {};
+    // All configured stations (visible only)
+    const allStations = Object.fromEntries(
+        Object.entries(settings?.stations || {}).filter(([, cfg]) => cfg.isVisible !== false)
+    );
 
     // Stations already assigned to a preset
     const assignedStationIds = new Set(

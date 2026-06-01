@@ -6,6 +6,8 @@ import { LayoutGrid, List, Droplets, Gauge, Battery, Signal, WifiOff } from 'luc
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+
 export default function ParametersPage() {
     const { stations, getTrend, displayMode } = useSocket();
     const { t } = useLanguage();
@@ -13,6 +15,14 @@ export default function ParametersPage() {
     const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
     const [selectedDevice, setSelectedDevice] = useState('all');
     const [now, setNow] = useState(new Date());
+    const [settings, setSettings] = useState(null);
+
+    useEffect(() => {
+        fetch(`${API_URL}/settings`, { headers: { 'ngrok-skip-browser-warning': 'true' } })
+            .then(res => res.json())
+            .then(data => setSettings(data))
+            .catch(err => console.error('Failed to load settings:', err));
+    }, []);
 
     // Update 'now' every minute to refresh offline status
     useEffect(() => {
@@ -20,9 +30,11 @@ export default function ParametersPage() {
         return () => clearInterval(interval);
     }, []);
 
-    const filteredStations = Object.values(stations).filter(st =>
-        selectedDevice === 'all' || st.stationId === selectedDevice
-    );
+    const filteredStations = Object.values(stations).filter(st => {
+        const cfg = settings?.stations?.[st.stationId];
+        if (!cfg || cfg.isVisible === false) return false;
+        return selectedDevice === 'all' || st.stationId === selectedDevice;
+    });
 
     const getStatus = (station) => {
         if (!station.rawTimestamp) return { text: t('common.unknown'), color: 'text-gray-500', bg: 'bg-gray-500/20', icon: <span className="text-[10px]">●</span> };
@@ -105,9 +117,11 @@ export default function ParametersPage() {
                         className="bg-gray-800 text-white border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
                     >
                         <option value="all">{t('parameters.allDevices')}</option>
-                        {Object.keys(stations).map(id => (
-                            <option key={id} value={id}>{id}</option>
-                        ))}
+                        {Object.keys(stations)
+                            .filter(id => settings?.stations?.[id] && settings.stations[id].isVisible !== false)
+                            .map(id => (
+                                <option key={id} value={id}>{stations[id].stationName || id}</option>
+                            ))}
                     </select>
 
                     {/* View Toggle */}

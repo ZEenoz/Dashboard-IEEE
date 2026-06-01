@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Menu, X, LogOut, User, Sliders, Settings, LayoutGrid, Globe } from 'lucide-react';
+import { Menu, X, LogOut, User, Sliders, Settings, LayoutGrid, Globe, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
@@ -102,14 +102,24 @@ export default function MobileNav() {
                             <div className="pt-6 mt-6 border-t border-gray-800 space-y-1.5">
                                 <span className="px-4 text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mb-2 block">{t('sidebar.adminTools')}</span>
                                 {session?.user?.role === 'admin' && (
-                                    <Link
-                                        href="/offset-presets"
-                                        className={`flex items-center px-4 py-3.5 rounded-xl transition-all duration-200
-                                            ${pathname === '/offset-presets' ? 'bg-blue-600/10 text-white border-l-4 border-blue-500 pl-3' : 'text-gray-400 hover:bg-gray-800/50'}`}
-                                    >
-                                        <Sliders size={18} />
-                                        <span className="ml-3 font-semibold text-sm">{t('sidebar.offsetPresets')}</span>
-                                    </Link>
+                                    <>
+                                        <Link
+                                            href="/offset-presets"
+                                            className={`flex items-center px-4 py-3.5 rounded-xl transition-all duration-200
+                                                ${pathname === '/offset-presets' ? 'bg-blue-600/10 text-white border-l-4 border-blue-500 pl-3' : 'text-gray-400 hover:bg-gray-800/50'}`}
+                                        >
+                                            <Sliders size={18} />
+                                            <span className="ml-3 font-semibold text-sm">{t('sidebar.offsetPresets')}</span>
+                                        </Link>
+                                        <Link
+                                            href="/display-stations"
+                                            className={`flex items-center px-4 py-3.5 rounded-xl transition-all duration-200
+                                                ${pathname === '/display-stations' ? 'bg-blue-600/10 text-white border-l-4 border-blue-500 pl-3' : 'text-gray-400 hover:bg-gray-800/50'}`}
+                                        >
+                                            <Eye size={18} />
+                                            <span className="ml-3 font-semibold text-sm">{t('sidebar.displayLayout')}</span>
+                                        </Link>
+                                    </>
                                 )}
                                 <Link
                                     href="/settings"

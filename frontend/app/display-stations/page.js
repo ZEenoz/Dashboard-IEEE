@@ -167,10 +167,10 @@ export default function DisplayStationsPage() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
                 <div>
                     <h1 className="text-3xl font-bold text-white tracking-tight border-l-4 border-blue-500 pl-4">
-                        Display Layout
+                        {t('displayStations.title')}
                     </h1>
                     <p className="text-gray-400 text-sm mt-1">
-                        Select which stations are displayed on the Dashboard (Drag and Drop)
+                        {t('displayStations.subtitle')}
                     </p>
                 </div>
                 
@@ -188,7 +188,7 @@ export default function DisplayStationsPage() {
                     ) : (
                         <Save size={18} />
                     )}
-                    {saving ? 'Saving...' : 'Save Changes'}
+                    {saving ? t('common.saving') : t('common.save')}
                 </button>
             </div>
 
@@ -198,7 +198,7 @@ export default function DisplayStationsPage() {
                 <div className="flex flex-col gap-3">
                     <h2 className="text-lg font-bold flex items-center gap-2 text-white bg-blue-500/20 border border-blue-500/30 p-3 rounded-xl">
                         <Eye className="text-blue-400" />
-                        Displayed Stations ({displayedStations.length})
+                        {t('displayStations.displayed')} ({displayedStations.length})
                     </h2>
                     
                     <div 
@@ -207,8 +207,8 @@ export default function DisplayStationsPage() {
                         onDrop={(e) => handleDrop(e, 'displayed')}
                     >
                         {displayedStations.length === 0 ? (
-                            <div className="flex-1 flex items-center justify-center text-gray-500 text-sm font-mono border-2 border-dashed border-gray-800 rounded-lg p-6 text-center">
-                                No stations displayed.<br/>Drag here to display.
+                            <div className="flex-1 flex items-center justify-center text-gray-500 text-sm font-mono border-2 border-dashed border-gray-800 rounded-lg p-6 text-center whitespace-pre-line">
+                                {t('displayStations.noDisplayed')}
                             </div>
                         ) : (
                             displayedStations.map(station => (
@@ -241,7 +241,7 @@ export default function DisplayStationsPage() {
                 <div className="flex flex-col gap-3">
                     <h2 className="text-lg font-bold flex items-center gap-2 text-white bg-gray-800 border border-gray-700 p-3 rounded-xl">
                         <EyeOff className="text-gray-400" />
-                        Hidden Stations ({hiddenStations.length})
+                        {t('displayStations.hidden')} ({hiddenStations.length})
                     </h2>
                     
                     <div 
@@ -250,8 +250,8 @@ export default function DisplayStationsPage() {
                         onDrop={(e) => handleDrop(e, 'hidden')}
                     >
                         {hiddenStations.length === 0 ? (
-                            <div className="flex-1 flex items-center justify-center text-gray-500 text-sm font-mono border-2 border-dashed border-gray-800 rounded-lg p-6 text-center">
-                                No hidden stations.<br/>Drag here to hide.
+                            <div className="flex-1 flex items-center justify-center text-gray-500 text-sm font-mono border-2 border-dashed border-gray-800 rounded-lg p-6 text-center whitespace-pre-line">
+                                {t('displayStations.noHidden')}
                             </div>
                         ) : (
                             hiddenStations.map(station => (

@@ -81,6 +81,7 @@ export const translations = {
       adminTools: 'Admin Tools',
       settings: 'Settings',
       offsetPresets: 'Offset Presets',
+      displayLayout: 'Display Layout',
       signOut: 'Sign Out',
       signIn: 'Sign In',
       language: 'Language',
@@ -220,6 +221,17 @@ export const translations = {
     },
 
     // ─── Settings (app/settings/page.js) ────────────────────────────────────
+    // ─── Display Stations ──────────────────────────────────────────────────
+    displayStations: {
+      title: 'Display Layout',
+      subtitle: 'Select which stations are displayed on the Dashboard (Drag and Drop)',
+      displayed: 'Displayed Stations',
+      hidden: 'Hidden Stations',
+      noDisplayed: 'No stations displayed.\nDrag here to display.',
+      noHidden: 'No hidden stations.\nDrag here to hide.',
+    },
+
+    // ─── Settings ──────────────────────────────────────────────────────────
     settings: {
       title: 'System Settings',
       tabNotifications: 'Notifications',
@@ -511,6 +523,7 @@ export const translations = {
       adminTools: 'เครื่องมือผู้ดูแล',
       settings: 'ตั้งค่า',
       offsetPresets: 'ค่าชดเชย',
+      displayLayout: 'รูปแบบการแสดงผล',
       signOut: 'ออกจากระบบ',
       signIn: 'เข้าสู่ระบบ',
       language: 'ภาษา',
@@ -650,6 +663,17 @@ export const translations = {
     },
 
     // ─── Settings (app/settings/page.js) ────────────────────────────────────
+    // ─── Display Stations ──────────────────────────────────────────────────
+    displayStations: {
+      title: 'รูปแบบการแสดงผล',
+      subtitle: 'เลือกสถานีที่ต้องการให้แสดงบนหน้าแดชบอร์ด (ลากและวาง)',
+      displayed: 'สถานีที่แสดงผล',
+      hidden: 'สถานีที่ซ่อนอยู่',
+      noDisplayed: 'ไม่มีสถานีที่แสดง\nลากมาที่นี่เพื่อแสดง',
+      noHidden: 'ไม่มีสถานีที่ซ่อน\nลากมาที่นี่เพื่อซ่อน',
+    },
+
+    // ─── Settings ──────────────────────────────────────────────────────────
     settings: {
       title: 'ตั้งค่าระบบ',
       tabNotifications: 'การแจ้งเตือน',

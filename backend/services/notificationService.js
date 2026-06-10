@@ -24,7 +24,7 @@ function sendLineNotify(message) {
                 }
             ]
         });
-        const data = new TextEncoder().encode(payload);
+        const payloadBuffer = Buffer.from(payload, 'utf8');
 
         const options = {
             hostname: 'api.line.me',
@@ -34,7 +34,7 @@ function sendLineNotify(message) {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
-                'Content-Length': data.length
+                'Content-Length': payloadBuffer.length
             }
         };
 
@@ -61,7 +61,7 @@ function sendLineNotify(message) {
             resolve(false);
         });
 
-        req.write(data);
+        req.write(payloadBuffer);
         req.end();
     });
 }
@@ -80,7 +80,7 @@ function testLineNotify(token) {
                 }
             ]
         });
-        const data = new TextEncoder().encode(payload);
+        const payloadBuffer = Buffer.from(payload, 'utf8');
 
         const options = {
             hostname: 'api.line.me',
@@ -90,16 +90,29 @@ function testLineNotify(token) {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
-                'Content-Length': data.length
+                'Content-Length': payloadBuffer.length
             }
         };
 
         const req = https.request(options, (res) => {
-            resolve(res.statusCode === 200);
+            let responseBody = '';
+            res.on('data', chunk => responseBody += chunk);
+            res.on('end', () => {
+                if (res.statusCode === 200) {
+                    console.log('✅ LINE Test Notification Sent!');
+                    resolve({ success: true });
+                } else {
+                    console.error(`❌ LINE Test Notification Failed: ${res.statusCode} | ${responseBody}`);
+                    resolve({ success: false, message: `Status: ${res.statusCode}, Error: ${responseBody}` });
+                }
+            });
         });
 
-        req.on('error', () => resolve(false));
-        req.write(data);
+        req.on('error', (e) => {
+            console.error(`❌ LINE Request Error: ${e.message}`);
+            resolve({ success: false, message: e.message });
+        });
+        req.write(payloadBuffer);
         req.end();
     });
 }

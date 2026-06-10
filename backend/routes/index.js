@@ -79,12 +79,12 @@ router.post('/test-notify', requireApiKey, async (req, res) => {
     if (!token) return res.status(400).json({ success: false, message: "Token required" });
 
     console.log("🔔 Test Notify Requested");
-    const success = await testLineNotify(token);
+    const result = await testLineNotify(token);
 
-    if (success) {
+    if (result.success) {
         res.json({ success: true, message: "Notification sent successfully!" });
     } else {
-        res.status(500).json({ success: false, message: "Failed to send notification. Check token." });
+        res.status(500).json({ success: false, message: result.message || "Failed to send notification." });
     }
 });
 

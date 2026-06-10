@@ -773,8 +773,12 @@ export default function SettingsPage() {
                                                     headers: { 'Content-Type': 'application/json', 'x-api-key': 'IEEE_SECURE_API_KEY_2025' },
                                                     body: JSON.stringify({ token: settings.lineNotify?.token })
                                                 });
-                                                if (res.ok) toast.success(t('common.success'));
-                                                else toast.error(t('common.error'));
+                                                const data = await res.json();
+                                                if (res.ok && data.success) {
+                                                    toast.success(t('common.success') + ": " + data.message);
+                                                } else {
+                                                    toast.error(t('common.error') + ": " + (data.message || "Unknown error"));
+                                                }
                                             } catch (e) {
                                                 toast.error(t('common.error') + ": " + e.message);
                                             }

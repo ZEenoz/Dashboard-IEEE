@@ -424,9 +424,10 @@ async function handleMessage(message, io) {
             );
 
             // Location: priority → payload GPS > gateway location > config file > default
-            if (obj.latitude !== undefined && obj.longitude !== undefined) {
+            const payloadLng = obj.longitude ?? obj.longtitude; // Support typo 'longtitude'
+            if (obj.latitude !== undefined && payloadLng !== undefined) {
                 finalLat = parseFloat(obj.latitude);
-                finalLng = parseFloat(obj.longitude);
+                finalLng = parseFloat(payloadLng);
                 locationSource = "GPS Sensor (Decoded)";
             } else if (payload.deviceInfo?.tags?.latitude) {
                 // ChirpStack device tags can store static coordinates
@@ -439,8 +440,8 @@ async function handleMessage(message, io) {
                 locationSource = "Config File";
             } else if (payload.rxInfo?.[0]?.location) {
                 // Fallback to gateway location
-                finalLat = payload.rxInfo[0].location.latitude;
-                finalLng = payload.rxInfo[0].location.longitude;
+                finalLat = payload.rxInfo[0].location.latitude ?? null;
+                finalLng = payload.rxInfo[0].location.longitude ?? null;
                 locationSource = "Gateway Location";
             }
 
@@ -467,7 +468,7 @@ async function handleMessage(message, io) {
 
             // Battery
             battery = parseFloat(
-                obj.battery_percentage ?? obj.battery ?? obj.bat ?? obj.Battery ?? 0
+                obj.batteryLevel ?? obj.battery_percentage ?? obj.battery ?? obj.bat ?? obj.Battery ?? 0
             );
             batteryVoltage = parseFloat(
                 obj.battery_voltage ?? obj.batteryVoltage ?? obj.vbat ?? 0
@@ -564,7 +565,7 @@ async function handleMessage(message, io) {
                 const lora = uplink.settings.data_rate.lora;
                 dataRateStr = `SF${lora.spreading_factor}BW${lora.bandwidth / 1000}`;
             }
-            battery = parseFloat(decoded.battery_percentage !== undefined ? decoded.battery_percentage : (decoded.battery || decoded.bat || decoded.Battery || 0));
+            battery = parseFloat(decoded.batteryLevel ?? decoded.battery_percentage ?? decoded.battery ?? decoded.bat ?? decoded.Battery ?? 0);
             batteryVoltage = parseFloat(decoded.battery_voltage !== undefined ? decoded.battery_voltage : 0);
             temperature = decoded.temperature !== undefined ? parseFloat(decoded.temperature) : (decoded.temp !== undefined ? parseFloat(decoded.temp) : null);
             humidity = decoded.humidity !== undefined ? parseFloat(decoded.humidity) : (decoded.hum !== undefined ? parseFloat(decoded.hum) : null);

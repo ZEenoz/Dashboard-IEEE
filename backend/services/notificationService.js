@@ -2,7 +2,7 @@ const https = require('https');
 const { getSettings } = require('../config/settings');
 
 /**
- * Send notification to LINE Notify
+ * Send broadcast notification via LINE Messaging API (LINE OA)
  * @param {string} message 
  * @returns {Promise<boolean>}
  */
@@ -16,15 +16,23 @@ function sendLineNotify(message) {
             return resolve(false);
         }
 
-        const data = new TextEncoder().encode(`message=${message}`);
+        const payload = JSON.stringify({
+            messages: [
+                {
+                    type: "text",
+                    text: message
+                }
+            ]
+        });
+        const data = new TextEncoder().encode(payload);
 
         const options = {
-            hostname: 'notify-api.line.me',
+            hostname: 'api.line.me',
             port: 443,
-            path: '/api/notify',
+            path: '/v2/bot/message/broadcast',
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
                 'Content-Length': data.length
             }
@@ -64,15 +72,23 @@ function sendLineNotify(message) {
 function testLineNotify(token) {
     return new Promise((resolve, reject) => {
         const message = "🔔 This is a test notification from Water Monitor System.";
-        const data = new TextEncoder().encode(`message=${message}`);
+        const payload = JSON.stringify({
+            messages: [
+                {
+                    type: "text",
+                    text: message
+                }
+            ]
+        });
+        const data = new TextEncoder().encode(payload);
 
         const options = {
-            hostname: 'notify-api.line.me',
+            hostname: 'api.line.me',
             port: 443,
-            path: '/api/notify',
+            path: '/v2/bot/message/broadcast',
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
                 'Content-Length': data.length
             }
@@ -110,7 +126,7 @@ function generateBatchMessage(alerts, headerTitle = "⚠️ สรุปแจ�
 }
 
 /**
- * Send a level-specific alert notification via LINE Notify
+ * Send a level-specific alert notification via LINE Messaging API
  * @param {object} alertEntry - Alert data from mqttService
  */
 function sendAlertByLevel(alertEntry) {

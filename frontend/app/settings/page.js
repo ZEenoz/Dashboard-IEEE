@@ -755,12 +755,12 @@ export default function SettingsPage() {
                                     </div>
                                 </div>
                                 <div className="flex flex-col md:flex-row gap-4">
-                                    <input
-                                        type="password"
-                                        placeholder="LINE Notify Token"
+                                    <textarea
+                                        placeholder="eyJ..."
+                                        rows="2"
                                         value={settings.lineNotify?.token || ''}
                                         onChange={(e) => handleChange('lineNotify', 'token', e.target.value)}
-                                        className="flex-1 bg-gray-800 border border-green-600/50 rounded-lg p-3 text-white focus:border-green-400 outline-none font-mono"
+                                        className="flex-1 bg-gray-800 border border-green-600/50 rounded-lg p-3 text-white focus:border-green-400 outline-none font-mono resize-none text-sm break-all"
                                     />
                                     <button
                                         onClick={async () => {

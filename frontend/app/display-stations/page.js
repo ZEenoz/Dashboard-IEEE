@@ -61,6 +61,10 @@ export default function DisplayStationsPage() {
                     }
                 });
                 
+                // Sort by order if available
+                displayed.sort((a, b) => (a.order || 0) - (b.order || 0));
+                hidden.sort((a, b) => (a.order || 0) - (b.order || 0));
+                
                 setDisplayedStations(displayed);
                 setHiddenStations(hidden);
             } catch (err) {
@@ -122,15 +126,17 @@ export default function DisplayStationsPage() {
         try {
             const updatedSettings = { ...settings };
             
-            displayedStations.forEach(s => {
+            displayedStations.forEach((s, index) => {
                 if (updatedSettings.stations[s.id]) {
                     updatedSettings.stations[s.id].isVisible = true;
+                    updatedSettings.stations[s.id].order = index;
                 }
             });
             
-            hiddenStations.forEach(s => {
+            hiddenStations.forEach((s, index) => {
                 if (updatedSettings.stations[s.id]) {
                     updatedSettings.stations[s.id].isVisible = false;
+                    updatedSettings.stations[s.id].order = index + displayedStations.length;
                 }
             });
 

@@ -25,13 +25,7 @@ export default function AnalyticsPage() {
     const [fetchedHistory, setFetchedHistory] = useState([]); // Store backend data
     const [isLoading, setIsLoading] = useState(false);
 
-    // Initialize selected stations when stations are loaded
-    useEffect(() => {
-        if (Object.keys(stations).length > 0 && selectedStations.length === 0) {
-            // Default to selecting all stations
-            setSelectedStations(Object.keys(stations));
-        }
-    }, [stations]);
+
 
     // Fetch data when timeRange changes
     useEffect(() => {
@@ -74,10 +68,24 @@ export default function AnalyticsPage() {
             .catch(err => {
                 console.error("Failed to fetch settings", err);
                 toast.error("Failed to load global settings");
+                setSettings({}); // Fallback to empty settings to unblock UI
             });
     }, []);
 
     const getStationConfig = (stationId) => settings?.stations?.[stationId];
+
+    // Initialize selected stations when stations are loaded
+    useEffect(() => {
+        if (!settings) return; // Wait for settings to load first!
+        
+        if (Object.keys(stations).length > 0 && selectedStations.length === 0) {
+            // Default to selecting only visible stations
+            const visibleStations = Object.keys(stations).filter(
+                id => settings?.stations?.[id]?.isVisible !== false
+            );
+            setSelectedStations(visibleStations.length > 0 ? visibleStations : Object.keys(stations));
+        }
+    }, [stations, settings]);
 
     const isFloat = (stationId) => {
         const station = stations[stationId];
@@ -266,13 +274,16 @@ export default function AnalyticsPage() {
                                 {t('overview.floatNodes')}
                             </h4>
                             <div className="space-y-2">
-                                {Object.values(stations).filter(s => isFloat(s.stationId) && settings?.stations?.[s.stationId] && settings.stations[s.stationId].isVisible !== false).map(station => (
+                                {Object.values(stations)
+                                    .filter(s => isFloat(s.stationId) && settings?.stations?.[s.stationId] && settings.stations[s.stationId].isVisible !== false)
+                                    .sort((a, b) => (getStationConfig(a.stationId)?.order || 0) - (getStationConfig(b.stationId)?.order || 0))
+                                    .map(station => (
                                     <div
                                         key={station.stationId}
                                         onClick={() => toggleStation(station.stationId)}
                                         className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${selectedStations.includes(station.stationId) ? 'bg-blue-500/20 border border-blue-500/50' : 'hover:bg-gray-700 border border-transparent'}`}
                                     >
-                                        {selectedStations.includes(station.stationId) ? <CheckSquare size={16} className="text-blue-400" /> : <Square size={16} className="text-gray-500" />}
+                                        {selectedStations.includes(station.stationId) ? <CheckSquare size={16} style={{ color: getStationColor(station.stationId) }} /> : <Square size={16} className="text-gray-500" />}
                                         <span className={`text-sm ${selectedStations.includes(station.stationId) ? 'text-white font-medium' : 'text-gray-400'}`}>
                                             {getStationConfig(station.stationId)?.name || station.stationName || station.stationId}
                                         </span>
@@ -288,13 +299,16 @@ export default function AnalyticsPage() {
                                 {t('overview.staticNodes')}
                             </h4>
                             <div className="space-y-2">
-                                {Object.values(stations).filter(s => !isFloat(s.stationId) && settings?.stations?.[s.stationId] && settings.stations[s.stationId].isVisible !== false).map(station => (
+                                {Object.values(stations)
+                                    .filter(s => !isFloat(s.stationId) && settings?.stations?.[s.stationId] && settings.stations[s.stationId].isVisible !== false)
+                                    .sort((a, b) => (getStationConfig(a.stationId)?.order || 0) - (getStationConfig(b.stationId)?.order || 0))
+                                    .map(station => (
                                     <div
                                         key={station.stationId}
                                         onClick={() => toggleStation(station.stationId)}
                                         className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${selectedStations.includes(station.stationId) ? 'bg-purple-500/20 border border-purple-500/50' : 'hover:bg-gray-700 border border-transparent'}`}
                                     >
-                                        {selectedStations.includes(station.stationId) ? <CheckSquare size={16} className="text-purple-400" /> : <Square size={16} className="text-gray-500" />}
+                                        {selectedStations.includes(station.stationId) ? <CheckSquare size={16} style={{ color: getStationColor(station.stationId) }} /> : <Square size={16} className="text-gray-500" />}
                                         <span className={`text-sm ${selectedStations.includes(station.stationId) ? 'text-white font-medium' : 'text-gray-400'}`}>
                                             {getStationConfig(station.stationId)?.name || station.stationName || station.stationId}
                                         </span>
@@ -322,10 +336,12 @@ export default function AnalyticsPage() {
                         </div>
                     </div>
 
-                    <div className="bg-gray-800 rounded-xl p-2 sm:p-4 md:p-6 border border-gray-700 shadow-lg flex-1 min-h-[400px] w-full overflow-hidden">
-                        <ResponsiveContainer width="100%" height="100%">
+                    <div className="bg-gray-800 rounded-xl p-2 sm:p-4 md:p-6 border border-gray-700 shadow-lg flex-1 min-h-[450px] w-full flex flex-col overflow-hidden">
+                        
+                        <div className="flex-1 min-h-[350px]">
+                            <ResponsiveContainer width="100%" height="100%">
                             {chartType === 'area' ? (
-                                <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 10 }}>
                                     <defs>
                                         {selectedStations.map(stationId => (
                                             <linearGradient key={`grad-${stationId}`} id={`grad-${stationId}`} x1="0" y1="0" x2="0" y2="1">
@@ -341,7 +357,6 @@ export default function AnalyticsPage() {
                                         contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
                                         labelStyle={{ color: '#9CA3AF', marginBottom: '4px' }}
                                     />
-                                    <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
                                     {selectedStations.map(stationId => (
                                         <Area
                                             key={stationId}
@@ -357,7 +372,7 @@ export default function AnalyticsPage() {
                                     <Brush dataKey="timestamp" height={30} stroke="#8884d8" fill="#1F2937" />
                                 </AreaChart>
                             ) : chartType === 'bar' ? (
-                                <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 10 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                                     <XAxis dataKey="timestamp" stroke="#9CA3AF" tick={{ fontSize: 12 }} minTickGap={30} />
                                     <YAxis stroke="#9CA3AF" />
@@ -365,7 +380,6 @@ export default function AnalyticsPage() {
                                         contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
                                         labelStyle={{ color: '#9CA3AF', marginBottom: '4px' }}
                                     />
-                                    <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
                                     {selectedStations.map(stationId => (
                                         <Bar
                                             key={stationId}
@@ -377,7 +391,7 @@ export default function AnalyticsPage() {
                                     <Brush dataKey="timestamp" height={30} stroke="#8884d8" fill="#1F2937" />
                                 </BarChart>
                             ) : (
-                                <LineChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 10 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                                     <XAxis dataKey="timestamp" stroke="#9CA3AF" tick={{ fontSize: 12 }} minTickGap={30} />
                                     <YAxis stroke="#9CA3AF" />
@@ -385,7 +399,6 @@ export default function AnalyticsPage() {
                                         contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
                                         labelStyle={{ color: '#9CA3AF', marginBottom: '4px' }}
                                     />
-                                    <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
                                     {selectedStations.map(stationId => (
                                         <Line
                                             key={stationId}
@@ -402,6 +415,17 @@ export default function AnalyticsPage() {
                                 </LineChart>
                             )}
                         </ResponsiveContainer>
+                        </div>
+
+                        {/* Custom Responsive Legend (Moved to Bottom) */}
+                        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mt-4 px-2">
+                            {selectedStations.map(stationId => (
+                                <div key={stationId} className="flex items-center gap-1.5 text-xs font-medium cursor-pointer" onClick={() => toggleStation(stationId)}>
+                                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: getStationColor(stationId) }}></span>
+                                    <span className="text-gray-300">{getStationConfig(stationId)?.name || stations[stationId]?.stationName || stationId}</span>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>

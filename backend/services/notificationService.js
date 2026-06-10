@@ -156,10 +156,8 @@ function sendAlertByLevel(alertEntry) {
             `📍 สถานี: ${stationName}\n` +
             `💧 ระดับน้ำ: ${Number(waterLevel).toFixed(2)} m (เกิน Warning ${Number(threshold).toFixed(1)} m)\n`;
     } else {
-        msg = `\n🟢 สถานการณ์ปกติ (Safe)\n` +
-            `📍 สถานี: ${stationName}\n` +
-            `💧 ระดับน้ำ: ${Number(waterLevel).toFixed(2)} m (ต่ำกว่า Warning)\n` +
-            `✅ ระดับน้ำอยู่ในเกณฑ์ปลอดภัย\n`;
+        console.log(`🔇 Skip Notification LINE for ${stationName} (Safe)`);
+        return;
     }
 
     if (isRapidChange) {

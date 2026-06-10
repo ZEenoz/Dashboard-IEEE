@@ -422,8 +422,8 @@ async function handleMessage(message, io) {
                 // Attempt basic decode for common formats
                 try {
                     const rawBytes = Buffer.from(payload.data, 'base64');
-                    // If payload is 2 bytes, interpret as water level in cm
-                    if (rawBytes.length >= 2) {
+                    // If payload is EXACTLY 2 bytes, interpret as water level in cm
+                    if (rawBytes.length === 2) {
                         const rawCm = (rawBytes[0] << 8) | rawBytes[1];
                         obj.waterLevel = rawCm; // Keep as cm, conversion happens in common processing
                         console.log(`   → Auto-decoded ${rawBytes.length} bytes → waterLevel: ${obj.waterLevel}cm`);

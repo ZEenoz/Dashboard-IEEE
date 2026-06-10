@@ -30,7 +30,7 @@ notificationEngine.onScheduledReport = () => {
             }
         }
     }
-    
+
     if (safeStations.length > 0) {
         const msg = generateBatchMessage(safeStations, "🌅 รายงานสถานะปกติประจำวัน (06:30)");
         sendLineNotify(msg);
@@ -140,9 +140,9 @@ function initMQTT(io) {
         const csMqttUrl = csConfig.mqttUrl || CHIRPSTACK_MQTT_URL;
         const csMqttUser = csConfig.mqttUser || CHIRPSTACK_MQTT_USER;
         const csMqttPass = csConfig.mqttPass || CHIRPSTACK_MQTT_PASS;
-        const appIds = csConfig.applicationIds && csConfig.applicationIds.length > 0 
-                       ? csConfig.applicationIds 
-                       : (csConfig.applicationId || CHIRPSTACK_APP_ID ? [csConfig.applicationId || CHIRPSTACK_APP_ID] : ['+']);
+        const appIds = csConfig.applicationIds && csConfig.applicationIds.length > 0
+            ? csConfig.applicationIds
+            : (csConfig.applicationId || CHIRPSTACK_APP_ID ? [csConfig.applicationId || CHIRPSTACK_APP_ID] : ['+']);
         const csUseTls = csConfig.useTls || CHIRPSTACK_USE_TLS;
 
         console.log("🟣 Mode: ChirpStack v4");
@@ -187,7 +187,7 @@ function initMQTT(io) {
 
         mqttClient.on('connect', () => {
             console.log(`✅ Connected to ChirpStack MQTT Broker`);
-            
+
             appIds.forEach(appFilter => {
                 const upTopic = `application/${appFilter}/device/+/event/up`;
                 const statusTopic = `application/${appFilter}/device/+/event/status`;
@@ -383,59 +383,6 @@ async function handleMessage(message, io) {
         const STATIONS_CONFIG = settings.stations || {};
 
         if (networkMode === 'CHIRPSTACK') {
-            // ──────────────────────────────────────────
-            // 🟣 ChirpStack v4 Payload Parsing
-            // ──────────────────────────────────────────
-            // ChirpStack v4 uplink JSON structure:
-            // {
-            //   "deduplicationId": "...",
-            //   "time": "2024-01-01T00:00:00Z",
-            //   "deviceInfo": {
-            //     "tenantId": "...",
-            //     "tenantName": "...",
-            //     "applicationId": "...",
-            //     "applicationName": "...",
-            //     "deviceProfileId": "...",
-            //     "deviceProfileName": "...",
-            //     "deviceName": "My Sensor",
-            //     "devEui": "a1b2c3d4e5f6a7b8",
-            //     "tags": {}
-            //   },
-            //   "devAddr": "01abc123",
-            //   "adr": true,
-            //   "dr": 5,
-            //   "fCnt": 42,
-            //   "fPort": 1,
-            //   "confirmed": false,
-            //   "data": "base64encodedFRMPayload",
-            //   "object": {                 ← Decoded by ChirpStack codec
-            //     "waterLevel": 1.23,
-            //     "battery": 85,
-            //     "type": "Float"
-            //   },
-            //   "rxInfo": [
-            //     {
-            //       "gatewayId": "a1b2c3d4e5f6a7b8",
-            //       "uplinkId": 12345,
-            //       "nsTime": "2024-01-01T00:00:00Z",
-            //       "rssi": -65,
-            //       "snr": 8.5,
-            //       "location": { "latitude": 13.76, "longitude": 100.50 }
-            //     }
-            //   ],
-            //   "txInfo": {
-            //     "frequency": 923200000,
-            //     "modulation": {
-            //       "lora": {
-            //         "bandwidth": 125000,
-            //         "spreadingFactor": 7,
-            //         "codeRate": "CR_4_5"
-            //       }
-            //     }
-            //   }
-            // }
-
-            // Device identification
             deviceId = payload.deviceInfo?.devEui || "unknown";
             const deviceName = payload.deviceInfo?.deviceName || deviceId;
 
@@ -457,11 +404,6 @@ async function handleMessage(message, io) {
                         const rawCm = (rawBytes[0] << 8) | rawBytes[1];
                         obj.waterLevel = rawCm; // Keep as cm, conversion happens in common processing
                         console.log(`   → Auto-decoded ${rawBytes.length} bytes → waterLevel: ${obj.waterLevel}cm`);
-                    } else if (rawBytes.length >= 3 && rawBytes[0] === 0x01) {
-                        // Attempt fallback for sensors (like Dragino) where byte 1 and 2 might be distance in mm
-                        const rawMm = (rawBytes[1] << 8) | rawBytes[2];
-                        obj.waterLevel = rawMm / 10; // Convert mm to cm
-                        console.log(`   → Auto-decoded fallback (mm to cm) → waterLevel: ${obj.waterLevel}cm`);
                     }
                 } catch (decodeErr) {
                     console.error(`   → Base64 decode failed:`, decodeErr.message);
@@ -647,13 +589,13 @@ async function handleMessage(message, io) {
             }
             imageUrl = STATIONS_CONFIG[deviceId].image || STATIONS_CONFIG[deviceId].imageUrl || null;
         }
-        
+
         let calibratedRaw = parseFloat((rawLevel + offset).toFixed(3));
 
         // ──────────────────────────────────────────
         // 🛡️ ANTI-RIPPLE DATA PIPELINE
         // ──────────────────────────────────────────
-        
+
         // 1. Out-of-Bounds Filter (0 to 10m limit)
         // If the reading is physically impossible (e.g. 999m or -5m), discard it entirely.
         if (calibratedRaw < 0 || calibratedRaw > 10) {
@@ -672,7 +614,7 @@ async function handleMessage(message, io) {
 
         // 2. Rate of Change (ROC) Limiter
         // If water jumps more than 1.5 meters compared to the last accepted value instantly, it's likely a massive glitch
-        const MAX_DELTA_M = 1.5; 
+        const MAX_DELTA_M = 1.5;
         if (Math.abs(calibratedRaw - bufferObj.lastAcceptedVal) > MAX_DELTA_M) {
             console.log(`⚠️ Rate limit exceeded for ${deviceId}: Jumped from ${bufferObj.lastAcceptedVal}m to ${calibratedRaw}m`);
             // We push it anyway so if it STAYS at the new value for 3 readings, the Median filter will eventually adopt it.
@@ -694,7 +636,7 @@ async function handleMessage(message, io) {
         }
 
         bufferObj.lastAcceptedVal = medianVal;
-        
+
         // 4. Update the actual system waterLevel
         waterLevel = parseFloat(medianVal.toFixed(3));
 
@@ -842,7 +784,7 @@ async function handleMessage(message, io) {
         // ─────────────────────────────────────────────
         // 🔔 Advanced Notification Pipeline Engine
         // ─────────────────────────────────────────────
-        
+
         // Track history for Rapid Change detection
         notificationEngine.addReadingToHistory(deviceId, waterLevel);
         const { isRapid, delta } = notificationEngine.checkRapidChange(deviceId, waterLevel);
@@ -855,7 +797,7 @@ async function handleMessage(message, io) {
 
         if (shouldEvaluate) {
             const threshold = alertLevel === 'dangerous' ? criticalLevel : warningLevel;
-            
+
             const alertEntry = {
                 id: `alert-${Date.now()}`,
                 timestamp: new Date().toISOString(),
@@ -872,7 +814,7 @@ async function handleMessage(message, io) {
 
             // Check Daily Quota limits
             if (notificationEngine.hasDailyQuota(deviceId, alertLevel)) {
-                
+
                 // Check Time Window
                 if (notificationEngine.isTimeBlocked(alertLevel)) {
                     console.log(`🌙 Night Block: Queueing alert for ${stationName} to morning.`);
@@ -885,9 +827,9 @@ async function handleMessage(message, io) {
                     } else {
                         // Send immediately
                         console.log(`${alertLevel === 'dangerous' ? '🚨' : (alertLevel === 'warning' ? '⚠️' : '🟢')} Alert: ${stationName} | Level: ${alertLevel}`);
-                        
+
                         sendAlertByLevel(alertEntry);
-                        
+
                         notificationEngine.incrementDailyCount(deviceId, alertLevel);
                         notificationEngine.markGlobalBroadcastSent();
 

@@ -224,7 +224,7 @@ export default function AnalyticsPage() {
 
                         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                             {/* Chart Type Selector */}
-                            <div className="flex bg-gray-800 rounded-xl p-1 border border-gray-700 flex-1 sm:flex-none">
+                            <div className="flex bg-gray-800 rounded-xl p-1 border border-gray-700 flex-1 sm:flex-none overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
                                 {['line', 'area', 'bar'].map(type => (
                                     <button
                                         key={type}
@@ -237,7 +237,7 @@ export default function AnalyticsPage() {
                             </div>
 
                             {/* Time Range Selector */}
-                            <div className="flex bg-gray-800 rounded-xl p-1 border border-gray-700 flex-1 sm:flex-none">
+                            <div className="flex bg-gray-800 rounded-xl p-1 border border-gray-700 flex-1 sm:flex-none overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
                                 {['1h', '6h', '24h', '7d', '30d'].map(range => (
                                     <button
                                         key={range}
@@ -317,12 +317,12 @@ export default function AnalyticsPage() {
                             <div className="text-2xl font-bold text-white tabular-nums">{stats.avg} <span className="text-sm font-normal text-gray-400 font-mono">m</span></div>
                         </div>
                         <div className="bg-[#151E32] rounded-2xl p-4 border border-gray-700 shadow-xl">
-                            <h3 className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">{t('analytics.activeStations')}</h3>
+                            <h3 className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">{t('analytics.minLevel') || 'MIN LEVEL'}</h3>
                             <div className="text-2xl font-bold text-white tabular-nums">{stats.min} <span className="text-sm font-normal text-gray-400 font-mono">m</span></div>
                         </div>
                     </div>
 
-                    <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg flex-1 min-h-[400px]">
+                    <div className="bg-gray-800 rounded-xl p-2 sm:p-4 md:p-6 border border-gray-700 shadow-lg flex-1 min-h-[400px] w-full overflow-hidden">
                         <ResponsiveContainer width="100%" height="100%">
                             {chartType === 'area' ? (
                                 <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
@@ -341,7 +341,7 @@ export default function AnalyticsPage() {
                                         contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
                                         labelStyle={{ color: '#9CA3AF', marginBottom: '4px' }}
                                     />
-                                    <Legend />
+                                    <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
                                     {selectedStations.map(stationId => (
                                         <Area
                                             key={stationId}
@@ -365,7 +365,7 @@ export default function AnalyticsPage() {
                                         contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
                                         labelStyle={{ color: '#9CA3AF', marginBottom: '4px' }}
                                     />
-                                    <Legend />
+                                    <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
                                     {selectedStations.map(stationId => (
                                         <Bar
                                             key={stationId}
@@ -385,7 +385,7 @@ export default function AnalyticsPage() {
                                         contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
                                         labelStyle={{ color: '#9CA3AF', marginBottom: '4px' }}
                                     />
-                                    <Legend />
+                                    <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
                                     {selectedStations.map(stationId => (
                                         <Line
                                             key={stationId}

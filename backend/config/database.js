@@ -5,8 +5,8 @@ const bcrypt = require('bcryptjs');
 // PostgreSQL Configuration (Supports Railway defaults and DATABASE_URL)
 const isCloudDB = process.env.DATABASE_URL && (process.env.DATABASE_URL.includes('supabase.com') || process.env.DATABASE_URL.includes('rlwy.net') || process.env.DATABASE_URL.includes('render.com'));
 
-const dbConfig = process.env.DATABASE_URL 
-    ? { 
+const dbConfig = process.env.DATABASE_URL
+    ? {
         connectionString: process.env.DATABASE_URL,
         ssl: isCloudDB ? { rejectUnauthorized: false } : false
     }
@@ -72,6 +72,10 @@ async function initDatabase() {
                 latitude NUMERIC,
                 longitude NUMERIC,
                 location_source VARCHAR(50),
+                temperature NUMERIC,
+                humidity NUMERIC,
+                gyro_x NUMERIC,
+                gyro_y NUMERIC,
                 timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         `);
@@ -183,7 +187,7 @@ async function initDatabase() {
         }
 
         console.log("✅ Schema & Indexes Verified.");
-        
+
         // [Safety] Fix duplicate key violations by syncing the SERIAL sequence
         // This is common after manual data imports or migrations.
         try {

@@ -79,7 +79,11 @@ async function saveReadingToSheet(data) {
                 data.sensorType,          // 11. Sensor Type (K)
                 data.lat,                 // 12. Latitude (L)
                 data.lng,                 // 13. Longitude (M)
-                data.src || 'Unknown'     // 14. Source (N)
+                data.src || 'Unknown',    // 14. Source (N)
+                data.temperature,         // 15. Temperature (O)
+                data.humidity,            // 16. Humidity (P)
+                data.gyro_x,              // 17. Gyro X (Q)
+                data.gyro_y               // 18. Gyro Y (R)
             ]
         ];
 
@@ -162,6 +166,10 @@ async function getHistoryFromSheet(hours = 48) {
                     rawTimestamp: timestamp.getTime(),
                     waterLevel: parseFloat(row[4] || row[3] || 0), // Calibrated (E)
                     rawLevel: parseFloat(row[3] || 0), // Raw (D)
+                    temperature: row[14] ? parseFloat(row[14]) : null, // (O)
+                    humidity: row[15] ? parseFloat(row[15]) : null,    // (P)
+                    gyro_x: row[16] ? parseFloat(row[16]) : null,      // (Q)
+                    gyro_y: row[17] ? parseFloat(row[17]) : null       // (R)
                 });
             }
         });

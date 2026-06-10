@@ -457,6 +457,11 @@ async function handleMessage(message, io) {
                         const rawCm = (rawBytes[0] << 8) | rawBytes[1];
                         obj.waterLevel = rawCm; // Keep as cm, conversion happens in common processing
                         console.log(`   → Auto-decoded ${rawBytes.length} bytes → waterLevel: ${obj.waterLevel}cm`);
+                    } else if (rawBytes.length >= 3 && rawBytes[0] === 0x01) {
+                        // Attempt fallback for sensors (like Dragino) where byte 1 and 2 might be distance in mm
+                        const rawMm = (rawBytes[1] << 8) | rawBytes[2];
+                        obj.waterLevel = rawMm / 10; // Convert mm to cm
+                        console.log(`   → Auto-decoded fallback (mm to cm) → waterLevel: ${obj.waterLevel}cm`);
                     }
                 } catch (decodeErr) {
                     console.error(`   → Base64 decode failed:`, decodeErr.message);

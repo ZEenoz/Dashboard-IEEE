@@ -152,7 +152,7 @@ export default function ParametersPage() {
                             <div className="flex justify-between items-start mb-4">
                                 <div>
                                     <h3 className="text-gray-400 text-sm font-medium">
-                                        {station.stationId} - {t('analytics.waterLevel')}
+                                        {settings?.stations?.[station.stationId]?.name || station.stationName || station.stationId} - {t('analytics.waterLevel')}
                                     </h3>
                                     <div className="mt-2 flex items-baseline">
                                         <span className="text-3xl font-bold text-white">
@@ -209,7 +209,7 @@ export default function ParametersPage() {
                                     onClick={() => router.push(`/parameters/${station.stationId}`)}
                                     className="hover:bg-gray-700/50 transition-colors cursor-pointer"
                                 >
-                                    <td className="px-6 py-4 font-medium">{station.stationId}</td>
+                                    <td className="px-6 py-4 font-medium">{settings?.stations?.[station.stationId]?.name || station.stationName || station.stationId}</td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center space-x-2">
                                             {station.sensorType === 'Float' ? (

@@ -566,7 +566,7 @@ export default function SensorDetailsPage() {
                                     </span>
 
                                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 px-2 py-1 bg-[#151E32]/90 backdrop-blur border border-blue-500/30 rounded text-xs font-bold whitespace-nowrap z-10">
-                                        {stationId.toUpperCase()}
+                                        {station.stationName}
                                         {station.alertLevel && station.alertLevel !== 'normal' && (
                                             <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] uppercase
                                               ${station.alertLevel === 'dangerous' ? 'bg-red-500/20 text-red-400' : 'bg-orange-500/20 text-orange-400'}`

@@ -11,6 +11,14 @@ let settings = {
         warningCooldownMin: 60,
         dangerousCooldownMin: 15
     },
+    notificationPipeline: {
+        quotaSafe: 1,
+        quotaWatch: 3,
+        quotaDanger: 6,
+        nightBlockStart: 22,
+        nightBlockEnd: 5,
+        globalCooldownMin: 30
+    },
     chirpstack: {
         // ChirpStack MQTT connection (override via env vars)
         mqttUrl: '',       // e.g. "mqtt://chirpstack.example.com:1883"

@@ -4,6 +4,38 @@ const mqtt = require('mqtt');
 const http = require('http');
 const { saveReading } = require('./dataManager');
 const { getSettings } = require('../config/settings');
+const notificationEngine = require('./NotificationEngine');
+const { sendLineNotify, generateBatchMessage, sendAlertByLevel } = require('./notificationService');
+
+// Initialize Cron Jobs (Run once)
+notificationEngine.initSchedulers(sendLineNotify, generateBatchMessage);
+
+// Scheduled Report Callback
+notificationEngine.onScheduledReport = () => {
+    const safeStations = [];
+    const now = Date.now();
+    // Use activeNodes from below
+    for (const [deviceId, node] of Object.entries(activeNodes)) {
+        // Only report stations seen in last 24h
+        if (node.alertLevel === 'normal' && (now - new Date(node.lastSeen).getTime() < 24 * 60 * 60 * 1000)) {
+            if (notificationEngine.hasDailyQuota(deviceId, 'normal')) {
+                safeStations.push({
+                    stationId: deviceId,
+                    stationName: node.name,
+                    waterLevel: node.waterLevel,
+                    alertLevel: 'normal',
+                    isRapidChange: false
+                });
+                notificationEngine.incrementDailyCount(deviceId, 'normal');
+            }
+        }
+    }
+    
+    if (safeStations.length > 0) {
+        const msg = generateBatchMessage(safeStations, "🌅 รายงานสถานะปกติประจำวัน (06:30)");
+        sendLineNotify(msg);
+    }
+};
 
 const USE_SIMULATOR = (process.env.USE_SIMULATOR === 'true');
 
@@ -755,88 +787,81 @@ async function handleMessage(message, io) {
             timestamp: new Date().toISOString()
         });
 
-        // --- 🔔 2-Tier Alert Logic (Warning + Dangerous) ---
+        // ─────────────────────────────────────────────
+        // 🔔 Advanced Notification Pipeline Engine
+        // ─────────────────────────────────────────────
+        
+        // Track history for Rapid Change detection
+        notificationEngine.addReadingToHistory(deviceId, waterLevel);
+        const { isRapid, delta } = notificationEngine.checkRapidChange(deviceId, waterLevel);
+        const { isChanged, prevState } = notificationEngine.checkStateChange(deviceId, alertLevel);
 
-        let warningCooldown = (alertThresholds.warningCooldownMin || 60) * 60 * 1000;
-        let dangerousCooldown = (alertThresholds.dangerousCooldownMin || 15) * 60 * 1000;
+        // Determine if we should trigger an alert evaluation
+        // Trigger if: State changed to a new level OR Rapid change detected OR All-Clear (Danger/Watch -> Normal)
+        const isAllClear = alertLevel === 'normal' && (prevState === 'dangerous' || prevState === 'warning');
+        const shouldEvaluate = isChanged || isRapid || isAllClear;
 
-        if (USE_SIMULATOR) {
-            warningCooldown = 0;
-            dangerousCooldown = 0;
-        }
+        if (shouldEvaluate) {
+            const threshold = alertLevel === 'dangerous' ? criticalLevel : warningLevel;
+            
+            const alertEntry = {
+                id: `alert-${Date.now()}`,
+                timestamp: new Date().toISOString(),
+                stationId: deviceId,
+                stationName,
+                waterLevel,
+                threshold,
+                alertLevel,
+                battery,
+                rssi,
+                isRapidChange: isRapid,
+                lineStatus: 'evaluated'
+            };
 
-        const now = Date.now();
-        const cooldownState = alertCooldowns[deviceId] || {};
-        const lastWarnNotified = cooldownState.lastWarnNotified || 0;
-        const lastDangerNotified = cooldownState.lastDangerNotified || 0;
-
-        if (alertLevel !== 'normal') {
-            const isCooldownPassed = alertLevel === 'dangerous'
-                ? (now - lastDangerNotified > dangerousCooldown)
-                : (now - lastWarnNotified > warningCooldown);
-
-            if (isCooldownPassed) {
-                const threshold = alertLevel === 'dangerous' ? criticalLevel : warningLevel;
-                console.log(`${alertLevel === 'dangerous' ? '🚨' : '⚠️'} ${alertLevel.toUpperCase()} Alert: ${stationName} | ${waterLevel.toFixed(2)}m >= ${threshold}m`);
-
-                const alertEntry = {
-                    id: `alert-${Date.now()}`,
-                    timestamp: new Date().toISOString(),
-                    stationId: deviceId,
-                    stationName,
-                    waterLevel,
-                    threshold,
-                    warningThreshold: warningLevel,
-                    criticalThreshold: criticalLevel,
-                    alertLevel,
-                    battery,
-                    rssi,
-                    sensorType,
-                    imageUrl,
-                    lineStatus: 'sent_to_bot'
-                };
-
-                if (settings.lineBot?.active !== false) {
-                    pushToFlask('/trigger-alert', alertEntry);
+            // Check Daily Quota limits
+            if (notificationEngine.hasDailyQuota(deviceId, alertLevel)) {
+                
+                // Check Time Window
+                if (notificationEngine.isTimeBlocked(alertLevel)) {
+                    console.log(`🌙 Night Block: Queueing alert for ${stationName} to morning.`);
+                    notificationEngine.queueMessage(alertEntry, 'morning');
                 } else {
-                    console.log("🔕 LINE Bot alert swallowed (LINE Bot is disabled in settings)");
-                }
-
-                const { sendAlertByLevel } = require('./notificationService');
-                sendAlertByLevel(alertEntry);
-
-                // Save to PostgreSQL
-                try {
-                    const pool = require('../config/database').getPool();
-                    if (pool) {
-                        const insertQuery = `
-                            INSERT INTO alerts (station_id, alert_level, water_level, threshold, battery, rssi, line_status)
-                            VALUES ($1, $2, $3, $4, $5, $6, $7)
-                            RETURNING id, created_at
-                        `;
-                        const res = await pool.query(insertQuery, [deviceId, alertLevel, waterLevel, threshold, battery, rssi, 'sent_to_bot']);
-
-                        if (res.rows.length > 0) {
-                            alertEntry.id = res.rows[0].id;
-                            alertEntry.timestamp = res.rows[0].created_at;
-                            io.emit('new-alert', alertEntry);
-                        } else {
-                            io.emit('new-alert', alertEntry);
-                        }
+                    // Check Global Cooldown
+                    if (notificationEngine.isGlobalCooldownActive()) {
+                        console.log(`⏳ Global Cooldown active: Queueing alert for ${stationName} to batch.`);
+                        notificationEngine.queueMessage(alertEntry, 'batch');
                     } else {
-                        io.emit('new-alert', alertEntry);
-                    }
-                } catch (e) {
-                    console.error("⚠️ Failed to save alert to DB:", e.message);
-                    io.emit('new-alert', alertEntry);
-                }
+                        // Send immediately
+                        console.log(`${alertLevel === 'dangerous' ? '🚨' : (alertLevel === 'warning' ? '⚠️' : '🟢')} Alert: ${stationName} | Level: ${alertLevel}`);
+                        
+                        sendAlertByLevel(alertEntry);
+                        
+                        notificationEngine.incrementDailyCount(deviceId, alertLevel);
+                        notificationEngine.markGlobalBroadcastSent();
 
-                if (!alertCooldowns[deviceId]) alertCooldowns[deviceId] = {};
-                if (alertLevel === 'dangerous') {
-                    alertCooldowns[deviceId].lastDangerNotified = now;
-                } else {
-                    alertCooldowns[deviceId].lastWarnNotified = now;
+                        // Save to PostgreSQL
+                        try {
+                            const pool = require('../config/database').getPool();
+                            if (pool) {
+                                const insertQuery = `
+                                    INSERT INTO alerts (station_id, alert_level, water_level, threshold, battery, rssi, line_status)
+                                    VALUES ($1, $2, $3, $4, $5, $6, $7)
+                                    RETURNING id, created_at
+                                `;
+                                const res = await pool.query(insertQuery, [deviceId, alertLevel, waterLevel, threshold, battery, rssi, 'sent_to_bot']);
+                                if (res.rows.length > 0) {
+                                    alertEntry.id = res.rows[0].id;
+                                    alertEntry.timestamp = res.rows[0].created_at;
+                                    io.emit('new-alert', alertEntry);
+                                }
+                            }
+                        } catch (e) {
+                            console.error("⚠️ Failed to save alert to DB:", e.message);
+                        }
+                    }
                 }
+            } else {
+                console.log(`🛑 Quota Exceeded: ${alertLevel} alert for ${stationName} blocked.`);
             }
         }
 

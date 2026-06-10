@@ -238,6 +238,7 @@ export const translations = {
       tabStations: 'Stations',
       tabSystem: 'System',
       tabUsers: 'Users',
+      tabLineOA: 'LINE OA',
 
       // Notifications tab
       alertConfig: 'Alert Configuration',
@@ -248,8 +249,20 @@ export const translations = {
       lineNotifyToken: 'LINE Notify Token',
       getTokenHere: 'Get Token Here',
       testNotification: 'Test Notification',
+      testingToken: 'Testing Token...',
       lineOABot: 'LINE OA Bot (Push Alerts)',
       lineOABotDesc: 'Toggle this off to mute automatic danger/warning push messages to subscribers. Useful for system testing or maintenance.',
+      
+      // LINE OA tab
+      lineOATitle: 'LINE Notification Engine',
+      lineOADesc: 'Configure connection and advanced notification rules.',
+      pipelineSettings: 'Advanced Pipeline Rules',
+      quotaSafe: 'Safe Status Quota (per day)',
+      quotaWatch: 'Watch Status Quota (per day)',
+      quotaDanger: 'Danger Status Quota (per day)',
+      nightBlockStart: 'Night Block Start Hour (0-23)',
+      nightBlockEnd: 'Night Block End Hour (0-23)',
+      globalCooldown: 'Global Cooldown (Minutes)',
 
       // Stations tab
       configuredStations: 'Configured Stations',
@@ -680,6 +693,7 @@ export const translations = {
       tabStations: 'สถานี',
       tabSystem: 'ระบบ',
       tabUsers: 'ผู้ใช้',
+      tabLineOA: 'LINE OA',
 
       // Notifications tab
       alertConfig: 'การตั้งค่าการแจ้งเตือน',
@@ -690,8 +704,20 @@ export const translations = {
       lineNotifyToken: 'โทเค็น LINE Notify',
       getTokenHere: 'รับโทเค็นที่นี่',
       testNotification: 'ทดสอบแจ้งเตือน',
+      testingToken: 'กำลังทดสอบ...',
       lineOABot: 'LINE OA Bot (แจ้งเตือนอัตโนมัติ)',
       lineOABotDesc: 'ปิดเพื่อหยุดส่งข้อความแจ้งเตือนอัตโนมัติถึงผู้ติดตาม เหมาะสำหรับการทดสอบหรือบำรุงรักษาระบบ',
+
+      // LINE OA tab
+      lineOATitle: 'ระบบจัดการแจ้งเตือน LINE',
+      lineOADesc: 'ตั้งค่าการเชื่อมต่อและกฎการแจ้งเตือนขั้นสูง',
+      pipelineSettings: 'กฎและข้อจำกัดการแจ้งเตือน',
+      quotaSafe: 'โควต้าสถานะปลอดภัย (ต่อวัน)',
+      quotaWatch: 'โควต้าสถานะเฝ้าระวัง (ต่อวัน)',
+      quotaDanger: 'โควต้าสถานะอันตราย (ต่อวัน)',
+      nightBlockStart: 'เวลาเริ่มบล็อคกลางคืน (ชั่วโมง 0-23)',
+      nightBlockEnd: 'เวลาสิ้นสุดบล็อคกลางคืน (ชั่วโมง 0-23)',
+      globalCooldown: 'หน่วงเวลาส่งรวบยอด (นาที)',
 
       // Stations tab
       configuredStations: 'สถานีที่ตั้งค่าแล้ว',

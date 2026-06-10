@@ -193,6 +193,7 @@ export default function SettingsPage() {
     if (role === 'admin') {
         tabs.push({ id: 'system', label: t('settings.tabSystem'), icon: <Cpu className="w-5 h-5" /> });
         tabs.push({ id: 'users', label: t('settings.tabUsers'), icon: <Users className="w-5 h-5" /> });
+        tabs.push({ id: 'line_oa', label: t('settings.tabLineOA'), icon: <MessageCircle className="w-5 h-5" /> });
     }
 
     // Calculate unconfigured stations
@@ -295,32 +296,6 @@ export default function SettingsPage() {
                                     </p>
                                 </div>
 
-                                {/* LINE Notify Configuration (Admin Only) */}
-                                {role === 'admin' && (
-                                    <>
-                                        {/* LINE Official Account Bot */}
-                                        <div className="bg-blue-900/20 p-6 rounded-xl border border-blue-500/30">
-                                            <div className="flex justify-between items-center mb-4">
-                                                <label className="block text-sm font-bold text-blue-400 flex items-center gap-2">
-                                                    <Smartphone className="w-4 h-4" />
-                                                    {t('settings.lineOABot')}
-                                                </label>
-                                                <div className="form-checkbox flex items-center gap-2">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={settings.lineBot?.active ?? true}
-                                                        onChange={(e) => handleChange('lineBot', 'active', e.target.checked)}
-                                                        className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-blue-500"
-                                                    />
-                                                    <span className="text-xs text-gray-400">{t('common.enable')}</span>
-                                                </div>
-                                            </div>
-                                            <p className="text-xs text-gray-400">
-                                                {t('settings.lineOABotDesc')}
-                                            </p>
-                                        </div>
-                                    </>
-                                )}
                             </div>
                         </div>
                     </div>
@@ -750,6 +725,162 @@ export default function SettingsPage() {
                 {/* 👥 Users Tab */}
                 {activeTab === 'users' && role === 'admin' && (
                     <UserManagement />
+                )}
+
+                {/* 💬 LINE OA Tab */}
+                {activeTab === 'line_oa' && role === 'admin' && (
+                    <div className="space-y-8 fade-in">
+                        <h2 className="text-xl font-bold mb-6 flex items-center gap-2 pb-2 border-b border-gray-700">
+                            <MessageCircle className="w-6 h-6 text-green-500" />
+                            {t('settings.lineOATitle')}
+                        </h2>
+                        <p className="text-sm text-gray-400 -mt-4 mb-4">{t('settings.lineOADesc')}</p>
+
+                        <div className="grid grid-cols-1 gap-8">
+                            {/* LINE Official Account Bot & Token */}
+                            <div className="bg-green-900/20 p-6 rounded-xl border border-green-500/40">
+                                <div className="flex justify-between items-center mb-4">
+                                    <label className="block text-sm font-bold text-green-400 flex items-center gap-2">
+                                        <Key className="w-4 h-4" />
+                                        {t('settings.lineNotifyToken')}
+                                    </label>
+                                    <div className="form-checkbox flex items-center gap-2">
+                                        <input
+                                            type="checkbox"
+                                            checked={settings.lineNotify?.active ?? false}
+                                            onChange={(e) => handleChange('lineNotify', 'active', e.target.checked)}
+                                            className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-green-500"
+                                        />
+                                        <span className="text-xs text-gray-400">{t('common.enable')}</span>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col md:flex-row gap-4">
+                                    <input
+                                        type="password"
+                                        placeholder="LINE Notify Token"
+                                        value={settings.lineNotify?.token || ''}
+                                        onChange={(e) => handleChange('lineNotify', 'token', e.target.value)}
+                                        className="flex-1 bg-gray-800 border border-green-600/50 rounded-lg p-3 text-white focus:border-green-400 outline-none font-mono"
+                                    />
+                                    <button
+                                        onClick={async () => {
+                                            const btn = document.getElementById('test-notify-btn');
+                                            btn.innerText = t('settings.testingToken');
+                                            btn.disabled = true;
+                                            try {
+                                                const res = await fetch(`${API_URL}/test-notify`, {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json', 'x-api-key': 'IEEE_SECURE_API_KEY_2025' },
+                                                    body: JSON.stringify({ token: settings.lineNotify?.token })
+                                                });
+                                                if (res.ok) toast.success(t('common.success'));
+                                                else toast.error(t('common.error'));
+                                            } catch (e) {
+                                                toast.error(t('common.error') + ": " + e.message);
+                                            }
+                                            btn.innerText = t('settings.testNotification');
+                                            btn.disabled = false;
+                                        }}
+                                        id="test-notify-btn"
+                                        className="bg-green-600 hover:bg-green-500 text-white px-4 py-3 rounded-lg font-bold whitespace-nowrap transition-colors"
+                                    >
+                                        {t('settings.testNotification')}
+                                    </button>
+                                </div>
+                                <div className="mt-6 pt-6 border-t border-green-800/50">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <label className="block text-sm font-bold text-blue-400 flex items-center gap-2">
+                                            <Smartphone className="w-4 h-4" />
+                                            {t('settings.lineOABot')}
+                                        </label>
+                                        <div className="form-checkbox flex items-center gap-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={settings.lineBot?.active ?? true}
+                                                onChange={(e) => handleChange('lineBot', 'active', e.target.checked)}
+                                                className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-blue-500"
+                                            />
+                                            <span className="text-xs text-gray-400">{t('common.enable')}</span>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-gray-400">
+                                        {t('settings.lineOABotDesc')}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Pipeline Configuration */}
+                            <div className="bg-gray-800/80 p-6 rounded-xl border border-gray-700">
+                                <h3 className="text-lg font-bold mb-6 text-blue-300 border-b border-gray-700 pb-3 flex items-center gap-2">
+                                    <Activity className="w-5 h-5" />
+                                    {t('settings.pipelineSettings')}
+                                </h3>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                    {/* Quotas */}
+                                    <div className="bg-green-900/10 p-4 rounded-lg border border-green-500/20">
+                                        <label className="text-xs font-bold text-green-400 block mb-2">{t('settings.quotaSafe')}</label>
+                                        <input
+                                            type="number"
+                                            value={settings.notificationPipeline?.quotaSafe ?? 1}
+                                            onChange={(e) => handleChange('notificationPipeline', 'quotaSafe', parseInt(e.target.value) || 0)}
+                                            className="w-full bg-gray-900 border border-gray-600 rounded p-2 text-white outline-none focus:border-green-500 text-center font-mono"
+                                        />
+                                    </div>
+                                    <div className="bg-yellow-900/10 p-4 rounded-lg border border-yellow-500/20">
+                                        <label className="text-xs font-bold text-yellow-400 block mb-2">{t('settings.quotaWatch')}</label>
+                                        <input
+                                            type="number"
+                                            value={settings.notificationPipeline?.quotaWatch ?? 3}
+                                            onChange={(e) => handleChange('notificationPipeline', 'quotaWatch', parseInt(e.target.value) || 0)}
+                                            className="w-full bg-gray-900 border border-gray-600 rounded p-2 text-white outline-none focus:border-yellow-500 text-center font-mono"
+                                        />
+                                    </div>
+                                    <div className="bg-red-900/10 p-4 rounded-lg border border-red-500/20">
+                                        <label className="text-xs font-bold text-red-400 block mb-2">{t('settings.quotaDanger')}</label>
+                                        <input
+                                            type="number"
+                                            value={settings.notificationPipeline?.quotaDanger ?? 6}
+                                            onChange={(e) => handleChange('notificationPipeline', 'quotaDanger', parseInt(e.target.value) || 0)}
+                                            className="w-full bg-gray-900 border border-gray-600 rounded p-2 text-white outline-none focus:border-red-500 text-center font-mono"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    {/* Time Block */}
+                                    <div className="bg-purple-900/10 p-4 rounded-lg border border-purple-500/20">
+                                        <label className="text-xs font-bold text-purple-400 block mb-2">{t('settings.nightBlockStart')}</label>
+                                        <input
+                                            type="number" min="0" max="23"
+                                            value={settings.notificationPipeline?.nightBlockStart ?? 22}
+                                            onChange={(e) => handleChange('notificationPipeline', 'nightBlockStart', parseInt(e.target.value) || 0)}
+                                            className="w-full bg-gray-900 border border-gray-600 rounded p-2 text-white outline-none focus:border-purple-500 text-center font-mono"
+                                        />
+                                    </div>
+                                    <div className="bg-purple-900/10 p-4 rounded-lg border border-purple-500/20">
+                                        <label className="text-xs font-bold text-purple-400 block mb-2">{t('settings.nightBlockEnd')}</label>
+                                        <input
+                                            type="number" min="0" max="23"
+                                            value={settings.notificationPipeline?.nightBlockEnd ?? 5}
+                                            onChange={(e) => handleChange('notificationPipeline', 'nightBlockEnd', parseInt(e.target.value) || 0)}
+                                            className="w-full bg-gray-900 border border-gray-600 rounded p-2 text-white outline-none focus:border-purple-500 text-center font-mono"
+                                        />
+                                    </div>
+                                    {/* Cooldown */}
+                                    <div className="bg-blue-900/10 p-4 rounded-lg border border-blue-500/20">
+                                        <label className="text-xs font-bold text-blue-400 block mb-2">{t('settings.globalCooldown')}</label>
+                                        <input
+                                            type="number"
+                                            value={settings.notificationPipeline?.globalCooldownMin ?? 30}
+                                            onChange={(e) => handleChange('notificationPipeline', 'globalCooldownMin', parseInt(e.target.value) || 0)}
+                                            className="w-full bg-gray-900 border border-gray-600 rounded p-2 text-white outline-none focus:border-blue-500 text-center font-mono"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 )}
 
                 {/* Global Save Button */}

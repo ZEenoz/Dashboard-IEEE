@@ -20,6 +20,7 @@
     "googleapis": "^171.4.0",
     "iconv-lite": "^0.7.2",
     "mqtt": "^5.14.1",
+    "node-cron": "^4.2.1",
     "pg": "^8.16.3",
     "socket.io": "^4.8.1",
     "systeminformation": "^5.31.0"

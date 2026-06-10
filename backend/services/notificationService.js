@@ -89,28 +89,58 @@ function testLineNotify(token) {
 }
 
 /**
+ * Generate a combined message from a batch of alerts
+ * @param {Array} alerts - Array of alert objects
+ * @param {string} headerTitle - Title for the batch message
+ */
+function generateBatchMessage(alerts, headerTitle = "⚠️ สรุปแจ้งเตือนรวบยอด") {
+    let msg = `\n${headerTitle}\n\n`;
+    alerts.forEach(alert => {
+        let icon = "🟢";
+        if (alert.alertLevel === 'dangerous') icon = "🔴";
+        else if (alert.alertLevel === 'warning') icon = "🟡";
+
+        msg += `${icon} สถานี: ${alert.stationName}\n`;
+        msg += `   ระดับน้ำ: ${Number(alert.waterLevel).toFixed(2)} m\n`;
+        if (alert.isRapidChange) {
+            msg += `   🚨 ระดับน้ำเปลี่ยนแปลกฉับพลัน!\n`;
+        }
+    });
+    return msg;
+}
+
+/**
  * Send a level-specific alert notification via LINE Notify
  * @param {object} alertEntry - Alert data from mqttService
  */
 function sendAlertByLevel(alertEntry) {
-    const { alertLevel, stationName, waterLevel, threshold, battery, rssi } = alertEntry;
+    const { alertLevel, stationName, waterLevel, threshold, battery, rssi, isRapidChange } = alertEntry;
 
     let msg;
     if (alertLevel === 'dangerous') {
         msg = `\n🚨🚨 ระดับน้ำวิกฤต! ต้องการความสนใจทันที!\n` +
             `📍 สถานี: ${stationName}\n` +
             `💧 ระดับน้ำ: ${Number(waterLevel).toFixed(2)} m (เกิน Critical ${Number(threshold).toFixed(1)} m)\n` +
-            `⚠️ กรุณาตรวจสอบและดำเนินการ!\n` +
-            `🔋 Battery: ${Number(battery).toFixed(1)} V | 📶 RSSI: ${rssi} dBm`;
-    } else {
+            `⚠️ กรุณาตรวจสอบและดำเนินการ!\n`;
+    } else if (alertLevel === 'warning') {
         msg = `\n⚠️ แจ้งเตือนระดับน้ำสูง\n` +
             `📍 สถานี: ${stationName}\n` +
-            `💧 ระดับน้ำ: ${Number(waterLevel).toFixed(2)} m (เกิน Warning ${Number(threshold).toFixed(1)} m)\n` +
-            `🔋 Battery: ${Number(battery).toFixed(1)} V | 📶 RSSI: ${rssi} dBm`;
+            `💧 ระดับน้ำ: ${Number(waterLevel).toFixed(2)} m (เกิน Warning ${Number(threshold).toFixed(1)} m)\n`;
+    } else {
+        msg = `\n🟢 สถานการณ์ปกติ (Safe)\n` +
+            `📍 สถานี: ${stationName}\n` +
+            `💧 ระดับน้ำ: ${Number(waterLevel).toFixed(2)} m (ต่ำกว่า Warning)\n` +
+            `✅ ระดับน้ำอยู่ในเกณฑ์ปลอดภัย\n`;
     }
+
+    if (isRapidChange) {
+        msg += `\n🌊⚠️ มีการเปลี่ยนแปลงระดับน้ำอย่างรวดเร็ว (เกิน 0.3m ใน 30 นาที)!\n`;
+    }
+
+    msg += `🔋 Battery: ${Number(battery).toFixed(1)} V | 📶 RSSI: ${rssi} dBm`;
 
     return sendLineNotify(msg);
 }
 
-module.exports = { sendLineNotify, testLineNotify, sendAlertByLevel };
+module.exports = { sendLineNotify, testLineNotify, sendAlertByLevel, generateBatchMessage };
 

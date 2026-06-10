@@ -72,6 +72,7 @@ let mqttClient;
 let mqttOut;
 let stationHistory = {};
 let activeNodes = {};
+let nodeBuffers = {}; // Added for Median Filter Buffer
 let gatewayStatus = {};
 let alertCooldowns = {};
 let currentIo = null;         // Keep reference to Socket.IO for reconnection
@@ -139,12 +140,14 @@ function initMQTT(io) {
         const csMqttUrl = csConfig.mqttUrl || CHIRPSTACK_MQTT_URL;
         const csMqttUser = csConfig.mqttUser || CHIRPSTACK_MQTT_USER;
         const csMqttPass = csConfig.mqttPass || CHIRPSTACK_MQTT_PASS;
-        const csAppId = csConfig.applicationId || CHIRPSTACK_APP_ID;
+        const appIds = csConfig.applicationIds && csConfig.applicationIds.length > 0 
+                       ? csConfig.applicationIds 
+                       : (csConfig.applicationId || CHIRPSTACK_APP_ID ? [csConfig.applicationId || CHIRPSTACK_APP_ID] : ['+']);
         const csUseTls = csConfig.useTls || CHIRPSTACK_USE_TLS;
 
         console.log("🟣 Mode: ChirpStack v4");
         console.log(`   Broker: ${csMqttUrl}`);
-        console.log(`   App ID: ${csAppId || '(wildcard)'}`);
+        console.log(`   App IDs: ${appIds.join(', ')}`);
         console.log(`   TLS: ${csUseTls ? 'Enabled' : 'Disabled'}`);
         console.log(`   Auth: ${csMqttUser ? 'Username/Password' : 'Anonymous'}`);
 
@@ -174,13 +177,8 @@ function initMQTT(io) {
 
         mqttOptions = { ...opts };
 
-        // ChirpStack v4 topic structure:
-        //   application/{application_id}/device/{dev_eui}/event/up
-        // Use + wildcard for application_id if not specified
-        const appFilter = csAppId || '+';
-        TOPIC = `application/${appFilter}/device/+/event/up`;
-
-        console.log(`   Topic: ${TOPIC}`);
+        // For UI logging, we'll just show the first topic structure
+        console.log(`   Listening to ${appIds.length} Application ID(s)`);
 
         console.log(`📡 Connecting to ChirpStack: ${brokerUrl}`);
         mqttClient = mqtt.connect(brokerUrl, mqttOptions);
@@ -189,24 +187,24 @@ function initMQTT(io) {
 
         mqttClient.on('connect', () => {
             console.log(`✅ Connected to ChirpStack MQTT Broker`);
-            mqttClient.subscribe(TOPIC, (err) => {
-                if (!err) {
-                    console.log(`📡 Subscribed to ChirpStack topic: ${TOPIC}`);
-                } else {
-                    console.error(`❌ ChirpStack Subscribe Error:`, err.message);
-                }
-            });
+            
+            appIds.forEach(appFilter => {
+                const upTopic = `application/${appFilter}/device/+/event/up`;
+                const statusTopic = `application/${appFilter}/device/+/event/status`;
+                const joinTopic = `application/${appFilter}/device/+/event/join`;
 
-            // Also subscribe to device status events for richer monitoring
-            const statusTopic = `application/${appFilter}/device/+/event/status`;
-            mqttClient.subscribe(statusTopic, (err) => {
-                if (!err) console.log(`📡 Subscribed to ChirpStack status: ${statusTopic}`);
-            });
+                mqttClient.subscribe(upTopic, (err) => {
+                    if (!err) console.log(`📡 Subscribed: ${upTopic}`);
+                    else console.error(`❌ Subscribe Error (${upTopic}):`, err.message);
+                });
 
-            // Subscribe to join events
-            const joinTopic = `application/${appFilter}/device/+/event/join`;
-            mqttClient.subscribe(joinTopic, (err) => {
-                if (!err) console.log(`📡 Subscribed to ChirpStack join: ${joinTopic}`);
+                mqttClient.subscribe(statusTopic, (err) => {
+                    if (!err) console.log(`📡 Subscribed: ${statusTopic}`);
+                });
+
+                mqttClient.subscribe(joinTopic, (err) => {
+                    if (!err) console.log(`📡 Subscribed: ${joinTopic}`);
+                });
             });
         });
 
@@ -644,7 +642,56 @@ async function handleMessage(message, io) {
             }
             imageUrl = STATIONS_CONFIG[deviceId].image || STATIONS_CONFIG[deviceId].imageUrl || null;
         }
-        waterLevel = parseFloat((rawLevel + offset).toFixed(3));
+        
+        let calibratedRaw = parseFloat((rawLevel + offset).toFixed(3));
+
+        // ──────────────────────────────────────────
+        // 🛡️ ANTI-RIPPLE DATA PIPELINE
+        // ──────────────────────────────────────────
+        
+        // 1. Out-of-Bounds Filter (0 to 10m limit)
+        // If the reading is physically impossible (e.g. 999m or -5m), discard it entirely.
+        if (calibratedRaw < 0 || calibratedRaw > 10) {
+            console.log(`⚠️ Ignored out-of-bounds reading for ${deviceId}: ${calibratedRaw}m`);
+            return; // Stop processing this payload entirely
+        }
+
+        if (!nodeBuffers[deviceId]) {
+            nodeBuffers[deviceId] = {
+                history: [],
+                lastAcceptedVal: calibratedRaw
+            };
+        }
+
+        const bufferObj = nodeBuffers[deviceId];
+
+        // 2. Rate of Change (ROC) Limiter
+        // If water jumps more than 1.5 meters compared to the last accepted value instantly, it's likely a massive glitch
+        const MAX_DELTA_M = 1.5; 
+        if (Math.abs(calibratedRaw - bufferObj.lastAcceptedVal) > MAX_DELTA_M) {
+            console.log(`⚠️ Rate limit exceeded for ${deviceId}: Jumped from ${bufferObj.lastAcceptedVal}m to ${calibratedRaw}m`);
+            // We push it anyway so if it STAYS at the new value for 3 readings, the Median filter will eventually adopt it.
+        }
+
+        // 3. Median Filter (Buffer N=3)
+        bufferObj.history.push(calibratedRaw);
+        if (bufferObj.history.length > 3) {
+            bufferObj.history.shift(); // Keep only last 3
+        }
+
+        // Calculate Median
+        let medianVal = calibratedRaw;
+        if (bufferObj.history.length === 3) {
+            const sorted = [...bufferObj.history].sort((a, b) => a - b);
+            medianVal = sorted[1]; // Middle value
+        } else if (bufferObj.history.length === 2) {
+            medianVal = (bufferObj.history[0] + bufferObj.history[1]) / 2; // Average if only 2
+        }
+
+        bufferObj.lastAcceptedVal = medianVal;
+        
+        // 4. Update the actual system waterLevel
+        waterLevel = parseFloat(medianVal.toFixed(3));
 
 
         const stationId =

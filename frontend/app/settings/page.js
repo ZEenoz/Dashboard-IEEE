@@ -664,13 +664,40 @@ export default function SettingsPage() {
                                     {/* Application ID */}
                                     <div>
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">{t('settings.applicationId')}</label>
-                                        <input
-                                            type="text"
-                                            placeholder="UUID from ChirpStack (or leave empty for wildcard)"
-                                            value={settings.chirpstack?.applicationId || ''}
-                                            onChange={(e) => handleChange('chirpstack', 'applicationId', e.target.value)}
-                                            className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:border-purple-500 outline-none font-mono"
-                                        />
+                                        {(settings.chirpstack?.applicationIds && settings.chirpstack.applicationIds.length > 0 ? settings.chirpstack.applicationIds : ['']).map((appId, index) => (
+                                            <div key={index} className="flex gap-2 mb-2">
+                                                <input
+                                                    type="text"
+                                                    placeholder="UUID from ChirpStack (or leave empty for wildcard)"
+                                                    value={appId}
+                                                    onChange={(e) => {
+                                                        const newIds = [...(settings.chirpstack?.applicationIds || [])];
+                                                        newIds[index] = e.target.value;
+                                                        handleChange('chirpstack', 'applicationIds', newIds);
+                                                    }}
+                                                    className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:border-purple-500 outline-none font-mono"
+                                                />
+                                                <button 
+                                                    onClick={() => {
+                                                        const newIds = (settings.chirpstack?.applicationIds || []).filter((_, i) => i !== index);
+                                                        handleChange('chirpstack', 'applicationIds', newIds.length > 0 ? newIds : ['']);
+                                                    }}
+                                                    className="bg-red-900/50 hover:bg-red-800 text-red-500 px-3 rounded font-bold transition-colors"
+                                                    title="Remove ID"
+                                                >
+                                                    -
+                                                </button>
+                                            </div>
+                                        ))}
+                                        <button
+                                            onClick={() => {
+                                                const newIds = [...(settings.chirpstack?.applicationIds || []), ''];
+                                                handleChange('chirpstack', 'applicationIds', newIds);
+                                            }}
+                                            className="text-xs text-purple-400 hover:text-purple-300 font-bold flex items-center gap-1 mt-1 transition-colors"
+                                        >
+                                            + Add Application ID
+                                        </button>
                                     </div>
 
                                     {/* MQTT Username */}

@@ -24,7 +24,7 @@ let settings = {
         mqttUrl: '',       // e.g. "mqtt://chirpstack.example.com:1883"
         mqttUser: '',      // MQTT username
         mqttPass: '',      // MQTT password 
-        applicationId: '', // ChirpStack Application ID (UUID)
+        applicationIds: [], // Array of ChirpStack Application IDs (UUIDs)
         useTls: false
     },
     lineNotify: { token: '', active: false },
@@ -43,6 +43,15 @@ function loadSettings() {
         try {
             const raw = fs.readFileSync(SETTINGS_FILE, 'utf8');
             settings = JSON.parse(raw);
+            
+            // Migration: Convert single applicationId to array
+            if (settings.chirpstack && settings.chirpstack.applicationId && (!settings.chirpstack.applicationIds || settings.chirpstack.applicationIds.length === 0)) {
+                settings.chirpstack.applicationIds = [settings.chirpstack.applicationId];
+                delete settings.chirpstack.applicationId;
+            } else if (settings.chirpstack && !settings.chirpstack.applicationIds) {
+                settings.chirpstack.applicationIds = [];
+            }
+
             console.log("⚙️ Loaded settings from settings.json");
         } catch (e) {
             console.error("⚠️ Failed to load settings.json, using defaults.");

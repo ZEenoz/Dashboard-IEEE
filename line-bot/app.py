@@ -39,7 +39,21 @@ def add_ngrok_header(response):
 def liff_page():
     # Pass dynamic station list to frontend template
     stations = get_live_stations()
-    return render_template('register.html', stations=stations)
+    
+    # Fetch liffId from Node API settings
+    liff_id = ""
+    try:
+        from config import NODE_API_URL
+        import requests
+        settings_url = f"{NODE_API_URL}/settings"
+        resp = requests.get(settings_url, headers={"ngrok-skip-browser-warning": "true"}, timeout=5)
+        if resp.status_code == 200:
+            settings = resp.json()
+            liff_id = settings.get("lineBot", {}).get("liffId", "")
+    except Exception as e:
+        print(f"Failed to fetch liffId from settings: {e}")
+
+    return render_template('register.html', stations=stations, liff_id=liff_id)
 
 def get_live_stations():
     """ 

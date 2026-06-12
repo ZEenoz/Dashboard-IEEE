@@ -73,11 +73,12 @@ function sendLineNotify(messageOrMessages) {
 /**
  * Test Notification with provided token (for Settings Page test)
  */
-function testLineNotify(token) {
+function testLineNotify(token, userId = null) {
     return new Promise((resolve, reject) => {
         const message = "🔔 This is a test notification from Water Monitor System.";
+        const targetUser = userId || "Ue79adabc356aa7b6f4f8c76debb1456a";
         const payload = JSON.stringify({
-            to: "Ue79adabc356aa7b6f4f8c76debb1456a", // Send specifically to this user
+            to: targetUser, // Send specifically to this user
             messages: [
                 {
                     type: "text",

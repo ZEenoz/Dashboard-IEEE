@@ -28,8 +28,12 @@ import {
     Trash2,
     Move,
     Database,
-    Download,
-    Users
+    Users,
+    Globe,
+    Lock,
+    Copy,
+    Link,
+    Download
 } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -794,7 +798,7 @@ export default function SettingsPage() {
                                 </div>
                                 <div className="flex flex-col md:flex-row gap-4">
                                     <textarea
-                                        placeholder="eyJ..."
+                                        placeholder="Paste your Long-Lived Channel Access Token here..."
                                         rows="2"
                                         value={settings.lineNotify?.token || ''}
                                         onChange={(e) => handleChange('lineNotify', 'token', e.target.value)}
@@ -802,6 +806,9 @@ export default function SettingsPage() {
                                     />
                                     <button
                                         onClick={async () => {
+                                            const testUserId = window.prompt("Enter target LINE User ID for test message (Leave blank to use default system admin ID):");
+                                            if (testUserId === null) return; // User cancelled
+
                                             const btn = document.getElementById('test-notify-btn');
                                             btn.innerText = t('settings.testingToken');
                                             btn.disabled = true;
@@ -809,7 +816,10 @@ export default function SettingsPage() {
                                                 const res = await fetch(`${API_URL}/test-notify`, {
                                                     method: 'POST',
                                                     headers: { 'Content-Type': 'application/json', 'x-api-key': 'IEEE_SECURE_API_KEY_2025' },
-                                                    body: JSON.stringify({ token: settings.lineNotify?.token })
+                                                    body: JSON.stringify({ 
+                                                        token: settings.lineNotify?.token,
+                                                        userId: testUserId.trim() !== '' ? testUserId.trim() : null
+                                                    })
                                                 });
                                                 const data = await res.json();
                                                 if (res.ok && data.success) {
@@ -828,6 +838,48 @@ export default function SettingsPage() {
                                     >
                                         {t('settings.testNotification')}
                                     </button>
+                                </div>
+                                
+                                {/* LIFF ID & Webhook Config */}
+                                <div className="mt-6 pt-6 border-t border-green-800/50 flex flex-col md:flex-row gap-6">
+                                    {/* LIFF ID */}
+                                    <div className="flex-1">
+                                        <label className="block text-sm font-bold text-green-400 flex items-center gap-2 mb-3">
+                                            <Key className="w-4 h-4" />
+                                            {t('settings.liffId') || 'LINE Login (LIFF ID)'}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="1234567890-AbCdEfGh"
+                                            value={settings.lineBot?.liffId || ''}
+                                            onChange={(e) => handleChange('lineBot', 'liffId', e.target.value)}
+                                            className="w-full bg-gray-800 border border-green-600/50 rounded-lg p-3 text-white focus:border-green-400 outline-none font-mono text-sm"
+                                        />
+                                    </div>
+                                    
+                                    {/* Webhook URL */}
+                                    <div className="flex-1">
+                                        <label className="block text-sm font-bold text-green-400 flex items-center gap-2 mb-3">
+                                            <Link className="w-4 h-4" />
+                                            {t('settings.webhookUrl') || 'Webhook URL'}
+                                        </label>
+                                        <div className="flex bg-gray-900/50 border border-gray-700 rounded-lg overflow-hidden">
+                                            <div className="flex-1 p-3 text-gray-400 font-mono text-sm break-all flex items-center">
+                                                {typeof window !== 'undefined' ? `${window.location.origin.replace(':3000', ':5000')}/callback` : 'https://.../callback'}
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    const url = typeof window !== 'undefined' ? `${window.location.origin.replace(':3000', ':5000')}/callback` : '';
+                                                    navigator.clipboard.writeText(url);
+                                                    toast.success(t('settings.copySuccess') || 'Copied to clipboard!');
+                                                }}
+                                                className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-3 flex items-center gap-2 transition-colors border-l border-gray-600"
+                                                title={t('settings.copyWebhook') || 'Copy URL'}
+                                            >
+                                                <Copy className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className="mt-6 pt-6 border-t border-green-800/50">
                                     <div className="flex justify-between items-center mb-4">

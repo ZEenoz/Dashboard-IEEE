@@ -16,6 +16,7 @@ export const SocketProvider = ({ children }) => {
     const [sessionHistory, setSessionHistory] = useState([]); // 🟢 Store "Fresh Start" history (clears on refresh)
     const [lineNotifications, setLineNotifications] = useState([]);
     const [displayMode, setDisplayMode] = useState('calibrated'); // 'raw' | 'calibrated'
+    const [isConnected, setIsConnected] = useState(false);
     const socketRef = React.useRef(null);
 
     // 🆕 Persistence: Load/Save Display Mode
@@ -37,6 +38,9 @@ export const SocketProvider = ({ children }) => {
             }
         });
         socketRef.current = socket;
+
+        socket.on('connect', () => setIsConnected(true));
+        socket.on('disconnect', () => setIsConnected(false));
 
         socket.on("sensor-update", (newData) => {
             const now = new Date();
@@ -183,8 +187,9 @@ export const SocketProvider = ({ children }) => {
         socket: socketRef.current, 
         systemMode,
         displayMode,
-        setDisplayMode
-    }), [stations, history, sessionHistory, getTrend, lineNotifications, systemMode, displayMode]);
+        setDisplayMode,
+        isConnected
+    }), [stations, history, sessionHistory, getTrend, lineNotifications, systemMode, displayMode, isConnected]);
 
     return (
         <SocketContext.Provider value={contextValue}>

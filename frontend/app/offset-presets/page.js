@@ -262,9 +262,6 @@ export default function OffsetPresetsPage() {
                             {t('offsetPresets.title')}
                         </h1>
                     </div>
-                    <p className="text-gray-400 text-sm mt-1 max-w-lg">
-                        {t('offsetPresets.subtitle')}
-                    </p>
                 </div>
                 {hasChanges && (
                     <div className="flex items-center gap-2 text-amber-400 text-xs font-bold animate-pulse bg-amber-400/10 px-4 py-2 rounded-lg border border-amber-400/20">

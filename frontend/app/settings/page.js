@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 
 export default function SettingsPage() {
-    const { stations: socketStations } = useSocket();
+    const { stations: socketStations, isConnected } = useSocket();
     const { t } = useLanguage();
     const { data: session, status } = useSession();
     const router = useRouter();
@@ -604,10 +604,21 @@ export default function SettingsPage() {
                 {/* ⚙️ System Tab */}
                 {activeTab === 'system' && (
                     <div className="space-y-6 fade-in">
-                        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                            <Cpu className="w-6 h-6 text-gray-400" />
-                            {t('settings.systemStatusHealth')}
-                        </h2>
+                        <div className="flex items-center justify-between mb-4 border-b border-gray-700 pb-2">
+                            <h2 className="text-xl font-bold flex items-center gap-2">
+                                <Cpu className="w-6 h-6 text-gray-400" />
+                                {t('settings.systemStatusHealth')}
+                            </h2>
+                            {isConnected ? (
+                                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-widest shrink-0">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> GATEWAY: ONLINE
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold uppercase tracking-widest shrink-0">
+                                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> GATEWAY: OFFLINE
+                                </div>
+                            )}
+                        </div>
 
                         <SystemHealthDashboard />
 

@@ -90,7 +90,7 @@ export const translations = {
     // ─── Overview (app/page.js) ────────────────────────────────────────────
     overview: {
       title: 'System Overview',
-      subtitle: 'Monitoring all real-time water level stations across the network.',
+      subtitle: 'Monitoring all real-time water level stations.',
       dataMode: 'Data Mode',
       calibrated: 'Calibrated',
       rawData: 'Raw Data',
@@ -153,6 +153,7 @@ export const translations = {
       errorSelectDates: 'Please select both start and end dates.',
       live: 'Live',
       paused: 'Paused',
+      minLevel: 'Min Level',
       peakLevel: 'Peak Level',
       avgLevel: 'Average Level',
       activeStations: 'Active Stations',
@@ -252,7 +253,7 @@ export const translations = {
       testingToken: 'Testing Token...',
       lineOABot: 'LINE OA Bot (Push Alerts)',
       lineOABotDesc: 'Toggle this off to mute automatic danger/warning push messages to subscribers. Useful for system testing or maintenance.',
-      
+
       // LINE OA tab
       lineOATitle: 'LINE Notification Engine',
       lineOADesc: 'Configure connection and advanced notification rules.',
@@ -545,7 +546,7 @@ export const translations = {
     // ─── Overview (app/page.js) ────────────────────────────────────────────
     overview: {
       title: 'ภาพรวมระบบ',
-      subtitle: 'ติดตามสถานีวัดระดับน้ำแบบเรียลไทม์ทั้งหมดในเครือข่าย',
+      subtitle: 'ติดตามสถานีวัดระดับน้ำแบบเรียลไทม์',
       dataMode: 'โหมดข้อมูล',
       calibrated: 'ปรับค่าแล้ว',
       rawData: 'ข้อมูลดิบ',
@@ -608,6 +609,7 @@ export const translations = {
       errorSelectDates: 'กรุณาเลือกทั้งวันที่เริ่มต้นและสิ้นสุด',
       live: 'สด',
       paused: 'หยุดชั่วคราว',
+      minLevel: 'ระดับต่ำสุด',
       peakLevel: 'ระดับสูงสุด',
       avgLevel: 'ระดับเฉลี่ย',
       activeStations: 'สถานีที่ใช้งาน',

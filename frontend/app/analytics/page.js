@@ -77,7 +77,7 @@ export default function AnalyticsPage() {
     // Initialize selected stations when stations are loaded
     useEffect(() => {
         if (!settings) return; // Wait for settings to load first!
-        
+
         if (Object.keys(stations).length > 0 && selectedStations.length === 0) {
             // Default to selecting only visible stations
             const visibleStations = Object.keys(stations).filter(
@@ -113,26 +113,30 @@ export default function AnalyticsPage() {
     };
 
     // Filter and Pivot Data
-    const chartData = useMemo(() => {
+    const { chartData, timeDomain } = useMemo(() => {
         const dataToUse = isPaused ? frozenHistory : fetchedHistory;
-        if (!dataToUse || dataToUse.length === 0) return [];
+        if (!dataToUse || dataToUse.length === 0) return { chartData: [], timeDomain: [0, 0] };
 
         const now = new Date();
+        const nowTime = now.getTime();
         let duration = 60 * 60 * 1000; // Default 1h
-        if (timeRange === '6h') duration = 6 * 60 * 60 * 1000;
-        if (timeRange === '24h') duration = 24 * 60 * 60 * 1000;
-        if (timeRange === '7d') duration = 7 * 24 * 60 * 60 * 1000;
-        if (timeRange === '30d') duration = 30 * 24 * 60 * 60 * 1000;
+        let gapThreshold = 15 * 60 * 1000; // 15 mins gap threshold for 1h
+
+        if (timeRange === '6h') { duration = 6 * 60 * 60 * 1000; gapThreshold = 30 * 60 * 1000; }
+        if (timeRange === '24h') { duration = 24 * 60 * 60 * 1000; gapThreshold = 60 * 60 * 1000; }
+        if (timeRange === '7d') { duration = 7 * 24 * 60 * 60 * 1000; gapThreshold = 4 * 60 * 60 * 1000; }
+        if (timeRange === '30d') { duration = 30 * 24 * 60 * 60 * 1000; gapThreshold = 12 * 60 * 60 * 1000; }
+
+        const cutoff = nowTime - duration;
 
         // 1. Filter by time (Double check, backend should have filtered already, but just in case)
         const filteredHistory = dataToUse.filter(item => {
             if (!item.rawTimestamp && !item.serverTimestamp) return true;
-            const itemTime = new Date(item.rawTimestamp || item.serverTimestamp);
-            return (now - itemTime) <= duration;
+            const itemTime = new Date(item.rawTimestamp || item.serverTimestamp).getTime();
+            return itemTime >= cutoff;
         });
 
         // 2. Pivot Data: Group by Timestamp
-        // Backend now handles aggregation perfectly, so we just format the timestamp for the chart
         const pivotedData = {};
 
         filteredHistory.forEach(item => {
@@ -157,7 +161,30 @@ export default function AnalyticsPage() {
             );
         });
 
-        return Object.values(pivotedData).sort((a, b) => a.rawTimestamp - b.rawTimestamp);
+        const sortedData = Object.values(pivotedData).sort((a, b) => a.rawTimestamp - b.rawTimestamp);
+
+        // 3. Gap Injection for missing points
+        const finalData = [];
+        for (let i = 0; i < sortedData.length; i++) {
+            finalData.push(sortedData[i]);
+            if (i < sortedData.length - 1) {
+                const diff = sortedData[i + 1].rawTimestamp - sortedData[i].rawTimestamp;
+                if (diff > gapThreshold) {
+                    const gapTime = sortedData[i].rawTimestamp + diff / 2;
+                    const gapDate = new Date(gapTime);
+                    const gapPoint = {
+                        timestamp: timeRange === '1h' || timeRange === '6h' || timeRange === '24h'
+                            ? gapDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                            : gapDate.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                        rawTimestamp: gapTime
+                    };
+                    selectedStations.forEach(id => gapPoint[id] = null);
+                    finalData.push(gapPoint);
+                }
+            }
+        }
+
+        return { chartData: finalData, timeDomain: [cutoff, nowTime] };
     }, [fetchedHistory, frozenHistory, isPaused, timeRange, selectedStations, displayMode]);
 
     // Calculate Statistics for Selected Stations
@@ -202,7 +229,6 @@ export default function AnalyticsPage() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 px-1">
                 <div className="flex flex-col">
                     <h1 className="text-3xl font-bold text-white tracking-tight border-l-4 border-blue-500 pl-4">{t('analytics.title')}</h1>
-                    <p className="text-gray-400 text-sm mt-1">{t('analytics.subtitle')}</p>
                 </div>
 
                 <div className="flex flex-col gap-4 items-end">
@@ -278,17 +304,17 @@ export default function AnalyticsPage() {
                                     .filter(s => isFloat(s.stationId) && settings?.stations?.[s.stationId] && settings.stations[s.stationId].isVisible !== false)
                                     .sort((a, b) => (getStationConfig(a.stationId)?.order || 0) - (getStationConfig(b.stationId)?.order || 0))
                                     .map(station => (
-                                    <div
-                                        key={station.stationId}
-                                        onClick={() => toggleStation(station.stationId)}
-                                        className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${selectedStations.includes(station.stationId) ? 'bg-blue-500/20 border border-blue-500/50' : 'hover:bg-gray-700 border border-transparent'}`}
-                                    >
-                                        {selectedStations.includes(station.stationId) ? <CheckSquare size={16} style={{ color: getStationColor(station.stationId) }} /> : <Square size={16} className="text-gray-500" />}
-                                        <span className={`text-sm ${selectedStations.includes(station.stationId) ? 'text-white font-medium' : 'text-gray-400'}`}>
-                                            {getStationConfig(station.stationId)?.name || station.stationName || station.stationId}
-                                        </span>
-                                    </div>
-                                ))}
+                                        <div
+                                            key={station.stationId}
+                                            onClick={() => toggleStation(station.stationId)}
+                                            className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${selectedStations.includes(station.stationId) ? 'bg-blue-500/20 border border-blue-500/50' : 'hover:bg-gray-700 border border-transparent'}`}
+                                        >
+                                            {selectedStations.includes(station.stationId) ? <CheckSquare size={16} style={{ color: getStationColor(station.stationId) }} /> : <Square size={16} className="text-gray-500" />}
+                                            <span className={`text-sm ${selectedStations.includes(station.stationId) ? 'text-white font-medium' : 'text-gray-400'}`}>
+                                                {getStationConfig(station.stationId)?.name || station.stationName || station.stationId}
+                                            </span>
+                                        </div>
+                                    ))}
                             </div>
                         </div>
 
@@ -303,17 +329,17 @@ export default function AnalyticsPage() {
                                     .filter(s => !isFloat(s.stationId) && settings?.stations?.[s.stationId] && settings.stations[s.stationId].isVisible !== false)
                                     .sort((a, b) => (getStationConfig(a.stationId)?.order || 0) - (getStationConfig(b.stationId)?.order || 0))
                                     .map(station => (
-                                    <div
-                                        key={station.stationId}
-                                        onClick={() => toggleStation(station.stationId)}
-                                        className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${selectedStations.includes(station.stationId) ? 'bg-purple-500/20 border border-purple-500/50' : 'hover:bg-gray-700 border border-transparent'}`}
-                                    >
-                                        {selectedStations.includes(station.stationId) ? <CheckSquare size={16} style={{ color: getStationColor(station.stationId) }} /> : <Square size={16} className="text-gray-500" />}
-                                        <span className={`text-sm ${selectedStations.includes(station.stationId) ? 'text-white font-medium' : 'text-gray-400'}`}>
-                                            {getStationConfig(station.stationId)?.name || station.stationName || station.stationId}
-                                        </span>
-                                    </div>
-                                ))}
+                                        <div
+                                            key={station.stationId}
+                                            onClick={() => toggleStation(station.stationId)}
+                                            className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${selectedStations.includes(station.stationId) ? 'bg-purple-500/20 border border-purple-500/50' : 'hover:bg-gray-700 border border-transparent'}`}
+                                        >
+                                            {selectedStations.includes(station.stationId) ? <CheckSquare size={16} style={{ color: getStationColor(station.stationId) }} /> : <Square size={16} className="text-gray-500" />}
+                                            <span className={`text-sm ${selectedStations.includes(station.stationId) ? 'text-white font-medium' : 'text-gray-400'}`}>
+                                                {getStationConfig(station.stationId)?.name || station.stationName || station.stationId}
+                                            </span>
+                                        </div>
+                                    ))}
                             </div>
                         </div>
                     </div>
@@ -323,6 +349,10 @@ export default function AnalyticsPage() {
                 <div className="lg:col-span-3 flex flex-col gap-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="bg-[#151E32] rounded-2xl p-4 border border-gray-700 shadow-xl">
+                            <h3 className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">{t('analytics.minLevel')}</h3>
+                            <div className="text-2xl font-bold text-white tabular-nums">{stats.min} <span className="text-sm font-normal text-gray-400 font-mono">m</span></div>
+                        </div>
+                        <div className="bg-[#151E32] rounded-2xl p-4 border border-gray-700 shadow-xl">
                             <h3 className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">{t('analytics.peakLevel')}</h3>
                             <div className="text-2xl font-bold text-white tabular-nums">{stats.max} <span className="text-sm font-normal text-gray-400 font-mono">m</span></div>
                         </div>
@@ -330,91 +360,134 @@ export default function AnalyticsPage() {
                             <h3 className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">{t('analytics.avgLevel')}</h3>
                             <div className="text-2xl font-bold text-white tabular-nums">{stats.avg} <span className="text-sm font-normal text-gray-400 font-mono">m</span></div>
                         </div>
-                        <div className="bg-[#151E32] rounded-2xl p-4 border border-gray-700 shadow-xl">
-                            <h3 className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">{t('analytics.minLevel') || 'MIN LEVEL'}</h3>
-                            <div className="text-2xl font-bold text-white tabular-nums">{stats.min} <span className="text-sm font-normal text-gray-400 font-mono">m</span></div>
-                        </div>
                     </div>
 
                     <div className="bg-gray-800 rounded-xl p-2 sm:p-4 md:p-6 border border-gray-700 shadow-lg flex-1 min-h-[450px] w-full flex flex-col overflow-hidden">
-                        
+
                         <div className="flex-1 min-h-[350px]">
                             <ResponsiveContainer width="100%" height="100%">
-                            {chartType === 'area' ? (
-                                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 10 }}>
-                                    <defs>
+                                {chartType === 'area' ? (
+                                    <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 10 }}>
+                                        <defs>
+                                            {selectedStations.map(stationId => (
+                                                <linearGradient key={`grad-${stationId}`} id={`grad-${stationId}`} x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor={getStationColor(stationId)} stopOpacity={0.8} />
+                                                    <stop offset="95%" stopColor={getStationColor(stationId)} stopOpacity={0} />
+                                                </linearGradient>
+                                            ))}
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                                        <XAxis
+                                            dataKey="rawTimestamp"
+                                            type="number"
+                                            scale="time"
+                                            domain={timeDomain}
+                                            stroke="#9CA3AF"
+                                            tick={{ fontSize: 12 }}
+                                            minTickGap={30}
+                                            tickFormatter={(unixTime) => {
+                                                const date = new Date(unixTime);
+                                                return timeRange === '1h' || timeRange === '6h' || timeRange === '24h'
+                                                    ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                                    : date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                                            }}
+                                        />
+                                        <YAxis stroke="#9CA3AF" />
+                                        <Tooltip
+                                            labelFormatter={(label) => new Date(label).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                                            contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
+                                            labelStyle={{ color: '#9CA3AF', marginBottom: '4px' }}
+                                        />
                                         {selectedStations.map(stationId => (
-                                            <linearGradient key={`grad-${stationId}`} id={`grad-${stationId}`} x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor={getStationColor(stationId)} stopOpacity={0.8} />
-                                                <stop offset="95%" stopColor={getStationColor(stationId)} stopOpacity={0} />
-                                            </linearGradient>
+                                            <Area
+                                                key={stationId}
+                                                type="monotone"
+                                                dataKey={stationId}
+                                                name={getStationConfig(stationId)?.name || stations[stationId]?.stationName || stationId}
+                                                stroke={getStationColor(stationId)}
+                                                fill={`url(#grad-${stationId})`}
+                                                fillOpacity={0.5}
+                                                activeDot={{ r: 6 }}
+                                                connectNulls={false}
+                                            />
                                         ))}
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                                    <XAxis dataKey="timestamp" stroke="#9CA3AF" tick={{ fontSize: 12 }} minTickGap={30} />
-                                    <YAxis stroke="#9CA3AF" />
-                                    <Tooltip
-                                        contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
-                                        labelStyle={{ color: '#9CA3AF', marginBottom: '4px' }}
-                                    />
-                                    {selectedStations.map(stationId => (
-                                        <Area
-                                            key={stationId}
-                                            type="monotone"
-                                            dataKey={stationId}
-                                            name={getStationConfig(stationId)?.name || stations[stationId]?.stationName || stationId}
-                                            stroke={getStationColor(stationId)}
-                                            fill={`url(#grad-${stationId})`}
-                                            fillOpacity={0.5}
-                                            activeDot={{ r: 6 }}
+                                        <Brush dataKey="rawTimestamp" height={30} stroke="#8884d8" fill="#1F2937" tickFormatter={(unixTime) => new Date(unixTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} />
+                                    </AreaChart>
+                                ) : chartType === 'bar' ? (
+                                    <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 10 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                                        <XAxis
+                                            dataKey="rawTimestamp"
+                                            type="number"
+                                            scale="time"
+                                            domain={timeDomain}
+                                            stroke="#9CA3AF"
+                                            tick={{ fontSize: 12 }}
+                                            minTickGap={30}
+                                            tickFormatter={(unixTime) => {
+                                                const date = new Date(unixTime);
+                                                return timeRange === '1h' || timeRange === '6h' || timeRange === '24h'
+                                                    ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                                    : date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                                            }}
                                         />
-                                    ))}
-                                    <Brush dataKey="timestamp" height={30} stroke="#8884d8" fill="#1F2937" />
-                                </AreaChart>
-                            ) : chartType === 'bar' ? (
-                                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 10 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                                    <XAxis dataKey="timestamp" stroke="#9CA3AF" tick={{ fontSize: 12 }} minTickGap={30} />
-                                    <YAxis stroke="#9CA3AF" />
-                                    <Tooltip
-                                        contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
-                                        labelStyle={{ color: '#9CA3AF', marginBottom: '4px' }}
-                                    />
-                                    {selectedStations.map(stationId => (
-                                        <Bar
-                                            key={stationId}
-                                            dataKey={stationId}
-                                            name={getStationConfig(stationId)?.name || stations[stationId]?.stationName || stationId}
-                                            fill={getStationColor(stationId)}
+                                        <YAxis stroke="#9CA3AF" />
+                                        <Tooltip
+                                            labelFormatter={(label) => new Date(label).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                                            contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
+                                            labelStyle={{ color: '#9CA3AF', marginBottom: '4px' }}
                                         />
-                                    ))}
-                                    <Brush dataKey="timestamp" height={30} stroke="#8884d8" fill="#1F2937" />
-                                </BarChart>
-                            ) : (
-                                <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 10 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                                    <XAxis dataKey="timestamp" stroke="#9CA3AF" tick={{ fontSize: 12 }} minTickGap={30} />
-                                    <YAxis stroke="#9CA3AF" />
-                                    <Tooltip
-                                        contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
-                                        labelStyle={{ color: '#9CA3AF', marginBottom: '4px' }}
-                                    />
-                                    {selectedStations.map(stationId => (
-                                        <Line
-                                            key={stationId}
-                                            type="monotone"
-                                            dataKey={stationId}
-                                            name={getStationConfig(stationId)?.name || stations[stationId]?.stationName || stationId}
-                                            stroke={getStationColor(stationId)}
-                                            strokeWidth={2}
-                                            dot={false}
-                                            activeDot={{ r: 6 }}
+                                        {selectedStations.map(stationId => (
+                                            <Bar
+                                                key={stationId}
+                                                dataKey={stationId}
+                                                name={getStationConfig(stationId)?.name || stations[stationId]?.stationName || stationId}
+                                                fill={getStationColor(stationId)}
+                                            />
+                                        ))}
+                                        <Brush dataKey="rawTimestamp" height={30} stroke="#8884d8" fill="#1F2937" tickFormatter={(unixTime) => new Date(unixTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} />
+                                    </BarChart>
+                                ) : (
+                                    <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 10 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                                        <XAxis
+                                            dataKey="rawTimestamp"
+                                            type="number"
+                                            scale="time"
+                                            domain={timeDomain}
+                                            stroke="#9CA3AF"
+                                            tick={{ fontSize: 12 }}
+                                            minTickGap={30}
+                                            tickFormatter={(unixTime) => {
+                                                const date = new Date(unixTime);
+                                                return timeRange === '1h' || timeRange === '6h' || timeRange === '24h'
+                                                    ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                                    : date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                                            }}
                                         />
-                                    ))}
-                                    <Brush dataKey="timestamp" height={30} stroke="#8884d8" fill="#1F2937" />
-                                </LineChart>
-                            )}
-                        </ResponsiveContainer>
+                                        <YAxis stroke="#9CA3AF" />
+                                        <Tooltip
+                                            labelFormatter={(label) => new Date(label).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                                            contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
+                                            labelStyle={{ color: '#9CA3AF', marginBottom: '4px' }}
+                                        />
+                                        {selectedStations.map(stationId => (
+                                            <Line
+                                                key={stationId}
+                                                type="monotone"
+                                                dataKey={stationId}
+                                                name={getStationConfig(stationId)?.name || stations[stationId]?.stationName || stationId}
+                                                stroke={getStationColor(stationId)}
+                                                strokeWidth={2}
+                                                dot={false}
+                                                activeDot={{ r: 6 }}
+                                                connectNulls={false}
+                                            />
+                                        ))}
+                                        <Brush dataKey="rawTimestamp" height={30} stroke="#8884d8" fill="#1F2937" tickFormatter={(unixTime) => new Date(unixTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} />
+                                    </LineChart>
+                                )}
+                            </ResponsiveContainer>
                         </div>
 
                         {/* Custom Responsive Legend (Moved to Bottom) */}

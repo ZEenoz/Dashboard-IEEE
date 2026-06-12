@@ -134,9 +134,6 @@ export default function HistoryPage() {
                             {t('common.refresh')}
                         </button>
                     </div>
-                    <p className="text-gray-400 text-sm mt-1">
-                        {t('history.subtitle')}
-                    </p>
                 </div>
 
                 <div className="flex flex-wrap gap-3 items-center w-full md:w-auto">

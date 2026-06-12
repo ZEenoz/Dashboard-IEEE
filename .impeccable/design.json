@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-12T19:58:00Z",
+  "title": "Design System: Water Level Monitor",
+  "extensions": {
+    "colorMeta": {
+      "primary":        { "role": "primary",   "displayName": "Signal Blue",   "canonical": "oklch(60% 0.17 250)", "tonalRamp": ["#eff6ff", "#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8", "#1e40af"] },
+      "accent-purple":  { "role": "secondary", "displayName": "Static Purple", "canonical": "oklch(60% 0.20 300)", "tonalRamp": ["#faf5ff", "#f3e8ff", "#e9d5ff", "#d8b4fe", "#c084fc", "#a855f7", "#9333ea", "#7e22ce", "#6b21a8"] },
+      "background-base":{ "role": "neutral",   "displayName": "Deep Slate",    "canonical": "oklch(20% 0.03 260)", "tonalRamp": ["#f8fafc", "#f1f5f9", "#e2e8f0", "#cbd5e1", "#94a3b8", "#64748b", "#475569", "#334155", "#0f172a"] }
+    },
+    "typographyMeta": {
+      "label": { "displayName": "Technical Label", "purpose": "Data taxonomy, uppercase tracking wide." }
+    },
+    "breakpoints": [
+      { "name": "md", "value": "768px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Standard action button with slight hover darkening.",
+      "html": "<button class=\"ds-btn-primary\">SAVE CHANGES</button>",
+      "css": ".ds-btn-primary { background: #3b82f6; color: #ffffff; padding: 8px 16px; border-radius: 8px; font-weight: 500; font-size: 14px; border: none; cursor: pointer; transition: background 0.2s ease; } .ds-btn-primary:hover { background: #2563eb; }"
+    },
+    {
+      "name": "Base Card",
+      "kind": "card",
+      "refersTo": "card-base",
+      "description": "Standard structural container.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-title\">SYSTEM OVERVIEW</div><div class=\"ds-card-value\">1.242 <span class=\"ds-card-unit\">m</span></div></div>",
+      "css": ".ds-card { background: #1e293b; border-radius: 16px; padding: 16px; border: 1px solid #1f2937; color: #fff; font-family: sans-serif; } .ds-card-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #9ca3af; margin-bottom: 8px; } .ds-card-value { font-size: 24px; font-weight: 700; } .ds-card-unit { font-size: 14px; font-weight: 400; color: #9ca3af; }"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "custom",
+      "refersTo": "badge-label",
+      "description": "Uppercase tracking pill for status.",
+      "html": "<span class=\"ds-badge ds-badge-success\">ONLINE</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 9999px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; } .ds-badge-success { background: rgba(16, 185, 129, 0.2); color: #10b981; } .ds-badge-warning { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Clear Control Room",
+    "overview": "This visual system is designed to project expert confidence and absolute clarity. The aesthetic is terminal-native but refined: deep slate backgrounds provide a high-contrast canvas for saturated, neon-leaning data visualizations. The UI avoids unnecessary decoration, opting instead for a highly functional, flat-by-default structure where glassmorphism is used sparingly to imply elevation or active states.",
+    "keyCharacteristics": [
+      "Deep slate/navy canvases with subtle borders",
+      "Saturated, neon-leaning accents (Blue for Float, Purple for Static)",
+      "Prominent use of uppercase, tracking-wide labels for data taxonomy",
+      "Flat panels with occasional glassmorphic highlights"
+    ],
+    "rules": [
+      { "name": "The Data First Rule", "body": "Saturated colors (Blue, Purple, Green, Red) are reserved strictly for data representation, status indicators, and primary actions. Backgrounds and structural elements must remain strictly Neutral.", "section": "colors" },
+      { "name": "The Kicker Rule", "body": "Data values (Headline) are always paired with a tightly tracked, uppercase Label above or below them. This ensures users never have to guess what a number represents.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Surfaces are flat and border-bound at rest. Shadows and blurs appear only to lift an active element (like a selected toggle switch) above the canvas.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use uppercase, widely tracked labels for all data headers to maintain the technical, precise aesthetic.",
+      "Do map data colors strictly: Blue for Float, Purple for Static.",
+      "Do ensure generous padding within cards to maintain accessibility for elderly users."
+    ],
+    "donts": [
+      "Don't use bright white or light gray backgrounds for any structural element; it breaks the 'Control Room' aesthetic.",
+      "Don't use border-left or border-right stripes as colored accents on cards. Use badges or text colors instead.",
+      "Don't animate elements on hover (like scaling up cards or images). If a card needs hover feedback, change its background or border color gently."
+    ]
+  }
+}

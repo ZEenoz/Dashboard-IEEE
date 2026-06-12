@@ -26,7 +26,7 @@ export default function Sidebar() {
             {/* Brand Area */}
             <div className="h-20 flex flex-col justify-center px-6 border-b border-gray-800">
                 <h1 className="text-xl font-bold text-blue-500">Water Level Monitor</h1>
-                <p className="text-xs text-gray-500">IoT Dashboard v1.0</p>
+                <p className="text-xs text-gray-500">IoT Dashboard</p>
             </div>
 
             {/* Navigation */}

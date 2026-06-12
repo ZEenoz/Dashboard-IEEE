@@ -138,34 +138,38 @@ export default function UserManagement() {
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-400"></div>
                 </div>
             ) : (
-                <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
-                    <table className="w-full text-left">
-                        <thead className="bg-gray-900 border-b border-gray-700 text-xs text-gray-400 uppercase tracking-wider">
-                            <tr>
-                                <th className="px-6 py-4">{t('userManagement.username')}</th>
-                                <th className="px-6 py-4">{t('userManagement.role')}</th>
-                                <th className="px-6 py-4">{t('userManagement.status')}</th>
-                                <th className="px-6 py-4 text-right">{t('userManagement.actions')}</th>
+                <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-x-auto">
+                    <table className="w-full text-left whitespace-nowrap block md:table">
+                        <thead className="bg-gray-900 border-b border-gray-700 text-xs text-gray-400 uppercase tracking-wider hidden md:table-header-group">
+                            <tr className="block md:table-row">
+                                <th className="px-6 py-4 block md:table-cell">{t('userManagement.username')}</th>
+                                <th className="px-6 py-4 block md:table-cell">{t('userManagement.role')}</th>
+                                <th className="px-6 py-4 block md:table-cell">{t('userManagement.status')}</th>
+                                <th className="px-6 py-4 text-right block md:table-cell">{t('userManagement.actions')}</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-700/50">
+                        <tbody className="divide-y divide-gray-700/50 block md:table-row-group">
                             {users.map(u => (
-                                <tr key={u.id} className="hover:bg-gray-700/30 transition-colors">
-                                    <td className="px-6 py-4 font-bold text-white flex items-center gap-3">
-                                        <div className="p-2 bg-gray-700 rounded-lg">
-                                            {u.role === 'admin' ? <Shield className="w-4 h-4 text-rose-400" /> : <UserIcon className="w-4 h-4 text-gray-300" />}
+                                <tr key={u.id} className="hover:bg-gray-700/30 transition-colors block md:table-row bg-gray-800/40 md:bg-transparent border border-gray-700 md:border-none rounded-xl md:rounded-none p-4 md:p-0 mb-4 md:mb-0">
+                                    <td className="px-0 py-3 md:px-6 md:py-4 font-bold text-white flex items-center justify-between md:justify-start gap-3 whitespace-nowrap block md:table-cell border-b border-gray-700/50 md:border-none">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-gray-700 rounded-lg shrink-0">
+                                                {u.role === 'admin' ? <Shield className="w-4 h-4 text-rose-400" /> : <UserIcon className="w-4 h-4 text-gray-300" />}
+                                            </div>
+                                            {u.username}
                                         </div>
-                                        {u.username}
                                     </td>
-                                    <td className="px-6 py-4">
-                                        <span className={`px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wide border ${u.role === 'admin' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' :
+                                    <td className="px-0 py-3 md:px-6 md:py-4 whitespace-nowrap block md:table-cell border-b border-gray-700/50 md:border-none flex items-center justify-between md:table-cell">
+                                        <span className="md:hidden text-xs text-gray-500 font-bold uppercase tracking-wider">{t('userManagement.role')}</span>
+                                        <span className={`px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wide border whitespace-nowrap ${u.role === 'admin' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' :
                                             u.role === 'local_authority' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' :
                                                 'bg-gray-500/10 text-gray-400 border-gray-500/30'
                                             }`}>
                                             {u.role.replace('_', ' ')}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-0 py-3 md:px-6 md:py-4 block md:table-cell border-b border-gray-700/50 md:border-none flex items-center justify-between md:table-cell">
+                                        <span className="md:hidden text-xs text-gray-500 font-bold uppercase tracking-wider">{t('userManagement.status')}</span>
                                         <div className="flex items-center gap-1.5 text-sm">
                                             {u.is_active ? (
                                                 <><CheckCircle2 className="w-4 h-4 text-green-500" /><span className="text-gray-300">{t('common.active')}</span></>
@@ -174,20 +178,22 @@ export default function UserManagement() {
                                             )}
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 text-right space-x-2">
+                                    <td className="px-0 py-3 md:px-6 md:py-4 text-right space-x-2 block md:table-cell flex justify-end md:table-cell items-center gap-2 pt-4 md:pt-4">
                                         <button
                                             onClick={() => openEditModal(u)}
-                                            className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors inline-block"
+                                            className="p-2 md:p-2 flex-1 md:flex-none justify-center text-gray-400 hover:text-white bg-gray-700/50 md:bg-transparent hover:bg-gray-700 rounded-lg transition-colors flex items-center"
                                             title="Edit User"
                                         >
-                                            <Edit2 className="w-4 h-4" />
+                                            <Edit2 className="w-4 h-4 mr-2 md:mr-0" />
+                                            <span className="md:hidden text-xs font-bold">{t('userManagement.editUser')}</span>
                                         </button>
                                         <button
                                             onClick={() => handleDelete(u.id)}
-                                            className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors inline-block"
+                                            className="p-2 md:p-2 flex-1 md:flex-none justify-center text-red-400 md:text-gray-400 hover:text-red-400 bg-red-500/10 md:bg-transparent hover:bg-red-500/10 rounded-lg transition-colors flex items-center"
                                             title="Delete User"
                                         >
-                                            <Trash2 className="w-4 h-4" />
+                                            <Trash2 className="w-4 h-4 mr-2 md:mr-0" />
+                                            <span className="md:hidden text-xs font-bold">{t('common.delete')}</span>
                                         </button>
                                     </td>
                                 </tr>

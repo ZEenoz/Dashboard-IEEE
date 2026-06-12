@@ -316,8 +316,8 @@ export default function SensorDetailsPage() {
         }
     }, [stations]);
 
-    const chartData = useMemo(() => {
-        if (!history || !stationId) return [];
+    const { chartData, timeDomain } = useMemo(() => {
+        if (!history || !stationId) return { chartData: [], timeDomain: [0, 0] };
         const now = new Date().getTime();
         const hourWindow = 24;
         const cutoff = now - (hourWindow * 60 * 60 * 1000);
@@ -325,11 +325,12 @@ export default function SensorDetailsPage() {
         // Normalize comparison for robust filtering
         const targetId = String(stationId).toLowerCase();
 
-        return history
+        const processed = history
             .filter(h => {
                 const hId = String(h.stationId || '').toLowerCase();
                 return hId === targetId && h.rawTimestamp > cutoff;
             })
+            .sort((a, b) => a.rawTimestamp - b.rawTimestamp)
             .map(h => ({
                 time: new Date(h.rawTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 value: Number(
@@ -338,8 +339,29 @@ export default function SensorDetailsPage() {
                         : (h.waterLevel || 0)
                 ),
                 rawTimestamp: h.rawTimestamp
-            }))
-            .sort((a, b) => a.rawTimestamp - b.rawTimestamp);
+            }));
+
+        const finalData = [];
+        // Gap threshold: 60 minutes (adjust if necessary)
+        const GAP_THRESHOLD = 60 * 60 * 1000;
+
+        for (let i = 0; i < processed.length; i++) {
+            finalData.push(processed[i]);
+            // Check gap with the next point
+            if (i < processed.length - 1) {
+                const diff = processed[i + 1].rawTimestamp - processed[i].rawTimestamp;
+                if (diff > GAP_THRESHOLD) {
+                    // Inject a null point exactly in the middle of the gap to break the Recharts line
+                    finalData.push({
+                        time: new Date(processed[i].rawTimestamp + diff / 2).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        value: null,
+                        rawTimestamp: processed[i].rawTimestamp + diff / 2
+                    });
+                }
+            }
+        }
+
+        return { chartData: finalData, timeDomain: [cutoff, now] };
     }, [history, stationId, displayMode]);
 
     const stats = useMemo(() => {
@@ -603,8 +625,9 @@ export default function SensorDetailsPage() {
                                 backgroundPosition: station.imagePosition ? `${station.imagePosition.x}% ${station.imagePosition.y}%` : 'center center'
                             } : {}}
                         >
-                            {station.imageUrl && <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/20 group-hover:from-slate-950/60 transition-all duration-500"></div>}
-                            <div className="absolute bottom-4 left-4 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/10 text-[10px] font-black text-white uppercase tracking-widest" style={{ WebkitBackdropFilter: 'blur(8px)' }}>
+                            {/* Removed heavy dark edges, keeping only a very subtle bottom shadow for text readability */}
+                            {station.imageUrl && <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent transition-all duration-500"></div>}
+                            <div className="absolute bottom-4 left-4 px-3 py-1 bg-black/30 backdrop-blur-md rounded-full border border-white/10 text-[10px] font-black text-white uppercase tracking-widest" style={{ WebkitBackdropFilter: 'blur(8px)' }}>
                                 {station.type || 'Standard Node'}
                             </div>
                         </div>
@@ -665,7 +688,17 @@ export default function SensorDetailsPage() {
                                             </linearGradient>
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} strokeOpacity={0.15} />
-                                        <XAxis dataKey="time" tick={{ fill: '#6B7280', fontSize: 10 }} axisLine={false} tickLine={false} />
+                                        <XAxis
+                                            dataKey="rawTimestamp"
+                                            type="number"
+                                            scale="time"
+                                            domain={timeDomain}
+                                            tickFormatter={(unixTime) => new Date(unixTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            tick={{ fill: '#6B7280', fontSize: 10 }}
+                                            axisLine={false}
+                                            tickLine={false}
+                                            minTickGap={30}
+                                        />
                                         <YAxis
                                             domain={[
                                                 (dataMin) => Math.floor((dataMin - 0.5) * 10) / 10,
@@ -677,6 +710,7 @@ export default function SensorDetailsPage() {
                                             width={40}
                                         />
                                         <Tooltip
+                                            labelFormatter={(label) => new Date(label).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                                             contentStyle={{
                                                 backgroundColor: 'rgba(17, 24, 39, 0.95)',
                                                 borderColor: 'rgba(255, 255, 255, 0.1)',
@@ -702,6 +736,7 @@ export default function SensorDetailsPage() {
                                             animationDuration={1500}
                                             dot={false}
                                             activeDot={{ r: 5, fill: '#3B82F6', stroke: '#fff', strokeWidth: 2 }}
+                                            connectNulls={false}
                                         />
                                     </AreaChart>
                                 </ResponsiveContainer>

@@ -53,7 +53,6 @@ export default function LoginPage() {
                             <Lock className="text-white w-8 h-8" />
                         </div>
                         <h1 className="text-2xl font-bold text-white mb-2">{t('login.title')}</h1>
-                        <p className="text-gray-400 text-sm">{t('login.subtitle')}</p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">

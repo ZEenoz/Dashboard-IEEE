@@ -3,10 +3,10 @@ const { getSettings } = require('../config/settings');
 
 /**
  * Send broadcast notification via LINE Messaging API (LINE OA)
- * @param {string} message 
+ * @param {string|object[]} messageOrMessages - A string for text message, or an array of message objects (e.g., Flex messages)
  * @returns {Promise<boolean>}
  */
-function sendLineNotify(message) {
+function sendLineNotify(messageOrMessages) {
     return new Promise((resolve, reject) => {
         const settings = getSettings();
         const token = settings.lineNotify?.token;
@@ -16,13 +16,17 @@ function sendLineNotify(message) {
             return resolve(false);
         }
 
+        let messages;
+        if (typeof messageOrMessages === 'string') {
+            messages = [{ type: "text", text: messageOrMessages }];
+        } else if (Array.isArray(messageOrMessages)) {
+            messages = messageOrMessages;
+        } else {
+            messages = [messageOrMessages]; // Fallback if a single object was passed
+        }
+
         const payload = JSON.stringify({
-            messages: [
-                {
-                    type: "text",
-                    text: message
-                }
-            ]
+            messages: messages
         });
         const payloadBuffer = Buffer.from(payload, 'utf8');
 
@@ -47,7 +51,7 @@ function sendLineNotify(message) {
 
             res.on('end', () => {
                 if (res.statusCode === 200) {
-                    console.log(`✅ LINE Notification Sent: "${message}"`);
+                    console.log(`✅ LINE Notification Sent successfully`);
                     resolve(true);
                 } else {
                     console.error(`❌ LINE Notification Failed: ${res.statusCode} | ${responseBody}`);
@@ -73,6 +77,7 @@ function testLineNotify(token) {
     return new Promise((resolve, reject) => {
         const message = "🔔 This is a test notification from Water Monitor System.";
         const payload = JSON.stringify({
+            to: "Ue79adabc356aa7b6f4f8c76debb1456a", // Send specifically to this user
             messages: [
                 {
                     type: "text",
@@ -85,7 +90,7 @@ function testLineNotify(token) {
         const options = {
             hostname: 'api.line.me',
             port: 443,
-            path: '/v2/bot/message/broadcast',
+            path: '/v2/bot/message/push', // Use push instead of broadcast
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -123,51 +128,23 @@ function testLineNotify(token) {
  * @param {string} headerTitle - Title for the batch message
  */
 function generateBatchMessage(alerts, headerTitle = "⚠️ สรุปแจ้งเตือนรวบยอด") {
-    let msg = `\n${headerTitle}\n\n`;
-    alerts.forEach(alert => {
-        let icon = "🟢";
-        if (alert.alertLevel === 'dangerous') icon = "🔴";
-        else if (alert.alertLevel === 'warning') icon = "🟡";
-
-        msg += `${icon} สถานี: ${alert.stationName}\n`;
-        msg += `   ระดับน้ำ: ${Number(alert.waterLevel).toFixed(2)} m\n`;
-        if (alert.isRapidChange) {
-            msg += `   🚨 ระดับน้ำเปลี่ยนแปลกฉับพลัน!\n`;
-        }
-    });
-    return msg;
+    const engine = require('./NotificationEngine');
+    return engine.createMorningFlexMessage(alerts, headerTitle) || `\n${headerTitle}\n\nไม่มีข้อมูล`;
 }
 
-/**
- * Send a level-specific alert notification via LINE Messaging API
- * @param {object} alertEntry - Alert data from mqttService
- */
 function sendAlertByLevel(alertEntry) {
-    const { alertLevel, stationName, waterLevel, threshold, battery, rssi, isRapidChange } = alertEntry;
+    const { alertLevel, stationName } = alertEntry;
 
-    let msg;
-    if (alertLevel === 'dangerous') {
-        msg = `\n🚨🚨 ระดับน้ำวิกฤต! ต้องการความสนใจทันที!\n` +
-            `📍 สถานี: ${stationName}\n` +
-            `💧 ระดับน้ำ: ${Number(waterLevel).toFixed(2)} m (เกิน Critical ${Number(threshold).toFixed(1)} m)\n` +
-            `⚠️ กรุณาตรวจสอบและดำเนินการ!\n`;
-    } else if (alertLevel === 'warning') {
-        msg = `\n⚠️ แจ้งเตือนระดับน้ำสูง\n` +
-            `📍 สถานี: ${stationName}\n` +
-            `💧 ระดับน้ำ: ${Number(waterLevel).toFixed(2)} m (เกิน Warning ${Number(threshold).toFixed(1)} m)\n`;
-    } else {
+    if (alertLevel === 'normal') {
         console.log(`🔇 Skip Notification LINE for ${stationName} (Safe)`);
         return;
     }
 
-    if (isRapidChange) {
-        msg += `\n🌊⚠️ มีการเปลี่ยนแปลงระดับน้ำอย่างรวดเร็ว (เกิน 0.3m ใน 30 นาที)!\n`;
-    }
+    const engine = require('./NotificationEngine');
+    const flexMessage = engine.createFlexAlertMessage(alertEntry);
 
-    msg += `🔋 Battery: ${Number(battery).toFixed(1)} V | 📶 RSSI: ${rssi} dBm`;
-
-    return sendLineNotify(msg);
+    // Send it via LINE
+    return sendLineNotify(flexMessage);
 }
 
 module.exports = { sendLineNotify, testLineNotify, sendAlertByLevel, generateBatchMessage };
-

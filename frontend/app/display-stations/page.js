@@ -175,9 +175,6 @@ export default function DisplayStationsPage() {
                     <h1 className="text-3xl font-bold text-white tracking-tight border-l-4 border-blue-500 pl-4">
                         {t('displayStations.title')}
                     </h1>
-                    <p className="text-gray-400 text-sm mt-1">
-                        {t('displayStations.subtitle')}
-                    </p>
                 </div>
                 
                 <button

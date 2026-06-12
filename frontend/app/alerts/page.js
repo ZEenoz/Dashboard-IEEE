@@ -253,9 +253,6 @@ export default function AlertsPage() {
                     <h1 className="text-3xl font-bold text-white tracking-tight border-l-4 border-red-500 pl-4">
                         {t('alerts.title')}
                     </h1>
-                    <p className="text-gray-400 text-sm mt-1">
-                        {t('alerts.subtitle')}
-                    </p>
                 </div>
                 <div className="flex items-center gap-3">
                     {lastRefresh && (

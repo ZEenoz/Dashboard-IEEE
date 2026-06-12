@@ -37,13 +37,13 @@ export default function ParametersPage() {
     });
 
     const getStatus = (station) => {
-        if (!station.rawTimestamp) return { text: t('common.unknown'), color: 'text-gray-500', bg: 'bg-gray-500/20', icon: <span className="text-[10px]">●</span> };
+        if (!station.rawTimestamp) return { status: 'unknown', text: t('common.unknown'), color: 'text-gray-500', bg: 'bg-gray-500/20', icon: <span className="text-[10px]">●</span> };
 
         const diff = now.getTime() - station.rawTimestamp;
         const isOffline = diff > 60 * 60 * 1000; // 1 hour
 
-        if (isOffline) return { text: t('common.offline').toUpperCase(), color: 'text-red-500', bg: 'bg-red-500/20', icon: <WifiOff size={14} /> };
-        return { text: t('common.online'), color: 'text-green-400', bg: 'bg-green-500/20', icon: <span className="text-[10px]">●</span> };
+        if (isOffline) return { status: 'offline', text: t('common.offline').toUpperCase(), color: 'text-red-500', bg: 'bg-red-500/20', icon: <WifiOff size={14} /> };
+        return { status: 'online', text: t('common.online'), color: 'text-green-400', bg: 'bg-green-500/20', icon: <span className="text-[10px]">●</span> };
     };
 
     // Helper to render battery icon
@@ -106,7 +106,6 @@ export default function ParametersPage() {
                     <h1 className="text-3xl font-bold text-white tracking-tight border-l-4 border-blue-500 pl-4">
                         {t('parameters.title')}
                     </h1>
-                    <p className="text-gray-400 text-sm mt-1">{t('parameters.subtitle')}</p>
                 </div>
 
                 <div className="flex items-center space-x-4">
@@ -147,7 +146,7 @@ export default function ParametersPage() {
                     {filteredStations.map((station) => (
                         <div
                             onClick={() => router.push(`/parameters/${station.stationId}`)}
-                            className={`bg-gray-800 rounded-xl p-6 border ${getStatus(station).text === 'OFFLINE' ? 'border-red-500' : 'border-gray-700'} shadow-lg hover:border-${station.sensorType === 'Float' ? 'blue' : 'purple'}-500 transition-all cursor-pointer`}
+                            className={`bg-gray-800 rounded-xl p-6 border ${getStatus(station).status === 'offline' ? 'border-red-500' : 'border-gray-700'} shadow-lg hover:border-${station.sensorType === 'Float' ? 'blue' : 'purple'}-500 transition-all cursor-pointer`}
                         >
                             <div className="flex justify-between items-start mb-4">
                                 <div>

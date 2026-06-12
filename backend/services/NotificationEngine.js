@@ -154,29 +154,6 @@ class NotificationEngine {
         }
     }
 
-    /**
-     * Check if the global 30-minute cooldown has passed.
-     */
-    isGlobalCooldownActive() {
-        const settings = require('../config/settings').getSettings();
-        const pipeline = settings.notificationPipeline || { globalCooldownMin: 30 };
-        const now = Date.now();
-        const cooldown_ms = pipeline.globalCooldownMin * 60 * 1000;
-        
-        if (!this.global_last_sent) {
-            return false;
-        }
-
-        return (now - this.global_last_sent) < cooldown_ms;
-    }
-
-    /**
-     * Mark global broadcast as sent
-     */
-    markGlobalBroadcastSent() {
-        this.global_last_sent = Date.now();
-    }
-
     // ==========================================
     // PHASE 3: Queueing & Batching
     // ==========================================
@@ -184,8 +161,6 @@ class NotificationEngine {
     queueMessage(alertEntry, queueType) {
         if (queueType === 'morning') {
             this.morning_queue.push(alertEntry);
-        } else {
-            this.batch_queue.push(alertEntry);
         }
     }
 
@@ -202,16 +177,6 @@ class NotificationEngine {
     }
 
     /**
-     * Flush the Global Batch Queue
-     */
-    flushBatchQueue() {
-        if (this.batch_queue.length === 0) return [];
-        const merged = this._consolidateQueue(this.batch_queue);
-        this.batch_queue = [];
-        return merged;
-    }
-
-    /**
      * Flush the Morning Queue
      */
     flushMorningQueue() {
@@ -222,10 +187,206 @@ class NotificationEngine {
     }
 
     // ==========================================
-    // PHASE 4: Schedulers (Cron Jobs)
+    // PHASE 4: Flex Message Generators
     // ==========================================
 
-    initSchedulers(sendLineNotifyFunc, generateBatchMessageFunc) {
+    createFlexAlertMessage(alertEntry) {
+        const { stationId, stationName, waterLevel, alertLevel, isRapidChange } = alertEntry;
+        const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+        const isDangerous = alertLevel === 'dangerous';
+        const statusText = isDangerous ? "อันตราย 🚨" : "เฝ้าระวัง ⚠️";
+        const color = isDangerous ? "#e02424" : "#ff9f00";
+        const description = isDangerous ? "ขอให้อพยพโดยทันที" : "โปรดติดตามสถานการณ์อย่างใกล้ชิด";
+        const headerText = isDangerous ? "🚨 ประกาศเตือนภัยฉุกเฉิน 🚨" : "⚠️แจ้งเตือนระดับน้ำ ⚠️";
+
+        const bubble = {
+            type: "bubble",
+            size: "mega",
+            header: {
+                type: "box",
+                layout: "vertical",
+                backgroundColor: color,
+                contents: [
+                    {
+                        type: "text",
+                        text: headerText,
+                        color: "#ffffff",
+                        weight: "bold",
+                        size: "lg",
+                        align: "center"
+                    }
+                ]
+            },
+            body: {
+                type: "box",
+                layout: "vertical",
+                contents: [
+                    {
+                        type: "text",
+                        text: `${stationName}`,
+                        weight: "bold",
+                        size: "xl",
+                        color: "#000000",
+                        wrap: true
+                    },
+                    {
+                        type: "text",
+                        text: `ID: ${stationId}`,
+                        size: "sm",
+                        color: "#aaaaaa"
+                    },
+                    { type: "separator", margin: "md" },
+                    {
+                        type: "box",
+                        layout: "vertical",
+                        margin: "md",
+                        contents: [
+                            {
+                                type: "text",
+                                text: `ระดับน้ำ: ${Number(waterLevel).toFixed(2)} ม.`,
+                                size: "xl",
+                                weight: "bold"
+                            },
+                            {
+                                type: "text",
+                                text: `สถานะ: ${statusText}`,
+                                size: "xl",
+                                weight: "bold",
+                                color: color
+                            }
+                        ]
+                    },
+                    ...(isRapidChange ? [{
+                        type: "text",
+                        text: "🌊 น้ำขึ้นอย่างรวดเร็วฉับพลัน!",
+                        color: "#e02424",
+                        size: "md",
+                        weight: "bold",
+                        margin: "md",
+                        align: "center"
+                    }] : []),
+                    { type: "separator", margin: "md" },
+                    {
+                        type: "text",
+                        text: description,
+                        wrap: true,
+                        color: color,
+                        size: "lg",
+                        weight: "bold",
+                        margin: "md",
+                        align: "center"
+                    }
+                ]
+            },
+            footer: {
+                type: "box",
+                layout: "vertical",
+                contents: [
+                    {
+                        type: "button",
+                        style: "link",
+                        height: "sm",
+                        action: {
+                            type: "uri",
+                            label: "📊 เช็คสถานี (Open Dashboard)",
+                            uri: `${FRONTEND_URL}/parameters/${encodeURIComponent(stationId)}`
+                        }
+                    }
+                ]
+            }
+        };
+
+        if (isDangerous) {
+            bubble.body.contents.push({
+                type: "button",
+                style: "primary",
+                color: "#e02424",
+                margin: "md",
+                action: {
+                    type: "uri",
+                    label: "📞 โทรสายด่วน 1669",
+                    uri: "tel:1669"
+                }
+            });
+        }
+
+        return {
+            type: "flex",
+            altText: `แจ้งเตือนระดับน้ำ: ${stationName} (${statusText})`,
+            contents: bubble
+        };
+    }
+
+    createMorningFlexMessage(alerts, headerTitle = "⛅ สรุปสถานการณ์") {
+        if (!alerts || alerts.length === 0) return null;
+
+        const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+        
+        const bubbles = alerts.map(alert => {
+            const isDangerous = alert.alertLevel === 'dangerous';
+            const isWarning = alert.alertLevel === 'warning';
+            
+            let color = "#1DB446"; // Normal
+            let statusText = "ปกติ 🟢";
+            if (isDangerous) { color = "#e02424"; statusText = "อันตราย 🚨"; }
+            else if (isWarning) { color = "#ff9f00"; statusText = "เฝ้าระวัง ⚠️"; }
+
+            return {
+                type: "bubble",
+                size: "kilo",
+                body: {
+                    type: "box",
+                    layout: "vertical",
+                    contents: [
+                        { type: "text", text: alert.stationName, weight: "bold", size: "lg", color: color, wrap: true },
+                        { type: "separator", margin: "md" },
+                        {
+                            type: "box", layout: "vertical", margin: "md", contents: [
+                                { type: "text", text: `ระดับน้ำ: ${Number(alert.waterLevel).toFixed(2)} ม.`, size: "md" },
+                                { type: "text", text: `สถานะ: ${statusText}`, size: "md", weight: "bold", color: color }
+                            ]
+                        }
+                    ]
+                },
+                footer: {
+                    type: "box",
+                    layout: "vertical",
+                    contents: [
+                        {
+                            type: "button",
+                            style: "link",
+                            height: "sm",
+                            action: {
+                                type: "uri",
+                                label: "เช็คสถานี",
+                                uri: `${FRONTEND_URL}/parameters/${encodeURIComponent(alert.stationId)}`
+                            }
+                        }
+                    ]
+                }
+            };
+        });
+
+        // Split into chunks if there are too many bubbles (LINE Carousel max is 12)
+        const maxBubbles = 10;
+        const displayBubbles = bubbles.slice(0, maxBubbles);
+
+        return {
+            type: "flex",
+            altText: headerTitle,
+            contents: {
+                type: "carousel",
+                contents: displayBubbles
+            }
+        };
+    }
+
+    // ==========================================
+    // PHASE 5: Schedulers (Cron Jobs)
+    // ==========================================
+
+    initSchedulers(sendLineNotifyFunc) {
         const cron = require('node-cron');
 
         // 1. Midnight Reset (00:00)
@@ -239,32 +400,16 @@ class NotificationEngine {
             console.log('⏰ [Cron] Running Morning Flush (06:00)');
             const morningAlerts = this.flushMorningQueue();
             if (morningAlerts.length > 0) {
-                const combinedMessage = generateBatchMessageFunc(morningAlerts, "⛅ สรุปสถานการณ์ช่วงกลางคืนที่ผ่านมา");
-                sendLineNotifyFunc(combinedMessage);
-                this.markGlobalBroadcastSent();
+                const flexMessage = this.createMorningFlexMessage(morningAlerts, "⛅ สรุปแจ้งเตือนที่ถูกระงับช่วงกลางคืน");
+                if (flexMessage) sendLineNotifyFunc(flexMessage);
             }
         }, { timezone: "Asia/Bangkok" });
 
-        // 3. Scheduled Report (06:30) - Daily SAFE Check-in
+        // 3. Scheduled Report (06:30) - Daily Check-in
         cron.schedule('30 6 * * *', () => {
             console.log('⏰ [Cron] Running Scheduled Morning Report (06:30)');
-            // Need a callback to gather all SAFE stations and send a single report
             if (typeof this.onScheduledReport === 'function') {
                 this.onScheduledReport();
-            }
-        }, { timezone: "Asia/Bangkok" });
-
-        // 4. 30-min Global Cooldown Batch Flusher
-        // Runs every minute to check if the cooldown has passed and queue has items
-        cron.schedule('* * * * *', () => {
-            if (this.batch_queue.length > 0 && !this.isGlobalCooldownActive()) {
-                console.log('⏰ [Cron] Global Cooldown passed, flushing batch queue');
-                const batchedAlerts = this.flushBatchQueue();
-                if (batchedAlerts.length > 0) {
-                    const combinedMessage = generateBatchMessageFunc(batchedAlerts, "⚠️ สรุปแจ้งเตือนรวบยอด (รอบ 30 นาที)");
-                    sendLineNotifyFunc(combinedMessage);
-                    this.markGlobalBroadcastSent();
-                }
             }
         }, { timezone: "Asia/Bangkok" });
     }

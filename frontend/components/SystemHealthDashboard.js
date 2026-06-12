@@ -208,7 +208,7 @@ const SystemHealthDashboard = React.memo(() => {
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm text-gray-400">
+                            <table className="w-full text-left text-sm text-gray-400 whitespace-nowrap">
                                 <thead className="bg-gray-800/50 text-gray-300 font-bold uppercase text-xs">
                                     <tr>
                                         <th className="p-3 rounded-tl-lg">{t('systemHealth.gatewayId')}</th>
@@ -260,7 +260,7 @@ const SystemHealthDashboard = React.memo(() => {
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm text-gray-400">
+                            <table className="w-full text-left text-sm text-gray-400 whitespace-nowrap">
                                 <thead className="bg-gray-800/50 text-gray-300 font-bold uppercase text-xs">
                                     <tr>
                                         <th className="p-3 rounded-tl-lg">{t('systemHealth.stationCol')}</th>

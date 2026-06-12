@@ -19,39 +19,39 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 const getStatusTheme = (st, defaultType) => {
   if (st.alertLevel === 'dangerous') {
     return {
-      bg: 'bg-red-500/10 hover:bg-red-server-500/15', 
+      bg: 'bg-red-500/10 hover:bg-red-server-500/15',
       border: 'border-red-500/40',
-      text: 'text-red-400', 
-      iconBg: 'bg-red-500/20', 
+      text: 'text-red-400',
+      iconBg: 'bg-red-500/20',
       accent: 'text-red-400/70',
       glow: 'shadow-[0_0_15px_rgba(239,68,68,0.2)]'
     };
   }
   if (st.alertLevel === 'warning') {
     return {
-      bg: 'bg-amber-500/10 hover:bg-amber-500/15', 
+      bg: 'bg-amber-500/10 hover:bg-amber-500/15',
       border: 'border-amber-500/40',
-      text: 'text-amber-400', 
-      iconBg: 'bg-amber-500/20', 
+      text: 'text-amber-400',
+      iconBg: 'bg-amber-500/20',
       accent: 'text-amber-400/70',
       glow: 'shadow-[0_0_12px_rgba(245,158,11,0.15)]'
     };
   }
   if (defaultType === 'float') {
     return {
-      bg: 'bg-blue-500/5 hover:bg-blue-500/10', 
+      bg: 'bg-blue-500/5 hover:bg-blue-500/10',
       border: 'border-blue-500/30',
-      text: 'text-blue-400', 
-      iconBg: 'bg-blue-500/15', 
+      text: 'text-blue-400',
+      iconBg: 'bg-blue-500/15',
       accent: 'text-blue-400/60',
       glow: ''
     };
   }
   return {
-    bg: 'bg-purple-500/5 hover:bg-purple-500/10', 
+    bg: 'bg-purple-500/5 hover:bg-purple-500/10',
     border: 'border-purple-500/30',
-    text: 'text-purple-400', 
-    iconBg: 'bg-purple-500/15', 
+    text: 'text-purple-400',
+    iconBg: 'bg-purple-500/15',
     accent: 'text-purple-400/60',
     glow: ''
   };
@@ -62,23 +62,27 @@ const SidebarStationItem = React.memo(({ st, type, onFly, onDetails }) => {
   const theme = getStatusTheme(st, type);
   const Icon = type === 'float' ? Droplets : Gauge;
 
+  const now = new Date().getTime();
+  const rawTs = st.rawTimestamp || st.timestamp;
+  const isOffline = rawTs ? (now - new Date(rawTs).getTime()) > 60 * 60 * 1000 : true;
+
   return (
     <div
-      className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-300 group ${theme.bg} ${theme.border} ${theme.glow}`}
+      className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-300 group ${isOffline ? 'bg-gray-900/60 border-gray-700/60 shadow-inner' : `${theme.bg} ${theme.border} ${theme.glow}`}`}
     >
       <button
         onClick={() => onFly(st)}
         className="flex items-center gap-3 flex-1 text-left"
         aria-label={`Locate ${st.stationName || 'station'} on map`}
       >
-        <div className={`w-10 h-10 rounded-full ${theme.iconBg} flex items-center justify-center ${theme.text} shrink-0 group-hover:scale-110 transition-transform`}>
+        <div className={`w-10 h-10 rounded-full ${isOffline ? 'bg-gray-800 text-gray-500' : `${theme.iconBg} ${theme.text}`} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
           <Icon size={18} />
         </div>
         <div className="flex flex-col min-w-0 pr-2">
-          <div className="font-bold text-sm text-gray-100 break-words leading-tight group-hover:text-white transition-colors" title={st.stationName}>
+          <div className={`font-bold text-sm break-words leading-tight transition-colors ${isOffline ? 'text-gray-500 group-hover:text-gray-400' : 'text-gray-100 group-hover:text-white'}`} title={st.stationName}>
             {st.stationName || st.id || 'Unknown'}
           </div>
-          <div className={`text-[10px] ${theme.accent} font-bold uppercase tracking-wider mt-1`}>
+          <div className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isOffline ? 'text-gray-600' : theme.accent}`}>
             {(Number(st.lat) || 0).toFixed(3)}, {(Number(st.lng) || 0).toFixed(3)}
           </div>
         </div>
@@ -86,15 +90,20 @@ const SidebarStationItem = React.memo(({ st, type, onFly, onDetails }) => {
 
       <div className="flex items-center gap-3 shrink-0 pl-3 border-l border-gray-700/50">
         <div className="text-right flex flex-col items-end">
-          <span className={`font-mono font-bold text-base tracking-tighter ${theme.text}`}>
+          <span className={`font-mono font-bold text-base tracking-tighter ${isOffline ? 'text-gray-600' : theme.text}`}>
             {Number(st.waterLevel ?? 0).toFixed(3)}<span className="text-[10px] ml-0.5 opacity-60">m</span>
           </span>
-          {st.isRaw && (
-            <span className="text-[8px] font-bold text-indigo-400 uppercase tracking-tighter animate-pulse">
+          {isOffline && (
+            <span className="text-[9px] font-black text-white bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)] border border-red-400 px-1.5 py-0.5 rounded uppercase tracking-widest mt-0.5">
+              Offline
+            </span>
+          )}
+          {st.isRaw && !isOffline && (
+            <span className="text-[8px] font-bold text-indigo-400 uppercase tracking-tighter animate-pulse mt-0.5">
               Raw
             </span>
           )}
-          {st.alertLevel && st.alertLevel !== 'normal' && (
+          {st.alertLevel && st.alertLevel !== 'normal' && !isOffline && (
             <span className={`text-[9px] uppercase font-black tracking-[0.1em] ${theme.text} mt-0.5 opacity-80`}>
               {st.alertLevel}
             </span>
@@ -103,7 +112,7 @@ const SidebarStationItem = React.memo(({ st, type, onFly, onDetails }) => {
         <button
           onClick={() => onDetails(st.stationId)}
           aria-label={`View details for ${st.stationName || 'station'}`}
-          className="p-2 rounded-lg bg-gray-800/80 hover:bg-white hover:text-black text-gray-400 transition-all border border-gray-700 shadow-sm"
+          className={`p-2 rounded-lg ${isOffline ? 'bg-gray-800/50 text-gray-600' : 'bg-gray-800/80 text-gray-400'} hover:bg-white hover:text-black transition-all border border-gray-700 shadow-sm`}
           title="View Details"
         >
           <ArrowRight size={16} />
@@ -114,7 +123,7 @@ const SidebarStationItem = React.memo(({ st, type, onFly, onDetails }) => {
 });
 
 export default function Home() {
-  const { stations, history, displayMode, setDisplayMode } = useSocket();
+  const { stations, history, displayMode, setDisplayMode, isConnected } = useSocket();
   const { t } = useLanguage();
   const router = useRouter();
   const mapRef = useRef(null);
@@ -231,13 +240,28 @@ export default function Home() {
     <div className="mb-20 space-y-6">
 
       {/* SECTION 1: Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-8 gap-4 md:gap-6 px-1">
-        <div className="flex flex-col">
-          <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight border-l-4 border-blue-500 pl-4">{t('overview.title')}</h1>
-          <p className="text-gray-400 text-xs md:text-sm mt-1 max-w-lg">{t('overview.subtitle')}</p>
+      <div className="flex flex-col md:flex-row justify-between items-start mb-4 md:mb-8 gap-4 px-1">
+
+        {/* Left Side: Title, Subtitle, Gateway Status */}
+        <div className="flex flex-col gap-3">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight border-l-4 border-blue-500 pl-4">{t('overview.title')}</h1>
+          </div>
+
+          <div className="flex items-center">
+            {isConnected ? (
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-widest shrink-0">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> GATEWAY: ONLINE
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold uppercase tracking-widest shrink-0">
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> GATEWAY: OFFLINE
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Display Mode Toggle */}
+        {/* Right Side: Display Mode Toggle */}
         <div className="flex flex-col items-start md:items-end gap-2 w-full md:w-auto">
           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 md:mr-2">
             {t('overview.dataMode')}
@@ -421,7 +445,7 @@ export default function Home() {
             <h4 className="text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">{t('overview.floatNodes')}</h4>
             <div className="space-y-3">
               {floatNodes.map((st, i) => (
-                <SidebarStationItem 
+                <SidebarStationItem
                   key={st.stationId || i}
                   st={st}
                   type="float"
@@ -437,7 +461,7 @@ export default function Home() {
             <h4 className="text-xs font-bold text-gray-500 uppercase mb-2 mt-4 tracking-wider">{t('overview.staticNodes')}</h4>
             <div className="space-y-3">
               {staticNodes.map((st, i) => (
-                <SidebarStationItem 
+                <SidebarStationItem
                   key={st.stationId || i}
                   st={st}
                   type="static"

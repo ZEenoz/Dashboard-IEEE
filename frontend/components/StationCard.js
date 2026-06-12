@@ -54,7 +54,7 @@ const StationCard = React.memo(({ station, onClick }) => {
         statusClasses = 'bg-gray-700 text-gray-400 border-gray-600';
     } else if (!isActive) {
         statusLabel = t('stationCard.offline');
-        statusClasses = 'bg-gray-800/80 text-gray-400 border-gray-700 backdrop-blur-md';
+        statusClasses = 'bg-red-500 text-white border-red-400/30 backdrop-blur-md';
     } else {
         statusLabel = t('stationCard.online');
         statusClasses = 'bg-green-500/80 text-white border-white/30 backdrop-blur-md';
@@ -112,9 +112,9 @@ const StationCard = React.memo(({ station, onClick }) => {
                     />
                 ) : null}
 
-                {/* Dark overlay for images — improves badge legibility */}
+                {/* Dark overlay for images — removed heavy dark edges to keep the image clear */}
                 {station.imageUrl && (
-                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 via-transparent to-black/20 group-hover:from-gray-900/60 transition-all" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent transition-all" />
                 )}
 
                 {/* Fallback: Show sensor type icon when no image */}

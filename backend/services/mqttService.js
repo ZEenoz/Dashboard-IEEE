@@ -821,38 +821,31 @@ async function handleMessage(message, io) {
                     console.log(`🌙 Night Block: Queueing alert for ${stationName} to morning.`);
                     notificationEngine.queueMessage(alertEntry, 'morning');
                 } else {
-                    // Check Global Cooldown
-                    if (notificationEngine.isGlobalCooldownActive()) {
-                        console.log(`⏳ Global Cooldown active: Queueing alert for ${stationName} to batch.`);
-                        notificationEngine.queueMessage(alertEntry, 'batch');
-                    } else {
-                        // Send immediately
-                        console.log(`${alertLevel === 'dangerous' ? '🚨' : (alertLevel === 'warning' ? '⚠️' : '🟢')} Alert: ${stationName} | Level: ${alertLevel}`);
+                    // Send immediately
+                    console.log(`${alertLevel === 'dangerous' ? '🚨' : (alertLevel === 'warning' ? '⚠️' : '🟢')} Alert: ${stationName} | Level: ${alertLevel}`);
 
-                        sendAlertByLevel(alertEntry);
+                    sendAlertByLevel(alertEntry);
 
-                        notificationEngine.incrementDailyCount(deviceId, alertLevel);
-                        notificationEngine.markGlobalBroadcastSent();
+                    notificationEngine.incrementDailyCount(deviceId, alertLevel);
 
-                        // Save to PostgreSQL
-                        try {
-                            const pool = require('../config/database').getPool();
-                            if (pool) {
-                                const insertQuery = `
-                                    INSERT INTO alerts (station_id, alert_level, water_level, threshold, battery, rssi, line_status)
-                                    VALUES ($1, $2, $3, $4, $5, $6, $7)
-                                    RETURNING id, created_at
-                                `;
-                                const res = await pool.query(insertQuery, [deviceId, alertLevel, waterLevel, threshold, battery, rssi, 'sent_to_bot']);
-                                if (res.rows.length > 0) {
-                                    alertEntry.id = res.rows[0].id;
-                                    alertEntry.timestamp = res.rows[0].created_at;
-                                    io.emit('new-alert', alertEntry);
-                                }
+                    // Save to PostgreSQL
+                    try {
+                        const pool = require('../config/database').getPool();
+                        if (pool) {
+                            const insertQuery = `
+                                INSERT INTO alerts (station_id, alert_level, water_level, threshold, battery, rssi, line_status)
+                                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                                RETURNING id, created_at
+                            `;
+                            const res = await pool.query(insertQuery, [deviceId, alertLevel, waterLevel, threshold, battery, rssi, 'sent_to_bot']);
+                            if (res.rows.length > 0) {
+                                alertEntry.id = res.rows[0].id;
+                                alertEntry.timestamp = res.rows[0].created_at;
+                                io.emit('new-alert', alertEntry);
                             }
-                        } catch (e) {
-                            console.error("⚠️ Failed to save alert to DB:", e.message);
                         }
+                    } catch (e) {
+                        console.error("⚠️ Failed to save alert to DB:", e.message);
                     }
                 }
             } else {

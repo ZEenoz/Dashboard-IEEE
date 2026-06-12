@@ -43,17 +43,40 @@ def liff_page():
 
 def get_live_stations():
     """ 
-    Helper to fetch live stations directly from PostgreSQL database. 
-    This is the source of truth for all current stations.
+    Helper to fetch live stations directly from PostgreSQL database 
+    and filter them based on Dashboard visibility settings.
     """
     stations = []
+    
+    # 1. Fetch visibility settings from Node API
+    station_configs = {}
     try:
-        # 1. Fetch all stations from local database (PostgreSQL)
+        from config import NODE_API_URL
+        import requests
+        settings_url = f"{NODE_API_URL}/settings"
+        resp = requests.get(settings_url, headers={"ngrok-skip-browser-warning": "true"}, timeout=5)
+        if resp.status_code == 200:
+            settings = resp.json()
+            station_configs = settings.get("stations", {})
+    except Exception as e:
+        print(f"Failed to fetch settings from Node API: {e}")
+
+    try:
+        # 2. Fetch all stations from local database (PostgreSQL)
         db_items = get_all_stations()
         
         for item in db_items:
-            # Ensure all required fields are present and valid for LINE Flex Message
             st_id = str(item.get('id', ''))
+            
+            # 3. Check visibility based on settings
+            st_config = station_configs.get(st_id, {})
+            # isVisible is True by default if not set
+            is_visible = st_config.get("isVisible", True)
+            
+            if not is_visible:
+                continue
+
+            # Ensure all required fields are present and valid for LINE Flex Message
             st_name = item.get('name') or f"Station {st_id}"
             st_location = item.get('location') or "ไม่ระบุตำแหน่ง"
             st_image = item.get('image_url')
@@ -62,28 +85,27 @@ def get_live_stations():
             if not st_image or str(st_image).strip() == '' or str(st_image).lower() == 'none':
                 st_image = "https://img1.pic.in.th/images/Gemini_Generated_Image_cxndnqcxndnqcxnd.png"
 
+            # Get order from settings, default to 999 if not set
+            st_order = st_config.get("order", 999)
+
             stations.append({
                 'id': st_id,
                 'name': st_name,
                 'location': st_location,
-                'image_url': st_image
+                'image_url': st_image,
+                'order': st_order
             })
             
-        print(f"✅ Loaded {len(stations)} stations directly from Database")
+        print(f"✅ Loaded {len(stations)} visible stations directly from Database")
 
     except Exception as e:
         print(f"❌ Error fetching stations from Database: {e}")
         import traceback
         traceback.print_exc()
 
-    # 2. Sort stations: CHIRPSTACK first, then alphabetical
-    # Note: If we had network_mode in the returned dict, we could sort by it.
-    # For now, just alphabetize by name.
-    stations.sort(key=lambda s: s.get('name', '').lower())
+    # 4. Sort stations by their assigned order, then alphabetical
+    stations.sort(key=lambda s: (s.get('order', 999), s.get('name', '').lower()))
     
-    return stations
-
-    stations.sort(key=sort_key)
     return stations
 
 # 2. API สำหรับรับข้อมูลการลงทะเบียน
@@ -128,7 +150,7 @@ def register_station():
                     PushMessageRequest(
                         to=user_id,
                         messages=[
-                            FlexMessage(alt_text="ผลการลงทะเบียน", contents=flex_container),
+                            FlexMessage(altText="ผลการลงทะเบียน", contents=flex_container),
                             TextMessage(text=summary_text)
                         ]
                     )
@@ -214,7 +236,7 @@ def trigger_alert_from_node():
                     line_bot_api.multicast(
                         MulticastRequest(
                             to=chunk, 
-                            messages=[FlexMessage(alt_text=alt_text, contents=flex_container)]
+                            messages=[FlexMessage(altText=alt_text, contents=flex_container)]
                         )
                     )
                 except Exception as chunk_err:

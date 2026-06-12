@@ -115,13 +115,15 @@ export default function SettingsPage() {
                 if (Array.isArray(data)) setTestBroadcastTypes(data);
             })
             .catch(() => {
-                // Fallback: static list (matches registry defaults)
+                // Fallback: static list (mirrors TEST_NOTIFICATION_REGISTRY in notificationService.js)
                 setTestBroadcastTypes([
-                    { value: 'text',      labelTh: '📝 ข้อความทดสอบทั่วไป',       label: '📝 Simple Text Message' },
-                    { value: 'warning',   labelTh: '⚠️ แจ้งเตือนระดับเฝ้าระวัง',   label: '⚠️ Warning Alert (Flex)' },
-                    { value: 'dangerous', labelTh: '🚨 แจ้งเตือนอันตราย/ฉุกเฉิน',   label: '🚨 Dangerous Alert (Flex)' },
-                    { value: 'rapid',     labelTh: '🌊 น้ำขึ้นเฉียบพลัน',           label: '🌊 Rapid Rise Alert (Flex)' },
-                    { value: 'morning',   labelTh: '⛅ รายงานสรุปช่วงเช้า',          label: '⛅ Morning Summary Report' },
+                    { value: 'text', labelTh: '📝 ข้อความทดสอบทั่วไป', label: '📝 Simple Text Message' },
+                    { value: 'monitor', labelTh: '📊 สถานะระดับน้ำปัจจุบัน (Flex Carousel)', label: '📊 Station Status Overview (Flex Carousel)' },
+                    { value: 'registration', labelTh: '📋 ยืนยันการลงทะเบียน (Flex Card)', label: '📋 Registration Confirmation (Flex Card)' },
+                    { value: 'warning', labelTh: '⚠️ แจ้งเตือนระดับเฝ้าระวัง', label: '⚠️ Warning Alert (Flex)' },
+                    { value: 'dangerous', labelTh: '🚨 แจ้งเตือนอันตราย/ฉุกเฉิน', label: '🚨 Dangerous Alert (Flex)' },
+                    { value: 'rapid', labelTh: '🌊 น้ำขึ้นเฉียบพลัน', label: '🌊 Rapid Rise Alert (Flex)' },
+                    { value: 'morning', labelTh: '⛅ รายงานสรุปช่วงเช้า', label: '⛅ Morning Summary Report (Carousel)' },
                 ]);
             });
     }, []);
@@ -228,7 +230,7 @@ export default function SettingsPage() {
     // Calculate unconfigured stations
     const configuredStationIds = Object.keys(settings.stations || {});
     const ignoredStationIds = settings.ignoredStations || [];
-    const unconfiguredStations = Object.values(socketStations || {}).filter(s => 
+    const unconfiguredStations = Object.values(socketStations || {}).filter(s =>
         !configuredStationIds.includes(s.stationId) && !ignoredStationIds.includes(s.stationId)
     );
 
@@ -717,7 +719,7 @@ export default function SettingsPage() {
                                                     }}
                                                     className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:border-purple-500 outline-none font-mono"
                                                 />
-                                                <button 
+                                                <button
                                                     onClick={() => {
                                                         const newIds = (settings.chirpstack?.applicationIds || []).filter((_, i) => i !== index);
                                                         handleChange('chirpstack', 'applicationIds', newIds.length > 0 ? newIds : ['']);
@@ -913,7 +915,7 @@ export default function SettingsPage() {
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 {/* LIFF ID & Webhook Config */}
                                 <div className="mt-6 pt-6 border-t border-green-800/50 flex flex-col md:flex-row gap-6">
                                     {/* LIFF ID */}
@@ -930,7 +932,7 @@ export default function SettingsPage() {
                                             className="w-full bg-gray-800 border border-green-600/50 rounded-lg p-3 text-white focus:border-green-400 outline-none font-mono text-sm"
                                         />
                                     </div>
-                                    
+
                                     {/* Webhook URL */}
                                     <div className="flex-1">
                                         <label className="block text-sm font-bold text-green-400 flex items-center gap-2 mb-3">
@@ -983,7 +985,7 @@ export default function SettingsPage() {
                                     <Activity className="w-5 h-5" />
                                     {t('settings.pipelineSettings')}
                                 </h3>
-                                
+
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                                     {/* Quotas */}
                                     <div className="bg-green-900/10 p-4 rounded-lg border border-green-500/20">

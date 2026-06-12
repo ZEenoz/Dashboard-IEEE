@@ -72,7 +72,7 @@ router.post('/settings', requireApiKey, (req, res) => {
     res.json({ success: true, restarting: modeChanged || csChanged });
 });
 
-const { testLineNotify } = require('../services/notificationService');
+const { testLineNotify, testBroadcast, getTestBroadcastTypes } = require('../services/notificationService');
 
 router.post('/test-notify', requireApiKey, async (req, res) => {
     const { token, userId } = req.body;
@@ -85,6 +85,34 @@ router.post('/test-notify', requireApiKey, async (req, res) => {
         res.json({ success: true, message: "Notification sent successfully!" });
     } else {
         res.status(500).json({ success: false, message: result.message || "Failed to send notification." });
+    }
+});
+
+// --- Test Broadcast Types (dropdown data for settings page) ---
+router.get('/test-broadcast-types', requireApiKey, (req, res) => {
+    res.json(getTestBroadcastTypes());
+});
+
+// --- Test Broadcast (registry-driven, pulls real DB data) ---
+router.post('/test-broadcast', requireApiKey, async (req, res) => {
+    const { token, userId, testType } = req.body;
+    if (!token) return res.status(400).json({ success: false, message: 'token required' });
+    if (!userId) return res.status(400).json({ success: false, message: 'userId required' });
+    if (!testType) return res.status(400).json({ success: false, message: 'testType required' });
+
+    const pool = getPool();
+    if (!pool) return res.status(500).json({ success: false, message: 'Database not connected' });
+
+    try {
+        const result = await testBroadcast(token, userId, testType, pool);
+        if (result.success) {
+            res.json({ success: true, message: result.message });
+        } else {
+            res.status(500).json({ success: false, message: result.message });
+        }
+    } catch (err) {
+        console.error('❌ /test-broadcast error:', err.message);
+        res.status(500).json({ success: false, message: err.message });
     }
 });
 

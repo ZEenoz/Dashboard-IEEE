@@ -257,6 +257,13 @@ export const translations = {
       webhookUrl: 'Webhook URL',
       copyWebhook: 'Copy URL',
       copySuccess: 'Copied to clipboard!',
+      testBroadcastSection: 'Send Test Message',
+      testBroadcastType: 'Notification Type',
+      testBroadcastUserId: 'Target LINE User ID',
+      testBroadcastUserIdPlaceholder: 'e.g. Ue79adabc...',
+      testBroadcastSend: 'Send Test',
+      testBroadcastSending: 'Sending...',
+      testBroadcastNoUserId: 'Please enter a target LINE User ID',
 
       // LINE OA tab
       lineOATitle: 'LINE Notification Engine',
@@ -717,6 +724,13 @@ export const translations = {
       webhookUrl: 'Webhook URL (สำหรับใส่ใน LINE Console)',
       copyWebhook: 'คัดลอก',
       copySuccess: 'คัดลอกสำเร็จ!',
+      testBroadcastSection: 'ทดสอบส่งข้อความ',
+      testBroadcastType: 'ประเภทการแจ้งเตือน',
+      testBroadcastUserId: 'LINE User ID ปลายทาง',
+      testBroadcastUserIdPlaceholder: 'เช่น Ue79adabc...',
+      testBroadcastSend: 'ส่งทดสอบ',
+      testBroadcastSending: 'กำลังส่ง...',
+      testBroadcastNoUserId: 'กรุณาใส่ LINE User ID ปลายทาง',
 
       // LINE OA tab
       lineOATitle: 'ระบบจัดการแจ้งเตือน LINE',

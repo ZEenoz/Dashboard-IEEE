@@ -48,6 +48,10 @@ export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState('notifications'); // notifications, stations, system, users
     const [showAddModal, setShowAddModal] = useState(false);
     const [editingImagePosition, setEditingImagePosition] = useState(null); // Station ID being edited
+    const [testBroadcastType, setTestBroadcastType] = useState('text');
+    const [testBroadcastUserId, setTestBroadcastUserId] = useState('');
+    const [testBroadcastTypes, setTestBroadcastTypes] = useState([]);
+    const [testBroadcastSending, setTestBroadcastSending] = useState(false);
 
     // Route Protection
     useEffect(() => {
@@ -98,6 +102,27 @@ export default function SettingsPage() {
                 console.error("Failed to fetch settings", err);
                 toast.error(t('settings.failedToLoad'));
                 setLoading(false);
+            });
+    }, []);
+
+    // Fetch Test Broadcast Types from registry
+    useEffect(() => {
+        fetch(`${API_URL}/test-broadcast-types`, {
+            headers: { 'x-api-key': 'IEEE_SECURE_API_KEY_2025' }
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) setTestBroadcastTypes(data);
+            })
+            .catch(() => {
+                // Fallback: static list (matches registry defaults)
+                setTestBroadcastTypes([
+                    { value: 'text',      labelTh: '📝 ข้อความทดสอบทั่วไป',       label: '📝 Simple Text Message' },
+                    { value: 'warning',   labelTh: '⚠️ แจ้งเตือนระดับเฝ้าระวัง',   label: '⚠️ Warning Alert (Flex)' },
+                    { value: 'dangerous', labelTh: '🚨 แจ้งเตือนอันตราย/ฉุกเฉิน',   label: '🚨 Dangerous Alert (Flex)' },
+                    { value: 'rapid',     labelTh: '🌊 น้ำขึ้นเฉียบพลัน',           label: '🌊 Rapid Rise Alert (Flex)' },
+                    { value: 'morning',   labelTh: '⛅ รายงานสรุปช่วงเช้า',          label: '⛅ Morning Summary Report' },
+                ]);
             });
     }, []);
 
@@ -804,40 +829,89 @@ export default function SettingsPage() {
                                         onChange={(e) => handleChange('lineNotify', 'token', e.target.value)}
                                         className="flex-1 bg-gray-800 border border-green-600/50 rounded-lg p-3 text-white focus:border-green-400 outline-none font-mono resize-none text-sm break-all"
                                     />
-                                    <button
-                                        onClick={async () => {
-                                            const testUserId = window.prompt("Enter target LINE User ID for test message (Leave blank to use default system admin ID):");
-                                            if (testUserId === null) return; // User cancelled
+                                </div>
 
-                                            const btn = document.getElementById('test-notify-btn');
-                                            btn.innerText = t('settings.testingToken');
-                                            btn.disabled = true;
-                                            try {
-                                                const res = await fetch(`${API_URL}/test-notify`, {
-                                                    method: 'POST',
-                                                    headers: { 'Content-Type': 'application/json', 'x-api-key': 'IEEE_SECURE_API_KEY_2025' },
-                                                    body: JSON.stringify({ 
-                                                        token: settings.lineNotify?.token,
-                                                        userId: testUserId.trim() !== '' ? testUserId.trim() : null
-                                                    })
-                                                });
-                                                const data = await res.json();
-                                                if (res.ok && data.success) {
-                                                    toast.success(t('common.success') + ": " + data.message);
-                                                } else {
-                                                    toast.error(t('common.error') + ": " + (data.message || "Unknown error"));
-                                                }
-                                            } catch (e) {
-                                                toast.error(t('common.error') + ": " + e.message);
-                                            }
-                                            btn.innerText = t('settings.testNotification');
-                                            btn.disabled = false;
-                                        }}
-                                        id="test-notify-btn"
-                                        className="bg-green-600 hover:bg-green-500 text-white px-4 py-3 rounded-lg font-bold whitespace-nowrap transition-colors"
-                                    >
-                                        {t('settings.testNotification')}
-                                    </button>
+                                {/* ─── Test Broadcast Panel ─── */}
+                                <div className="mt-5 p-4 rounded-xl bg-gray-900/60 border border-green-700/40">
+                                    <p className="text-sm font-bold text-green-400 mb-3 flex items-center gap-2">
+                                        <Bell className="w-4 h-4" />
+                                        {t('settings.testBroadcastSection') || 'Send Test Message'}
+                                    </p>
+
+                                    {/* Row 1: dropdown */}
+                                    <div className="mb-3">
+                                        <label className="block text-xs text-gray-400 mb-1">{t('settings.testBroadcastType') || 'Notification Type'}</label>
+                                        <select
+                                            value={testBroadcastType}
+                                            onChange={e => setTestBroadcastType(e.target.value)}
+                                            className="w-full bg-gray-800 border border-green-600/50 rounded-lg px-3 py-2 text-white text-sm focus:border-green-400 outline-none"
+                                        >
+                                            {testBroadcastTypes.length === 0 && (
+                                                <option value="text">📝 ข้อความทดสอบทั่วไป</option>
+                                            )}
+                                            {testBroadcastTypes.map(type => (
+                                                <option key={type.value} value={type.value}>
+                                                    {t('lang') === 'th' ? type.labelTh : type.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Row 2: userId + send button */}
+                                    <div className="flex flex-col md:flex-row gap-3">
+                                        <div className="flex-1">
+                                            <label className="block text-xs text-gray-400 mb-1">{t('settings.testBroadcastUserId') || 'Target LINE User ID'}</label>
+                                            <input
+                                                type="text"
+                                                id="test-broadcast-user-id"
+                                                placeholder={t('settings.testBroadcastUserIdPlaceholder') || 'e.g. Ue79adabc...'}
+                                                value={testBroadcastUserId}
+                                                onChange={e => setTestBroadcastUserId(e.target.value)}
+                                                className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white font-mono text-sm focus:border-green-400 outline-none"
+                                            />
+                                        </div>
+                                        <div className="flex items-end">
+                                            <button
+                                                disabled={testBroadcastSending}
+                                                onClick={async () => {
+                                                    if (!testBroadcastUserId.trim()) {
+                                                        toast.error(t('settings.testBroadcastNoUserId') || 'Please enter a target LINE User ID');
+                                                        return;
+                                                    }
+                                                    setTestBroadcastSending(true);
+                                                    try {
+                                                        const res = await fetch(`${API_URL}/test-broadcast`, {
+                                                            method: 'POST',
+                                                            headers: {
+                                                                'Content-Type': 'application/json',
+                                                                'x-api-key': 'IEEE_SECURE_API_KEY_2025'
+                                                            },
+                                                            body: JSON.stringify({
+                                                                token: settings.lineNotify?.token,
+                                                                userId: testBroadcastUserId.trim(),
+                                                                testType: testBroadcastType
+                                                            })
+                                                        });
+                                                        const data = await res.json();
+                                                        if (res.ok && data.success) {
+                                                            toast.success(data.message || t('common.success'));
+                                                        } else {
+                                                            toast.error(data.message || t('common.error'));
+                                                        }
+                                                    } catch (e) {
+                                                        toast.error(t('common.error') + ': ' + e.message);
+                                                    } finally {
+                                                        setTestBroadcastSending(false);
+                                                    }
+                                                }}
+                                                className="bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-5 py-2 rounded-lg font-bold whitespace-nowrap transition-colors text-sm"
+                                            >
+                                                {testBroadcastSending
+                                                    ? (t('settings.testBroadcastSending') || 'Sending...')
+                                                    : (t('settings.testBroadcastSend') || 'Send Test')}
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                                 
                                 {/* LIFF ID & Webhook Config */}

@@ -6,9 +6,143 @@ import { useState, useMemo, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Brush } from 'recharts';
-import { PlayCircle, PauseCircle, CheckSquare, Square, Download } from 'lucide-react';
+import { PlayCircle, PauseCircle, CheckSquare, Square, Download, X, Calendar } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+
+// ─── Column preview: mirrors googleSheetService.js exactly ──────────────────
+const CSV_COLUMNS = [
+    'Time (Bangkok)', 'Station Name', 'Station ID',
+    'Water Level Raw (m)', 'Water Level Calibrated (m)', 'Data Rate',
+    'RSSI (dBm)', 'SNR (dB)', 'Battery (%)', 'Battery Voltage (V)',
+    'Sensor Type', 'Latitude', 'Longitude', 'Location Source',
+    'Temperature (°C)', 'Humidity (%)', 'Gyro X (°)', 'Gyro Y (°)'
+];
+
+function ExportModal({ onClose, stations, settings, apiUrl, t }) {
+    const today = new Date().toISOString().split('T')[0];
+    const [fromDate, setFromDate] = useState(today);
+    const [toDate, setToDate] = useState(today);
+    const [stationId, setStationId] = useState('all');
+    const [loading, setLoading] = useState(false);
+
+    const handleExport = async () => {
+        if (!fromDate || !toDate) {
+            toast.error(t('analytics.errorSelectDates'));
+            return;
+        }
+        setLoading(true);
+        toast.loading(t('analytics.exporting'), { id: 'csv-export' });
+        try {
+            const url = `${apiUrl}/export?start_date=${fromDate}&end_date=${toDate}&station_id=${stationId}`;
+            const res = await fetch(url, { headers: { 'ngrok-skip-browser-warning': 'true' } });
+            if (!res.ok) throw new Error('Export failed');
+            const blob = await res.blob();
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `${stationId}_${fromDate}_to_${toDate}.csv`;
+            link.click();
+            toast.success(t('analytics.exportComplete'), { id: 'csv-export' });
+            onClose();
+        } catch (err) {
+            toast.error(t('analytics.exportFailed') + ': ' + err.message, { id: 'csv-export' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const visibleStations = Object.values(stations || {}).filter(
+        s => settings?.stations?.[s.stationId]?.isVisible !== false
+    );
+
+    return (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 backdrop-blur-sm p-4">
+            <div className="bg-[#111827] border border-gray-700 rounded-2xl shadow-2xl w-full max-w-lg">
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700/60">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-green-500/10 rounded-xl border border-green-500/20">
+                            <Download className="w-5 h-5 text-green-400" />
+                        </div>
+                        <div>
+                            <h2 className="text-white font-bold text-base">{t('analytics.exportData')}</h2>
+                            <p className="text-[11px] text-gray-500">18 columns · Bangkok time (UTC+7)</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-gray-700 rounded-lg text-gray-500 hover:text-white transition-colors">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+
+                <div className="p-6 space-y-5">
+                    {/* Date Range */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1 mb-2">
+                                <Calendar className="w-3 h-3" /> {t('analytics.startDate')}
+                            </label>
+                            <input
+                                type="date" value={fromDate}
+                                onChange={e => setFromDate(e.target.value)}
+                                className="w-full bg-gray-800 border border-gray-600 rounded-xl px-3 py-2.5 text-white text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500/30 outline-none transition-all"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1 mb-2">
+                                <Calendar className="w-3 h-3" /> {t('analytics.endDate')}
+                            </label>
+                            <input
+                                type="date" value={toDate}
+                                onChange={e => setToDate(e.target.value)}
+                                min={fromDate}
+                                className="w-full bg-gray-800 border border-gray-600 rounded-xl px-3 py-2.5 text-white text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500/30 outline-none transition-all"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Station Selector */}
+                    <div>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">{t('analytics.station')}</label>
+                        <select
+                            value={stationId}
+                            onChange={e => setStationId(e.target.value)}
+                            className="w-full bg-gray-800 border border-gray-600 rounded-xl px-3 py-2.5 text-white text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500/30 outline-none transition-all"
+                        >
+                            <option value="all">{t('analytics.exportAllStations')}</option>
+                            {visibleStations.map(s => (
+                                <option key={s.stationId} value={s.stationId}>
+                                    {settings?.stations?.[s.stationId]?.name || s.stationName || s.stationId}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Column Preview */}
+                    <div className="bg-gray-800/60 border border-gray-700/60 rounded-xl p-3">
+                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">คอลัมน์ที่จะ Export ({CSV_COLUMNS.length} คอลัมน์)</p>
+                        <div className="flex flex-wrap gap-1.5">
+                            {CSV_COLUMNS.map((col, i) => (
+                                <span key={i} className="text-[10px] bg-gray-700/80 text-gray-300 px-2 py-0.5 rounded-md border border-gray-600/50 font-mono">
+                                    {String.fromCharCode(65 + i)}. {col}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Download Button */}
+                    <button
+                        onClick={handleExport}
+                        disabled={loading}
+                        className="w-full bg-green-600 hover:bg-green-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-green-900/20"
+                    >
+                        <Download size={18} />
+                        {loading ? 'กำลัง Export...' : t('analytics.downloadCSV')}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default function AnalyticsPage() {
     const { history, stations, displayMode } = useSocket();
@@ -39,8 +173,8 @@ export default function AnalyticsPage() {
                 if (!res.ok) throw new Error('Failed to fetch from backend');
                 const data = await res.json();
 
-                // Sort ascending for chart (backend returns descending)
-                const sorted = data.sort((a, b) => new Date(a.rawTimestamp).getTime() - new Date(b.rawTimestamp).getTime());
+                // rawTimestamp from backend is now always numeric UTC ms — sort directly
+                const sorted = [...data].sort((a, b) => Number(a.rawTimestamp) - Number(b.rawTimestamp));
                 setFetchedHistory(sorted);
             } catch (err) {
                 console.error("Failed to fetch analytics data", err);
@@ -146,10 +280,11 @@ export default function AnalyticsPage() {
             const timeKey = date.getTime();
 
             if (!pivotedData[timeKey]) {
+                const fmtOpts = (timeRange === '1h' || timeRange === '6h' || timeRange === '24h')
+                    ? { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' }
+                    : { timeZone: 'Asia/Bangkok', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
                 pivotedData[timeKey] = {
-                    timestamp: timeRange === '1h' || timeRange === '6h' || timeRange === '24h'
-                        ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                        : date.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                    timestamp: date.toLocaleString('th-TH', fmtOpts),
                     rawTimestamp: timeKey
                 };
             }
@@ -172,10 +307,11 @@ export default function AnalyticsPage() {
                 if (diff > gapThreshold) {
                     const gapTime = sortedData[i].rawTimestamp + diff / 2;
                     const gapDate = new Date(gapTime);
+                    const fmtOpts = (timeRange === '1h' || timeRange === '6h' || timeRange === '24h')
+                        ? { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' }
+                        : { timeZone: 'Asia/Bangkok', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
                     const gapPoint = {
-                        timestamp: timeRange === '1h' || timeRange === '6h' || timeRange === '24h'
-                            ? gapDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                            : gapDate.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                        timestamp: gapDate.toLocaleString('th-TH', fmtOpts),
                         rawTimestamp: gapTime
                     };
                     selectedStations.forEach(id => gapPoint[id] = null);
@@ -386,15 +522,15 @@ export default function AnalyticsPage() {
                                             tick={{ fontSize: 12 }}
                                             minTickGap={30}
                                             tickFormatter={(unixTime) => {
-                                                const date = new Date(unixTime);
-                                                return timeRange === '1h' || timeRange === '6h' || timeRange === '24h'
-                                                    ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                                                    : date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                                                const date = new Date(Number(unixTime));
+                                                return (timeRange === '1h' || timeRange === '6h' || timeRange === '24h')
+                                                    ? date.toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' })
+                                                    : date.toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok', month: 'short', day: 'numeric' });
                                             }}
                                         />
                                         <YAxis stroke="#9CA3AF" />
                                         <Tooltip
-                                            labelFormatter={(label) => new Date(label).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                                            labelFormatter={(label) => new Date(Number(label)).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', dateStyle: 'medium', timeStyle: 'short' })}
                                             contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
                                             labelStyle={{ color: '#9CA3AF', marginBottom: '4px' }}
                                         />
@@ -411,7 +547,7 @@ export default function AnalyticsPage() {
                                                 connectNulls={false}
                                             />
                                         ))}
-                                        <Brush dataKey="rawTimestamp" height={30} stroke="#8884d8" fill="#1F2937" tickFormatter={(unixTime) => new Date(unixTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} />
+                                        <Brush dataKey="rawTimestamp" height={30} stroke="#8884d8" fill="#1F2937" tickFormatter={(unixTime) => new Date(Number(unixTime)).toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' })} />
                                     </AreaChart>
                                 ) : chartType === 'bar' ? (
                                     <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 10 }}>
@@ -424,16 +560,16 @@ export default function AnalyticsPage() {
                                             stroke="#9CA3AF"
                                             tick={{ fontSize: 12 }}
                                             minTickGap={30}
-                                            tickFormatter={(unixTime) => {
-                                                const date = new Date(unixTime);
-                                                return timeRange === '1h' || timeRange === '6h' || timeRange === '24h'
-                                                    ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                                                    : date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                                        tickFormatter={(unixTime) => {
+                                                const date = new Date(Number(unixTime));
+                                                return (timeRange === '1h' || timeRange === '6h' || timeRange === '24h')
+                                                    ? date.toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' })
+                                                    : date.toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok', month: 'short', day: 'numeric' });
                                             }}
                                         />
                                         <YAxis stroke="#9CA3AF" />
                                         <Tooltip
-                                            labelFormatter={(label) => new Date(label).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                                            labelFormatter={(label) => new Date(Number(label)).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', dateStyle: 'medium', timeStyle: 'short' })}
                                             contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
                                             labelStyle={{ color: '#9CA3AF', marginBottom: '4px' }}
                                         />
@@ -445,7 +581,7 @@ export default function AnalyticsPage() {
                                                 fill={getStationColor(stationId)}
                                             />
                                         ))}
-                                        <Brush dataKey="rawTimestamp" height={30} stroke="#8884d8" fill="#1F2937" tickFormatter={(unixTime) => new Date(unixTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} />
+                                        <Brush dataKey="rawTimestamp" height={30} stroke="#8884d8" fill="#1F2937" tickFormatter={(unixTime) => new Date(Number(unixTime)).toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' })} />
                                     </BarChart>
                                 ) : (
                                     <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 10 }}>
@@ -458,16 +594,16 @@ export default function AnalyticsPage() {
                                             stroke="#9CA3AF"
                                             tick={{ fontSize: 12 }}
                                             minTickGap={30}
-                                            tickFormatter={(unixTime) => {
-                                                const date = new Date(unixTime);
-                                                return timeRange === '1h' || timeRange === '6h' || timeRange === '24h'
-                                                    ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                                                    : date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                                        tickFormatter={(unixTime) => {
+                                                const date = new Date(Number(unixTime));
+                                                return (timeRange === '1h' || timeRange === '6h' || timeRange === '24h')
+                                                    ? date.toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' })
+                                                    : date.toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok', month: 'short', day: 'numeric' });
                                             }}
                                         />
                                         <YAxis stroke="#9CA3AF" />
                                         <Tooltip
-                                            labelFormatter={(label) => new Date(label).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                                            labelFormatter={(label) => new Date(Number(label)).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', dateStyle: 'medium', timeStyle: 'short' })}
                                             contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
                                             labelStyle={{ color: '#9CA3AF', marginBottom: '4px' }}
                                         />
@@ -484,7 +620,7 @@ export default function AnalyticsPage() {
                                                 connectNulls={false}
                                             />
                                         ))}
-                                        <Brush dataKey="rawTimestamp" height={30} stroke="#8884d8" fill="#1F2937" tickFormatter={(unixTime) => new Date(unixTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} />
+                                        <Brush dataKey="rawTimestamp" height={30} stroke="#8884d8" fill="#1F2937" tickFormatter={(unixTime) => new Date(Number(unixTime)).toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' })} />
                                     </LineChart>
                                 )}
                             </ResponsiveContainer>
@@ -505,92 +641,13 @@ export default function AnalyticsPage() {
 
             {/* 📥 Export Modal */}
             {showExportModal && (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 backdrop-blur-sm p-4">
-                    <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-md shadow-2xl relative fade-in">
-                        <button
-                            onClick={() => setShowExportModal(false)}
-                            className="absolute top-4 right-4 text-gray-500 hover:text-white"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                        </button>
-
-                        <h2 className="text-xl font-bold flex items-center gap-2 mb-6 text-white">
-                            <Download className="w-6 h-6 text-green-500" />
-                            {t('analytics.exportData')}
-                        </h2>
-
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-bold text-gray-400 mb-1">{t('analytics.startDate')}</label>
-                                <input
-                                    type="date"
-                                    id="modal-start-date"
-                                    className="w-full bg-gray-800 border-gray-600 rounded-lg p-3 text-white focus:border-green-500 outline-none"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-bold text-gray-400 mb-1">{t('analytics.endDate')}</label>
-                                <input
-                                    type="date"
-                                    id="modal-end-date"
-                                    className="w-full bg-gray-800 border-gray-600 rounded-lg p-3 text-white focus:border-green-500 outline-none"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-bold text-gray-400 mb-1">{t('analytics.station')}</label>
-                                <select
-                                    id="modal-station-id"
-                                    className="w-full bg-gray-800 border-gray-600 rounded-lg p-3 text-white focus:border-green-500 outline-none"
-                                    defaultValue="all"
-                                >
-                                    <option value="all">{t('analytics.exportAllStations')}</option>
-                                    {Object.values(stations).filter(s => settings?.stations?.[s.stationId] && settings.stations[s.stationId].isVisible !== false).map(s => (
-                                        <option key={s.stationId} value={s.stationId}>
-                                            {s.stationName || s.stationId}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <button
-                                onClick={async () => {
-                                    const start = document.getElementById('modal-start-date').value;
-                                    const end = document.getElementById('modal-end-date').value;
-                                    const station = document.getElementById('modal-station-id').value;
-
-                                    if (!start || !end) {
-                                        toast.error(t('analytics.errorSelectDates'));
-                                        return;
-                                    }
-
-                                    const url = `${API_URL}/export?start_date=${start}&end_date=${end}&station_id=${station}`;
-                                    try {
-                                        toast.loading(t('analytics.exporting'), { id: 'csv-export' });
-                                        const res = await fetch(url, {
-                                            headers: { 'ngrok-skip-browser-warning': 'true' }
-                                        });
-                                        if (!res.ok) throw new Error('Export failed');
-                                        const blob = await res.blob();
-                                        const link = document.createElement('a');
-                                        link.href = URL.createObjectURL(blob);
-                                        link.download = `${station}_${start}_to_${end}.csv`;
-                                        link.click();
-                                        toast.success(t('analytics.exportComplete'), { id: 'csv-export' });
-                                    } catch (err) {
-                                        toast.error(t('analytics.exportFailed') + ': ' + err.message, { id: 'csv-export' });
-                                    }
-                                    setShowExportModal(false);
-                                }}
-                                className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 mt-4 transition-all"
-                            >
-                                <Download size={20} />
-                                {t('analytics.downloadCSV')}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <ExportModal
+                    onClose={() => setShowExportModal(false)}
+                    stations={stations}
+                    settings={settings}
+                    apiUrl={API_URL}
+                    t={t}
+                />
             )}
         </div>
     );

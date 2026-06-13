@@ -129,15 +129,14 @@ router.get('/export', async (req, res) => {
     if (!pool) return res.status(500).send("Database not connected");
 
     try {
+        // ─── Mirrors googleSheetService.js column order exactly ───────────────
         let query = `
             SELECT 
-                r.id,
-                to_char(r.timestamp, 'YYYY-MM-DD HH24:MI:SS') as time,
-                COALESCE(s.name, r.station_id) as station_name,
+                to_char(r.timestamp AT TIME ZONE 'Asia/Bangkok', 'DD/MM/YYYY HH24:MI:SS') as time,
+                COALESCE(s.name, r.station_id)  as station_name,
                 r.station_id,
-                s.network_mode,
-                r.water_level,
-                r.offset_water_level,
+                r.water_level                   as raw_level,
+                COALESCE(r.offset_water_level, r.water_level) as water_level,
                 r.data_rate,
                 r.rssi,
                 r.snr,
@@ -146,7 +145,11 @@ router.get('/export', async (req, res) => {
                 r.sensor_type,
                 r.latitude,
                 r.longitude,
-                r.location_source as source
+                r.location_source               as source,
+                r.temperature,
+                r.humidity,
+                r.gyro_x,
+                r.gyro_y
             FROM readings r
             LEFT JOIN stations s ON r.station_id = s.station_id
             WHERE 1=1
@@ -155,11 +158,11 @@ router.get('/export', async (req, res) => {
         let pIdx = 1;
 
         if (start_date) {
-            query += ` AND r.timestamp >= $${pIdx++}`;
+            query += ` AND (r.timestamp AT TIME ZONE 'Asia/Bangkok')::date >= $${pIdx++}::date`;
             params.push(start_date);
         }
         if (end_date) {
-            query += ` AND r.timestamp <= $${pIdx++}::date + interval '1 day'`; // Include the end date fully
+            query += ` AND (r.timestamp AT TIME ZONE 'Asia/Bangkok')::date <= $${pIdx++}::date`;
             params.push(end_date);
         }
         if (station_id && station_id !== 'all') {
@@ -167,63 +170,78 @@ router.get('/export', async (req, res) => {
             params.push(station_id);
         }
 
-        query += ` ORDER BY r.timestamp DESC`;
+        query += ` ORDER BY r.timestamp ASC`;
 
         const result = await pool.query(query, params);
 
-        // Generate CSV
+        // ─── CSV Headers — same order as googleSheetService.js ────────────────
         const headers = [
-            'ID',
-            'Time', 
-            'Station Name', 
-            'Station ID', 
-            'Network Mode',
-            'Water Level Raw (m)', 
-            'Water Level Calibrated (m)', 
-            'Data Rate', 
-            'RSSI (dBm)', 
-            'SNR (dB)', 
-            'Battery (%)', 
-            'Battery Voltage (V)', 
-            'Sensor Type', 
-            'Latitude', 
-            'Longitude', 
-            'Location Source'
+            'Time (Bangkok)',           // 1. A
+            'Station Name',             // 2. B
+            'Station ID',               // 3. C
+            'Water Level Raw (m)',       // 4. D
+            'Water Level Calibrated (m)', // 5. E
+            'Data Rate',                // 6. F
+            'RSSI (dBm)',               // 7. G
+            'SNR (dB)',                 // 8. H
+            'Battery (%)',              // 9. I
+            'Battery Voltage (V)',       // 10. J
+            'Sensor Type',              // 11. K
+            'Latitude',                 // 12. L
+            'Longitude',                // 13. M
+            'Location Source',          // 14. N
+            'Temperature (°C)',         // 15. O
+            'Humidity (%)',             // 16. P
+            'Gyro X (°)',               // 17. Q
+            'Gyro Y (°)'               // 18. R
         ];
-        const csvRows = [headers.join(',')];
+
+        const escapeCSV = (val) => {
+            if (val === null || val === undefined) return '';
+            const str = String(val);
+            // Quote if contains comma, quote, or newline
+            return str.includes(',') || str.includes('"') || str.includes('\n')
+                ? `"${str.replace(/"/g, '""')}"`
+                : str;
+        };
+
+        const csvRows = [headers.map(escapeCSV).join(',')];
 
         result.rows.forEach(row => {
-            const safeName = row.station_name ? row.station_name.replace(/"/g, '""') : '';
             csvRows.push([
-                row.id,
-                row.time,
-                `"${safeName}"`, // Quote name in case of commas/quotes
-                row.station_id,
-                row.network_mode || 'TTN',
-                row.water_level,          // Raw
-                row.offset_water_level,   // Calibrated
-                row.data_rate,
-                row.rssi,
-                row.snr,
-                row.battery,
-                row.battery_voltage,
-                row.sensor_type,
-                row.latitude,
-                row.longitude,
-                `"${row.source || ''}"`
+                escapeCSV(row.time),
+                escapeCSV(row.station_name),
+                escapeCSV(row.station_id),
+                escapeCSV(row.raw_level),
+                escapeCSV(row.water_level),
+                escapeCSV(row.data_rate),
+                escapeCSV(row.rssi),
+                escapeCSV(row.snr),
+                escapeCSV(row.battery),
+                escapeCSV(row.battery_voltage),
+                escapeCSV(row.sensor_type),
+                escapeCSV(row.latitude),
+                escapeCSV(row.longitude),
+                escapeCSV(row.source),
+                escapeCSV(row.temperature),
+                escapeCSV(row.humidity),
+                escapeCSV(row.gyro_x),
+                escapeCSV(row.gyro_y)
             ].join(','));
         });
 
-        // Use Windows CRLF line endings for Excel compatibility
+        // Windows CRLF for Excel compatibility + UTF-8 BOM for Thai characters
         const csvString = csvRows.join('\r\n');
-
-        // Add explicit UTF-8 BOM (Byte Order Mark) so Excel recognizes the Thai characters
         const bom = Buffer.from([0xEF, 0xBB, 0xBF]);
         const csvBuffer = Buffer.from(csvString, 'utf8');
         const finalBuffer = Buffer.concat([bom, csvBuffer]);
 
+        const filename = station_id && station_id !== 'all'
+            ? `${station_id}_${start_date || 'all'}_to_${end_date || 'all'}.csv`
+            : `all_stations_${start_date || 'all'}_to_${end_date || 'all'}.csv`;
+
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Content-Disposition', `attachment; filename="station_data_${Date.now()}.csv"`);
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
         res.send(finalBuffer);
 
     } catch (err) {
@@ -233,6 +251,7 @@ router.get('/export', async (req, res) => {
 });
 
 // --- Alerts API ---
+
 router.get('/alerts', async (req, res) => {
     const pool = getPool();
     if (!pool) return res.status(500).send("Database not connected");
@@ -399,11 +418,29 @@ router.get('/history', async (req, res) => {
 
         const result = await pool.query(query, params);
 
-        // Format timestamp for consistency
-        const historyData = result.rows.map(row => ({
-            ...row,
-            timestamp: new Date(row.rawTimestamp).toLocaleTimeString('th-TH')
-        }));
+        // Format timestamp for consistency — ensure rawTimestamp is always ISO UTC string
+        const historyData = result.rows.map(row => {
+            // PostgreSQL may return timestamp without timezone as a JS Date or string.
+            // Force it to be treated as UTC by appending 'Z' if needed.
+            const rawTs = row.rawTimestamp;
+            let utcMs;
+            if (rawTs instanceof Date) {
+                utcMs = rawTs.getTime();
+            } else if (typeof rawTs === 'string') {
+                // Append Z if no timezone info present (no Z, no +, no offset)
+                const hasOffset = rawTs.endsWith('Z') || rawTs.includes('+') || /\d{2}:\d{2}$/.test(rawTs);
+                utcMs = new Date(hasOffset ? rawTs : rawTs + 'Z').getTime();
+            } else {
+                utcMs = Number(rawTs);
+            }
+
+            const dateObj = new Date(utcMs);
+            return {
+                ...row,
+                rawTimestamp: utcMs, // Always a numeric UTC ms timestamp
+                timestamp: dateObj.toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' })
+            };
+        });
 
         res.json(historyData);
     } catch (err) {

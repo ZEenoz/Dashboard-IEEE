@@ -375,6 +375,41 @@ export default function SensorDetailsPage() {
         };
     }, [chartData]);
 
+    // Fallback to the most recent known values from history if the latest packet is missing them
+    const latestKnown = useMemo(() => {
+        if (!history || !stationId) return {};
+        const targetId = String(stationId).toLowerCase();
+        
+        // Get all history for this station, sorted newest first
+        const stationHistory = history
+            .filter(h => String(h.stationId || '').toLowerCase() === targetId)
+            .sort((a, b) => b.rawTimestamp - a.rawTimestamp);
+
+        return {
+            rssi: stationHistory.find(h => h.rssi != null && h.rssi !== 0)?.rssi,
+            snr: stationHistory.find(h => h.snr != null && h.snr !== 0)?.snr,
+            battery: stationHistory.find(h => h.battery != null)?.battery,
+            temperature: stationHistory.find(h => h.temperature != null)?.temperature,
+            humidity: stationHistory.find(h => h.humidity != null)?.humidity,
+            gyro_x: stationHistory.find(h => h.gyro_x != null)?.gyro_x,
+            gyro_y: stationHistory.find(h => h.gyro_y != null)?.gyro_y
+        };
+    }, [history, stationId]);
+
+    // Resolved display values (Current OR Latest Known OR null)
+    const displayValues = useMemo(() => {
+        if (!station) return {};
+        return {
+            rssi: station.rssi || latestKnown.rssi,
+            snr: station.snr || latestKnown.snr,
+            battery: station.battery ?? latestKnown.battery,
+            temperature: station.temperature ?? latestKnown.temperature,
+            humidity: station.humidity ?? latestKnown.humidity,
+            gyro_x: station.gyro_x ?? latestKnown.gyro_x,
+            gyro_y: station.gyro_y ?? latestKnown.gyro_y
+        };
+    }, [station, latestKnown]);
+
     if (!mounted) return null;
 
     if (isLoading) {
@@ -467,11 +502,11 @@ export default function SensorDetailsPage() {
                     <div className="flex-1 min-w-0">
                         <p className="text-[8px] md:text-[9px] uppercase font-bold text-gray-500 tracking-[0.2em] md:tracking-[0.25em] mb-0.5 md:mb-1">{t('stationDetail.power')}</p>
                         <div className="flex items-center gap-3">
-                            <span className="text-xs md:text-sm font-bold text-gray-200 tabular-nums">{station.battery ?? '--'}%</span>
+                            <span className="text-xs md:text-sm font-bold text-gray-200 tabular-nums">{displayValues.battery ?? '--'}%</span>
                             <div className="h-1 flex-1 bg-gray-800 rounded-full overflow-hidden border border-white/5">
                                 <div
-                                    className={`h-full rounded-full transition-all duration-1000 ${Number(station.battery || 0) > 50 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : Number(station.battery || 0) > 25 ? 'bg-orange-500' : 'bg-red-500'}`}
-                                    style={{ width: `${Number(station.battery || 0)}%` }}
+                                    className={`h-full rounded-full transition-all duration-1000 ${Number(displayValues.battery || 0) > 50 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : Number(displayValues.battery || 0) > 25 ? 'bg-orange-500' : 'bg-red-500'}`}
+                                    style={{ width: `${Number(displayValues.battery || 0)}%` }}
                                 />
                             </div>
                         </div>
@@ -482,12 +517,12 @@ export default function SensorDetailsPage() {
                     <div className="min-w-0">
                         <p className="text-[8px] md:text-[9px] uppercase font-bold text-gray-500 tracking-[0.2em] md:tracking-[0.25em] mb-0.5 md:mb-1">{t('stationDetail.signal')}</p>
                         <p className="text-xs md:text-sm font-bold text-gray-200 tabular-nums truncate">
-                            {station.rssi != null && station.rssi !== 0
-                                ? `${station.rssi} dBm`
-                                : (station.rssi === 0 ? '0 dBm' : '--')}
+                            {displayValues.rssi != null && displayValues.rssi !== 0
+                                ? `${displayValues.rssi} dBm`
+                                : (displayValues.rssi === 0 ? '0 dBm' : '--')}
                         </p>
-                        {station.snr != null && (
-                            <p className="text-[9px] text-gray-500 font-mono">SNR: {station.snr} dB</p>
+                        {displayValues.snr != null && (
+                            <p className="text-[9px] text-gray-500 font-mono">SNR: {displayValues.snr} dB</p>
                         )}
                     </div>
                 </div>
@@ -502,14 +537,14 @@ export default function SensorDetailsPage() {
                     <div className="p-2.5 md:p-3 bg-red-500/10 rounded-2xl text-red-500 border border-red-500/20 transition-transform group-hover:scale-110 shrink-0"><Thermometer className="w-[18px] h-[18px] md:w-5 md:h-5" /></div>
                     <div className="min-w-0">
                         <p className="text-[8px] md:text-[9px] uppercase font-bold text-gray-500 tracking-[0.2em] md:tracking-[0.25em] mb-0.5 md:mb-1">TEMP.</p>
-                        <p className="text-xs md:text-sm font-bold text-gray-200 tabular-nums truncate">{station.temperature != null ? `${station.temperature} °C` : '--'}</p>
+                        <p className="text-xs md:text-sm font-bold text-gray-200 tabular-nums truncate">{displayValues.temperature != null ? `${displayValues.temperature} °C` : '--'}</p>
                     </div>
                 </div>
                 <div className="p-4 md:p-5 flex items-center gap-3 md:gap-4 bg-gray-950/20 hover:bg-gray-800/20 transition-all group">
                     <div className="p-2.5 md:p-3 bg-blue-400/10 rounded-2xl text-blue-400 border border-blue-400/20 transition-transform group-hover:scale-110 shrink-0"><Droplets className="w-[18px] h-[18px] md:w-5 md:h-5" /></div>
                     <div className="min-w-0">
                         <p className="text-[8px] md:text-[9px] uppercase font-bold text-gray-500 tracking-[0.2em] md:tracking-[0.25em] mb-0.5 md:mb-1">HUMIDITY</p>
-                        <p className="text-xs md:text-sm font-bold text-gray-200 tabular-nums truncate">{station.humidity != null ? `${station.humidity} %` : '--'}</p>
+                        <p className="text-xs md:text-sm font-bold text-gray-200 tabular-nums truncate">{displayValues.humidity != null ? `${displayValues.humidity} %` : '--'}</p>
                     </div>
                 </div>
                 {station.sensorType === 'Float' && (
@@ -518,14 +553,14 @@ export default function SensorDetailsPage() {
                             <div className="p-2.5 md:p-3 bg-purple-500/10 rounded-2xl text-purple-500 border border-purple-500/20 transition-transform group-hover:scale-110 shrink-0"><Compass className="w-[18px] h-[18px] md:w-5 md:h-5" /></div>
                             <div className="min-w-0">
                                 <p className="text-[8px] md:text-[9px] uppercase font-bold text-gray-500 tracking-[0.2em] md:tracking-[0.25em] mb-0.5 md:mb-1">GYRO X</p>
-                                <p className="text-xs md:text-sm font-bold text-gray-200 tabular-nums truncate">{station.gyro_x != null ? `${station.gyro_x}°` : '--'}</p>
+                                <p className="text-xs md:text-sm font-bold text-gray-200 tabular-nums truncate">{displayValues.gyro_x != null ? `${displayValues.gyro_x}°` : '--'}</p>
                             </div>
                         </div>
                         <div className="p-4 md:p-5 flex items-center gap-3 md:gap-4 bg-gray-950/20 hover:bg-gray-800/20 transition-all group">
                             <div className="p-2.5 md:p-3 bg-purple-500/10 rounded-2xl text-purple-500 border border-purple-500/20 transition-transform group-hover:scale-110 shrink-0"><Compass className="w-[18px] h-[18px] md:w-5 md:h-5" /></div>
                             <div className="min-w-0">
                                 <p className="text-[8px] md:text-[9px] uppercase font-bold text-gray-500 tracking-[0.2em] md:tracking-[0.25em] mb-0.5 md:mb-1">GYRO Y</p>
-                                <p className="text-xs md:text-sm font-bold text-gray-200 tabular-nums truncate">{station.gyro_y != null ? `${station.gyro_y}°` : '--'}</p>
+                                <p className="text-xs md:text-sm font-bold text-gray-200 tabular-nums truncate">{displayValues.gyro_y != null ? `${displayValues.gyro_y}°` : '--'}</p>
                             </div>
                         </div>
                     </>

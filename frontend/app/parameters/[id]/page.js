@@ -366,7 +366,8 @@ export default function SensorDetailsPage() {
 
     const stats = useMemo(() => {
         if (chartData.length === 0) return { min: 0, max: 0, avg: 0 };
-        const values = chartData.map(d => d.value);
+        // Filter out null gap-injected values before computing stats
+        const values = chartData.map(d => d.value).filter(v => v !== null && v !== undefined && !isNaN(v));
         return {
             min: values.length > 0 ? Math.min(...values).toFixed(2) : "0.00",
             max: values.length > 0 ? Math.max(...values).toFixed(2) : "0.00",
@@ -480,7 +481,14 @@ export default function SensorDetailsPage() {
                     <div className="p-2.5 md:p-3 bg-indigo-500/10 rounded-2xl text-indigo-500 border border-indigo-500/20 transition-transform group-hover:scale-110 shrink-0"><Signal className="w-[18px] h-[18px] md:w-5 md:h-5" /></div>
                     <div className="min-w-0">
                         <p className="text-[8px] md:text-[9px] uppercase font-bold text-gray-500 tracking-[0.2em] md:tracking-[0.25em] mb-0.5 md:mb-1">{t('stationDetail.signal')}</p>
-                        <p className="text-xs md:text-sm font-bold text-gray-200 tabular-nums truncate">{station.rssi ?? '--'} dBm</p>
+                        <p className="text-xs md:text-sm font-bold text-gray-200 tabular-nums truncate">
+                            {station.rssi != null && station.rssi !== 0
+                                ? `${station.rssi} dBm`
+                                : (station.rssi === 0 ? '0 dBm' : '--')}
+                        </p>
+                        {station.snr != null && (
+                            <p className="text-[9px] text-gray-500 font-mono">SNR: {station.snr} dB</p>
+                        )}
                     </div>
                 </div>
                 <div className="p-4 md:p-5 flex items-center gap-3 md:gap-4 bg-gray-950/20 hover:bg-gray-800/20 transition-all group">

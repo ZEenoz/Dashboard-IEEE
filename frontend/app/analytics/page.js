@@ -289,10 +289,16 @@ export default function AnalyticsPage() {
                 };
             }
 
+            // Get current offset from settings
+            const config = getStationConfig(item.stationId);
+            const currentOffset = parseFloat(config?.offset) || 0;
+            const rawValue = item.rawLevel !== undefined ? item.rawLevel : (item.waterLevel || 0);
+            const calibratedValue = rawValue + currentOffset;
+
             pivotedData[timeKey][item.stationId] = Number(
                 displayMode === 'raw'
-                    ? (item.rawLevel || item.waterLevel || 0)
-                    : (item.waterLevel || 0)
+                    ? rawValue
+                    : calibratedValue
             );
         });
 
@@ -528,7 +534,7 @@ export default function AnalyticsPage() {
                                                     : date.toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok', month: 'short', day: 'numeric' });
                                             }}
                                         />
-                                        <YAxis stroke="#9CA3AF" />
+                                        <YAxis stroke="#9CA3AF" domain={['auto', 'auto']} tickFormatter={(val) => Number(val).toFixed(2)} width={70} />
                                         <Tooltip
                                             labelFormatter={(label) => new Date(Number(label)).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', dateStyle: 'medium', timeStyle: 'short' })}
                                             contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
@@ -567,7 +573,7 @@ export default function AnalyticsPage() {
                                                     : date.toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok', month: 'short', day: 'numeric' });
                                             }}
                                         />
-                                        <YAxis stroke="#9CA3AF" />
+                                        <YAxis stroke="#9CA3AF" domain={['auto', 'auto']} tickFormatter={(val) => Number(val).toFixed(2)} width={70} />
                                         <Tooltip
                                             labelFormatter={(label) => new Date(Number(label)).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', dateStyle: 'medium', timeStyle: 'short' })}
                                             contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
@@ -601,7 +607,7 @@ export default function AnalyticsPage() {
                                                     : date.toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok', month: 'short', day: 'numeric' });
                                             }}
                                         />
-                                        <YAxis stroke="#9CA3AF" />
+                                        <YAxis stroke="#9CA3AF" domain={['auto', 'auto']} tickFormatter={(val) => Number(val).toFixed(2)} width={70} />
                                         <Tooltip
                                             labelFormatter={(label) => new Date(Number(label)).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', dateStyle: 'medium', timeStyle: 'short' })}
                                             contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}

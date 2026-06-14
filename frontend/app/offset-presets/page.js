@@ -1,26 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useSocket } from '@/contexts/SocketContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import toast from 'react-hot-toast';
 import {
-    Sliders,
-    Plus,
-    X,
-    Save,
-    Trash2,
-    GripVertical,
-    Droplets,
-    ArrowUp,
-    ArrowDown,
-    RotateCcw,
-    ChevronRight,
-    AlertTriangle,
-    Check,
-    Tag
+    Save, Calculator, Activity, Droplets, ChevronRight, X, RotateCcw, AlertTriangle, Plus, Minus, X as XIcon, Divide, Baseline, Play, Trash2
 } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
@@ -32,23 +19,30 @@ export default function OffsetPresetsPage() {
     const { stations: liveStations } = useSocket();
 
     const [settings, setSettings] = useState(null);
-    const [presets, setPresets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [draggedStation, setDraggedStation] = useState(null);
-    const [dragOverPreset, setDragOverPreset] = useState(null);
-    const [showCreateForm, setShowCreateForm] = useState(false);
-    const [newPresetName, setNewPresetName] = useState('');
-    const [newPresetOffset, setNewPresetOffset] = useState('0.00');
-    const [hasChanges, setHasChanges] = useState(false);
+    const [resetting, setResetting] = useState(false);
 
-    // Route Protection — admin only
+    // Selected station for calibration
+    const [selectedStationId, setSelectedStationId] = useState(null);
+
+    // Formula Builder State
+    // e.g., [{ type: 'number', value: '1.6', label: 'Bank' }, { type: 'operator', value: '-' }, { type: 'variable', value: 'RAW', label: 'Raw Level' }]
+    const [formula, setFormula] = useState([]);
+    const [draggedIndex, setDraggedIndex] = useState(null);
+
+    // Custom Variable Modal State
+    const [showCustomModal, setShowCustomModal] = useState(false);
+    const [customName, setCustomName] = useState('Bank Level');
+    const [customValue, setCustomValue] = useState('');
+
+    // Route Protection
     useEffect(() => {
         if (status === 'unauthenticated') router.replace('/login');
         if (session && session.user?.role !== 'admin') router.replace('/');
     }, [session, status, router]);
 
-    // Fetch settings & presets
+    // Fetch settings
     useEffect(() => {
         const fetchOpts = {
             cache: 'no-store',
@@ -61,30 +55,11 @@ export default function OffsetPresetsPage() {
 
         const fetchData = async () => {
             try {
-                const [settingsRes, presetsRes] = await Promise.all([
-                    fetch(`${API_URL}/settings`, fetchOpts),
-                    fetch(`${API_URL}/offset-presets`, fetchOpts)
-                ]);
-
-                const settingsData = await settingsRes.json();
-                let presetsData = [];
-
-                try {
-                    presetsData = await presetsRes.json();
-                    // Ensure presetsData is an array
-                    if (!Array.isArray(presetsData)) {
-                        console.warn('Presets data is not an array, defaulting to []', presetsData);
-                        presetsData = [];
-                    }
-                } catch (e) {
-                    console.warn('Failed to parse presets JSON', e);
-                    presetsData = [];
-                }
-
-                setSettings(settingsData);
-                setPresets(presetsData);
+                const res = await fetch(`${API_URL}/settings`, fetchOpts);
+                const data = await res.json();
+                setSettings(data);
             } catch (err) {
-                console.error('Failed to load data', err);
+                console.error('Failed to load settings', err);
                 toast.error(t('settings.failedToLoad'));
             } finally {
                 setLoading(false);
@@ -94,131 +69,133 @@ export default function OffsetPresetsPage() {
         fetchData();
     }, []);
 
-    // All configured stations (visible only)
+    // Get all visible stations
     const allStations = Object.fromEntries(
         Object.entries(settings?.stations || {}).filter(([, cfg]) => cfg.isVisible !== false)
     );
 
-    // Stations already assigned to a preset
-    const assignedStationIds = new Set(
-        Array.isArray(presets) ? presets.flatMap(p => p?.stations || []) : []
-    );
+    // Live data for selected station
+    const selectedLive = selectedStationId ? liveStations[selectedStationId] : null;
+    const selectedConfig = selectedStationId ? allStations[selectedStationId] : null;
+    const rawLevel = selectedLive 
+        ? (selectedLive.rawLevel !== undefined ? Number(selectedLive.rawLevel) : Number(selectedLive.waterLevel) || 0) 
+        : 0;
+    const currentOffset = selectedConfig?.offset || 0;
 
-    // Available stations (not assigned to any preset)
-    const availableStations = Object.entries(allStations).filter(
-        ([id]) => !assignedStationIds.has(id)
-    );
+    // Evaluate formula
+    const evaluation = useMemo(() => {
+        if (formula.length === 0) return { result: null, error: null };
 
-    // Drag handlers
-    const handleDragStart = (e, stationId) => {
-        setDraggedStation(stationId);
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', stationId);
+        let expression = '';
+        let visualExpression = [];
+
+        for (const block of formula) {
+            if (block.type === 'number') {
+                expression += block.value + ' ';
+                visualExpression.push({ text: block.value, subtext: block.label, color: 'text-teal-400' });
+            } else if (block.type === 'variable' && block.value === 'RAW') {
+                expression += rawLevel + ' ';
+                visualExpression.push({ text: rawLevel.toFixed(3), subtext: block.label, color: 'text-blue-400' });
+            } else if (block.type === 'operator') {
+                expression += block.value + ' ';
+                visualExpression.push({ text: block.value, subtext: '', color: 'text-amber-500' });
+            }
+        }
+
+        try {
+            // Replace visual operators with JS operators
+            const evalExpr = expression.replace(/×/g, '*').replace(/÷/g, '/');
+            // eslint-disable-next-line no-new-func
+            const result = new Function('return ' + evalExpr)();
+            if (!isFinite(result) || isNaN(result)) {
+                 return { result: null, error: 'Invalid calculation', visual: visualExpression };
+            }
+            return { result: Number(result), error: null, visual: visualExpression };
+        } catch (e) {
+            return { result: null, error: 'Incomplete formula', visual: visualExpression };
+        }
+    }, [formula, rawLevel]);
+
+    const targetLevel = evaluation.result;
+    const requiredOffset = targetLevel !== null ? (targetLevel - rawLevel) : null;
+    const hasChanges = requiredOffset !== null && Math.abs(requiredOffset - currentOffset) > 0.001;
+
+    // --- Actions ---
+
+    const addBlock = (block) => {
+        setFormula(prev => [...prev, block]);
     };
 
-    const handleDragOver = (e, presetIdx) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        setDragOverPreset(presetIdx);
-    };
-
-    const handleDragLeave = () => {
-        setDragOverPreset(null);
-    };
-
-    const handleDrop = (e, presetIdx) => {
-        e.preventDefault();
-        const stationId = e.dataTransfer.getData('text/plain') || draggedStation;
-        if (!stationId) return;
-
-        setPresets(prev => {
-            const updated = prev.map((p, i) => {
-                // Remove from other presets first
-                const filtered = (p.stations || []).filter(s => s !== stationId);
-                if (i === presetIdx) {
-                    return { ...p, stations: [...filtered, stationId] };
-                }
-                return { ...p, stations: filtered };
-            });
-            return updated;
-        });
-
-        setDraggedStation(null);
-        setDragOverPreset(null);
-        setHasChanges(true);
-    };
-
-    const removeStationFromPreset = (presetIdx, stationId) => {
-        setPresets(prev => prev.map((p, i) => {
-            if (i !== presetIdx) return p;
-            return { ...p, stations: (p.stations || []).filter(s => s !== stationId) };
-        }));
-        setHasChanges(true);
-    };
-
-    const deletePreset = (presetIdx) => {
-        setPresets(prev => prev.filter((_, i) => i !== presetIdx));
-        setHasChanges(true);
-    };
-
-    const createPreset = () => {
-        if (!newPresetName.trim()) {
-            toast.error(t('offsetPresets.presetName') + ' ' + t('common.error'));
+    const handleAddCustom = () => {
+        const num = parseFloat(customValue);
+        if (isNaN(num)) {
+            toast.error('Please enter a valid number');
             return;
         }
-        const offset = parseFloat(newPresetOffset) || 0;
-        setPresets(prev => [...prev, {
-            name: newPresetName.trim(),
-            offset: offset,
-            stations: []
-        }]);
-        setNewPresetName('');
-        setNewPresetOffset('0.00');
-        setShowCreateForm(false);
-        setHasChanges(true);
+        addBlock({ type: 'number', value: num.toString(), label: customName || 'Custom' });
+        setCustomValue('');
+        setShowCustomModal(false);
     };
 
-    const updatePresetOffset = (idx, value) => {
-        setPresets(prev => prev.map((p, i) =>
-            i === idx ? { ...p, offset: parseFloat(value) || 0 } : p
-        ));
-        setHasChanges(true);
+    const removeBlock = (index) => {
+        setFormula(prev => prev.filter((_, i) => i !== index));
     };
 
-    const updatePresetName = (idx, value) => {
-        setPresets(prev => prev.map((p, i) =>
-            i === idx ? { ...p, name: value } : p
-        ));
-        setHasChanges(true);
+    const clearFormula = () => {
+        setFormula([]);
     };
 
-    // Apply presets → save offset values to each station in settings
-    const savePresets = async () => {
+    const loadPresetBankMinusRaw = () => {
+        setFormula([
+            { type: 'number', value: '0', label: 'Bank Level' },
+            { type: 'operator', value: '-' },
+            { type: 'variable', value: 'RAW', label: 'Raw Level' }
+        ]);
+    };
+
+    // --- Drag and Drop Logic ---
+    const handleDragStart = (e, index) => {
+        setDraggedIndex(index);
+        e.dataTransfer.effectAllowed = 'move';
+        // Required for Firefox
+        e.dataTransfer.setData('text/html', e.target.parentNode);
+    };
+
+    const handleDragOver = (e, index) => {
+        e.preventDefault(); // Necessary to allow drop
+        e.dataTransfer.dropEffect = 'move';
+    };
+
+    const handleDrop = (e, targetIndex) => {
+        e.preventDefault();
+        if (draggedIndex === null || draggedIndex === targetIndex) return;
+        
+        setFormula(prev => {
+            const newFormula = [...prev];
+            const [movedItem] = newFormula.splice(draggedIndex, 1);
+            newFormula.splice(targetIndex, 0, movedItem);
+            return newFormula;
+        });
+        setDraggedIndex(null);
+    };
+
+    const handleDragEnd = () => {
+        setDraggedIndex(null);
+    };
+
+    const saveCalibration = async () => {
+        if (requiredOffset === null) return;
         setSaving(true);
         try {
-            // 1. Save presets config
-            const resPresets = await fetch(`${API_URL}/offset-presets`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': 'IEEE_SECURE_API_KEY_2025',
-                    'ngrok-skip-browser-warning': 'true'
-                },
-                body: JSON.stringify(presets)
-            });
-            if (!resPresets.ok) throw new Error(`Failed to save presets: ${resPresets.statusText}`);
-
-            // 2. Apply offset values to station settings
             const updatedSettings = { ...settings };
-            presets.forEach(preset => {
-                (preset.stations || []).forEach(stationId => {
-                    if (updatedSettings.stations?.[stationId]) {
-                        updatedSettings.stations[stationId].offset = parseFloat(preset.offset) || 0;
-                    }
-                });
-            });
+            if (!updatedSettings.stations) updatedSettings.stations = {};
+            if (!updatedSettings.stations[selectedStationId]) updatedSettings.stations[selectedStationId] = {};
+            
+            // Round to 3 decimal places for neatness
+            updatedSettings.stations[selectedStationId].offset = Number(requiredOffset.toFixed(3));
+            updatedSettings.stations[selectedStationId].formula = formula;
 
-            const resSettings = await fetch(`${API_URL}/settings`, {
+            const res = await fetch(`${API_URL}/settings`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -227,24 +204,49 @@ export default function OffsetPresetsPage() {
                 },
                 body: JSON.stringify(updatedSettings)
             });
-            if (!resSettings.ok) throw new Error(`Failed to save settings: ${resSettings.statusText}`);
+
+            if (!res.ok) throw new Error('Failed to save');
 
             setSettings(updatedSettings);
-            setHasChanges(false);
-            toast.success(t('settings.settingsSaved'));
+            toast.success('Calibration offset applied successfully!');
         } catch (err) {
             toast.error(t('settings.failedToSave') + ': ' + err.message);
         }
         setSaving(false);
     };
 
-    const clearAll = () => {
-        if (!confirm(t('offsetPresets.clearAllConfirm'))) return;
-        setPresets([]);
-        setHasChanges(true);
+    const resetCalibration = async () => {
+        if (!selectedStationId) return;
+        if (!confirm('Are you sure you want to completely remove the calibration offset and formula for this station?')) return;
+        setResetting(true);
+        try {
+            const updatedSettings = { ...settings };
+            if (updatedSettings.stations && updatedSettings.stations[selectedStationId]) {
+                delete updatedSettings.stations[selectedStationId].offset;
+                delete updatedSettings.stations[selectedStationId].formula;
+            }
+
+            const res = await fetch(`${API_URL}/settings`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': 'IEEE_SECURE_API_KEY_2025',
+                    'ngrok-skip-browser-warning': 'true'
+                },
+                body: JSON.stringify(updatedSettings)
+            });
+
+            if (!res.ok) throw new Error('Failed to reset');
+
+            setSettings(updatedSettings);
+            clearFormula();
+            toast.success('Calibration offset removed successfully!');
+        } catch (err) {
+            toast.error('Failed to reset: ' + err.message);
+        }
+        setResetting(false);
     };
 
-    // Loading / auth guard
     if (status === 'loading' || loading) return (
         <div className="flex items-center justify-center h-[80vh]">
             <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
@@ -255,352 +257,310 @@ export default function OffsetPresetsPage() {
     return (
         <div className="p-4 md:p-8 text-white min-h-screen lg:h-[calc(100vh-64px)] lg:overflow-hidden flex flex-col">
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6 px-1">
-                <div className="flex flex-col">
-                    <div className="flex items-center gap-4">
-                        <h1 className="text-3xl font-bold text-white tracking-tight border-l-4 border-blue-500 pl-4">
-                            {t('offsetPresets.title')}
-                        </h1>
-                    </div>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 px-1">
+                <div className="flex items-center gap-4">
+                    <h1 className="text-3xl font-bold text-white tracking-tight border-l-4 border-emerald-500 pl-4">
+                        Offset Calibration
+                    </h1>
                 </div>
-                {hasChanges && (
-                    <div className="flex items-center gap-2 text-amber-400 text-xs font-bold animate-pulse bg-amber-400/10 px-4 py-2 rounded-lg border border-amber-400/20">
-                        <AlertTriangle size={16} />
-                        {t('offsetPresets.unsavedChanges')}
-                    </div>
-                )}
             </div>
 
-            {/* Main 2-column layout */}
-            <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start flex-1 min-h-0">
-
-                {/* ─── Left: Available Stations ─── */}
-                <div className="w-full lg:w-72 flex-shrink-0 lg:h-full flex flex-col">
-                    <div className="text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-4 flex-shrink-0">
-                        {t('offsetPresets.availableStations')}
-                    </div>
-
-                    <div className="space-y-2 overflow-y-auto pr-1 pb-4 flex-1">
-                        {availableStations.length === 0 && (
-                            <div className="text-center py-12 text-gray-600 text-xs">
-                                {t('offsetPresets.allAssigned')}
+            {/* Custom Variable Modal */}
+            {showCustomModal && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 backdrop-blur-sm p-4">
+                    <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl relative fade-in">
+                        <button
+                            onClick={() => setShowCustomModal(false)}
+                            className="absolute top-4 right-4 text-gray-500 hover:text-white"
+                        >
+                            <X size={20} />
+                        </button>
+                        <h2 className="text-lg font-bold text-white mb-4">Add Custom Variable</h2>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Name Variable:</label>
+                                <input
+                                    type="text"
+                                    value={customName}
+                                    onChange={e => setCustomName(e.target.value)}
+                                    placeholder="e.g. Bank Level"
+                                    className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-emerald-500 outline-none"
+                                    autoFocus
+                                />
                             </div>
-                        )}
-                        {availableStations.map(([id, config]) => {
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Value:</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    value={customValue}
+                                    onChange={e => setCustomValue(e.target.value)}
+                                    placeholder="0.00"
+                                    className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white font-mono focus:border-emerald-500 outline-none"
+                                />
+                            </div>
+                            <button
+                                onClick={handleAddCustom}
+                                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-lg transition-colors mt-2"
+                            >
+                                Add to Formula
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Main Layout */}
+            <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
+                
+                {/* Left: Station List */}
+                <div className="w-full lg:w-80 flex-shrink-0 lg:h-full flex flex-col bg-gray-900/50 border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+                    <div className="p-4 border-b border-gray-800 bg-gray-900">
+                        <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                            <Activity size={14} className="text-blue-500" />
+                            Select Station
+                        </h2>
+                    </div>
+                    <div className="overflow-y-auto flex-1 p-3 space-y-2">
+                        {Object.entries(allStations).map(([id, config]) => {
+                            const isSelected = selectedStationId === id;
                             const live = liveStations[id];
                             return (
-                                <div
+                                <button
                                     key={id}
-                                    draggable
-                                    onDragStart={(e) => handleDragStart(e, id)}
-                                    className={`
-                                        group relative cursor-grab active:cursor-grabbing
-                                        rounded-lg overflow-hidden
-                                        border border-gray-700/60 hover:border-gray-500
-                                        transition-all duration-150
-                                        ${draggedStation === id ? 'opacity-40 scale-95' : ''}
-                                    `}
+                                    onClick={() => {
+                                        setSelectedStationId(id);
+                                        const savedFormula = settings?.stations?.[id]?.formula;
+                                        if (savedFormula && Array.isArray(savedFormula)) {
+                                            setFormula(savedFormula);
+                                        } else {
+                                            clearFormula();
+                                        }
+                                    }}
+                                    className={`w-full text-left p-3 rounded-xl border transition-all duration-200 flex items-center gap-3 ${
+                                        isSelected 
+                                            ? 'bg-emerald-500/10 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]' 
+                                            : 'bg-gray-800/40 border-gray-700/50 hover:bg-gray-800 hover:border-gray-600'
+                                    }`}
                                 >
-                                    {/* Station image background */}
-                                    {config.image && (
-                                        <div
-                                            className="absolute inset-0 bg-cover bg-center opacity-30 group-hover:opacity-40 transition-opacity"
-                                            style={{
-                                                backgroundImage: `url(${config.image})`,
-                                                backgroundPosition: config.imagePosition
-                                                    ? `${config.imagePosition.x}% ${config.imagePosition.y}%`
-                                                    : 'center'
-                                            }}
-                                        />
-                                    )}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/95 via-gray-900/70 to-gray-900/40" />
-
-                                    <div className="relative px-3 py-3">
-                                        <div className="flex items-start justify-between">
-                                            <div className="min-w-0 flex-1">
-                                                <div className="text-[10px] font-mono text-gray-400 truncate">{id}</div>
-                                                <div className="text-sm font-medium text-gray-200 truncate mt-0.5">
-                                                    {config.name || id}
-                                                </div>
-                                            </div>
-                                            <div className="text-right ml-2 flex-shrink-0">
-                                                <div className="text-[9px] text-gray-500">{t('offsetPresets.level')}</div>
-                                                <div className="text-sm font-mono font-semibold text-blue-300">
-                                                    {(Number(live?.waterLevel) || 0).toFixed(2)} {t('common.m')}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Current offset indicator */}
-                                        <div className="flex items-center gap-1.5 mt-2 text-[10px] text-gray-500">
-                                            <Sliders size={9} />
-                                            <span>{t('settings.offset')}: {config.offset ?? 0}{t('common.m')}</span>
-                                            <span className="ml-auto">
-                                                {config.type === 'Float'
-                                                    ? <span className="text-blue-400">Float</span>
-                                                    : <span className="text-purple-400">Static</span>
-                                                }
-                                            </span>
-                                        </div>
-
-                                        {/* 📱 Mobile Transfer Controls */}
-                                        <div className="mt-3 pt-3 border-t border-gray-700/50 flex lg:hidden gap-2">
-                                            <select 
-                                                className="flex-1 bg-gray-800 text-[10px] px-2 py-1.5 rounded border border-gray-600 focus:outline-none focus:border-blue-500"
-                                                onChange={(e) => {
-                                                    const pIdx = parseInt(e.target.value);
-                                                    if (!isNaN(pIdx)) handleDrop({ preventDefault: () => {}, dataTransfer: { getData: () => id } }, pIdx);
-                                                    e.target.value = "";
-                                                }}
-                                            >
-                                                <option value="">{t('offsetPresets.moveToPreset') || 'Assign to Preset...'}</option>
-                                                {presets.map((p, idx) => (
-                                                    <option key={idx} value={idx}>{p.name} ({p.offset}m)</option>
-                                                ))}
-                                            </select>
+                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${isSelected ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-700 text-gray-400'}`}>
+                                        <Droplets size={18} />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="text-[10px] font-mono text-gray-500 truncate">{id}</div>
+                                        <div className={`text-sm font-bold truncate ${isSelected ? 'text-white' : 'text-gray-300'}`}>
+                                            {config.name || id}
                                         </div>
                                     </div>
-
-                                    {/* Drag grip indicator */}
-                                    <div className="absolute top-1/2 -translate-y-1/2 -left-0 w-1 h-8 bg-gray-600 rounded-r opacity-0 group-hover:opacity-100 transition-opacity" />
-                                </div>
+                                    <ChevronRight size={16} className={isSelected ? 'text-emerald-500' : 'text-gray-600'} />
+                                </button>
                             );
                         })}
                     </div>
                 </div>
 
-                {/* ─── Right: Preset Buckets ─── */}
-                <div className="flex-1 min-w-0 h-full flex flex-col">
-                    <div className="flex items-center justify-between mb-4 flex-shrink-0">
-                        <div className="text-[11px] font-bold uppercase tracking-widest text-gray-500">
-                            {t('offsetPresets.offsetPresets')}
+                {/* Right: Formula Builder Workspace */}
+                <div className="flex-1 min-w-0 h-full flex flex-col gap-6">
+                    {!selectedStationId ? (
+                        <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-gray-900/30 border border-gray-800/50 rounded-2xl border-dashed">
+                            <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mb-4 text-gray-600">
+                                <Calculator size={28} />
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-400 mb-2">Formula Builder</h3>
+                            <p className="text-sm text-gray-600 max-w-sm">
+                                Select a station from the list to start building a custom calibration offset using visual math blocks.
+                            </p>
                         </div>
-                        <button
-                            onClick={() => setShowCreateForm(true)}
-                            className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white px-3 py-1.5 rounded-md border border-dashed border-gray-600 hover:border-gray-400 transition-colors"
-                        >
-                            <Plus size={13} />
-                            {t('offsetPresets.createPreset')}
-                        </button>
-                    </div>
-
-                    <div className="overflow-y-auto pr-2 pb-4 flex-1">
-
-                        {/* Create form (inline, not modal) */}
-                        {showCreateForm && (
-                            <div className="mb-6 p-5 rounded-lg bg-gray-800/60 border border-gray-700/80">
-                                <div className="text-sm font-medium text-gray-300 mb-3">{t('offsetPresets.newPreset')}</div>
-                                <div className="flex gap-3 items-end">
-                                    <div className="flex-1">
-                                        <label className="text-[10px] uppercase tracking-wider text-gray-500 block mb-1">{t('offsetPresets.presetName')}</label>
-                                        <input
-                                            type="text"
-                                            value={newPresetName}
-                                            onChange={e => setNewPresetName(e.target.value)}
-                                            placeholder="e.g. High Adjust, Decrease..."
-                                            autoFocus
-                                            className="w-full bg-gray-900/80 border border-gray-700 rounded-md px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-blue-500/60 focus:outline-none"
-                                        />
-                                    </div>
-                                    <div className="w-36">
-                                        <label className="text-[10px] uppercase tracking-wider text-gray-500 block mb-1">{t('offsetPresets.presetOffset')}</label>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            value={newPresetOffset}
-                                            onChange={e => setNewPresetOffset(e.target.value)}
-                                            className="w-full bg-gray-900/80 border border-gray-700 rounded-md px-3 py-2 text-sm text-white font-mono focus:border-blue-500/60 focus:outline-none"
-                                        />
-                                    </div>
-                                    <button
-                                        onClick={createPreset}
-                                        className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-md transition-colors"
-                                    >
-                                        {t('common.add')}
-                                    </button>
-                                    <button
-                                        onClick={() => setShowCreateForm(false)}
-                                        className="px-3 py-2 text-gray-500 hover:text-gray-300 text-sm transition-colors"
-                                    >
-                                        {t('common.cancel')}
-                                    </button>
+                    ) : (
+                        <>
+                            {/* Top Stats Strip */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 shrink-0">
+                                <div className="bg-gray-800/60 border border-gray-700 rounded-2xl p-4 relative overflow-hidden">
+                                    <div className="absolute -right-4 -bottom-4 opacity-5"><Droplets size={80} /></div>
+                                    <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-1">Raw Level</div>
+                                    <div className="text-3xl font-bold font-mono text-blue-400">{rawLevel.toFixed(3)}<span className="text-sm text-gray-500 ml-1">m</span></div>
+                                </div>
+                                <div className="bg-gray-800/60 border border-gray-700 rounded-2xl p-4">
+                                    <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-1">Current Offset</div>
+                                    <div className="text-3xl font-bold font-mono text-purple-400">{currentOffset > 0 ? '+' : ''}{currentOffset.toFixed(3)}<span className="text-sm text-gray-500 ml-1">m</span></div>
+                                </div>
+                                <div className="bg-gray-800/60 border border-gray-700 rounded-2xl p-4">
+                                    <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-1">Current Display</div>
+                                    <div className="text-3xl font-bold font-mono text-white">{(rawLevel + currentOffset).toFixed(3)}<span className="text-sm text-gray-500 ml-1">m</span></div>
                                 </div>
                             </div>
-                        )}
 
-                        {/* Preset grid */}
-                        {presets.length === 0 && !showCreateForm && (
-                            <div className="flex flex-col items-center justify-center py-24 text-center">
-                                <div className="w-16 h-16 rounded-full bg-gray-800/50 flex items-center justify-center mb-4">
-                                    <Sliders size={24} className="text-gray-600" />
-                                </div>
-                                <p className="text-gray-500 text-sm mb-1">{t('offsetPresets.noPresets')}</p>
-                                <p className="text-gray-600 text-xs mb-6 max-w-xs">
-                                    {t('offsetPresets.noPresetsDesc')}
-                                </p>
-                                <button
-                                    onClick={() => setShowCreateForm(true)}
-                                    className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 px-4 py-2 rounded-md border border-blue-500/30 hover:border-blue-400/50 transition-colors"
-                                >
-                                    <Plus size={13} />
-                                    {t('offsetPresets.createFirst')}
-                                </button>
-                            </div>
-                        )}
+                            {/* Canvas Area */}
+                            <div className="bg-gray-900 border border-gray-700 rounded-2xl shadow-xl flex-1 flex flex-col overflow-hidden min-h-[400px]">
+                                {/* Toolbar / Toolbox */}
+                                <div className="p-4 border-b border-gray-800 bg-[#111827] flex flex-wrap gap-6 shrink-0">
+                                    
+                                    {/* Variables */}
+                                    <div>
+                                        <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-2">Variables</div>
+                                        <div className="flex gap-2">
+                                            <button onClick={() => addBlock({ type: 'variable', value: 'RAW', label: 'Raw Level' })} className="bg-blue-600/20 text-blue-400 hover:bg-blue-600/40 border border-blue-500/30 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-1.5 transition-colors">
+                                                <Baseline size={14} /> Raw Level
+                                            </button>
+                                        </div>
+                                    </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-                            {presets.map((preset, idx) => {
-                                const isPositive = preset.offset > 0;
-                                const isNegative = preset.offset < 0;
-                                const isZero = preset.offset === 0;
-                                const isDragOver = dragOverPreset === idx;
+                                    {/* Operators */}
+                                    <div>
+                                        <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-2">Operators</div>
+                                        <div className="flex gap-2">
+                                            {['+', '-', '×', '÷', '(', ')'].map(op => (
+                                                <button key={op} onClick={() => addBlock({ type: 'operator', value: op })} className="w-9 h-9 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 rounded-lg text-lg font-bold transition-colors">
+                                                    {op}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
 
-                                const accentColor = isPositive
-                                    ? 'text-emerald-400'
-                                    : isNegative
-                                        ? 'text-red-400'
-                                        : 'text-gray-400';
-
-                                const borderAccent = isDragOver
-                                    ? 'border-blue-500/60 bg-blue-500/5'
-                                    : 'border-gray-700/50 hover:border-gray-600';
-
-                                return (
-                                    <div
-                                        key={idx}
-                                        className={`
-                                        rounded-lg border p-5 transition-all duration-150
-                                        ${borderAccent}
-                                    `}
-                                        onDragOver={(e) => handleDragOver(e, idx)}
-                                        onDragLeave={handleDragLeave}
-                                        onDrop={(e) => handleDrop(e, idx)}
-                                    >
-                                        {/* Preset header */}
-                                        <div className="flex items-start justify-between mb-4 gap-2">
-                                            <div className="flex items-baseline gap-2 min-w-0 flex-1">
-                                                <span className={`text-xl sm:text-2xl font-mono font-bold tracking-tight shrink-0 ${accentColor}`}>
-                                                    {isPositive ? '+' : ''}{(Number(preset?.offset) || 0).toFixed(2)}{t('common.m')}
-                                                </span>
-                                                <input
-                                                    type="text"
-                                                    value={preset?.name || ''}
-                                                    onChange={e => updatePresetName(idx, e.target.value)}
-                                                    className="text-[13px] uppercase tracking-widest bg-transparent border-none text-blue-500 focus:text-gray-300 w-full min-w-0 truncate"
-                                                />
-                                            </div>
-                                            <div className="flex items-center gap-1 shrink-0">
-                                                <input
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={preset?.offset ?? 0}
-                                                    onChange={e => updatePresetOffset(idx, e.target.value)}
-                                                    className="w-20 text-right text-xs font-mono bg-gray-800/60 border border-gray-700/50 rounded px-2 py-1 text-gray-300 focus:outline-none focus:border-gray-500"
-                                                />
-                                                <button
-                                                    onClick={() => deletePreset(idx)}
-                                                    className="p-1.5 text-gray-600 hover:text-red-400 transition-colors rounded hover:bg-red-400/10"
-                                                    title="Delete preset"
-                                                >
-                                                    <Trash2 size={13} />
+                                    {/* Custom Numbers */}
+                                    <div className="flex-1 min-w-[200px]">
+                                        <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-2">Custom Value (e.g., Bank)</div>
+                                        <div className="flex gap-2">
+                                            <button onClick={() => setShowCustomModal(true)} className="bg-teal-600/20 text-teal-400 hover:bg-teal-600/40 border border-teal-500/30 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-1.5 transition-colors">
+                                                <Plus size={14} /> Add Custom Variable
+                                            </button>
+                                            <div className="ml-auto">
+                                                <button onClick={loadPresetBankMinusRaw} className="bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/40 border border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">
+                                                    Preset: Bank - Raw
                                                 </button>
                                             </div>
                                         </div>
+                                    </div>
+                                </div>
 
-                                        {/* Assigned stations */}
-                                        <div className="space-y-1.5 min-h-[60px]">
-                                            {(preset.stations || []).map(stationId => {
-                                                const cfg = allStations[stationId];
-                                                return (
-                                                    <div
-                                                        key={stationId}
-                                                        draggable
-                                                        onDragStart={(e) => handleDragStart(e, stationId)}
-                                                        className="group flex items-center gap-2.5 rounded-md bg-gray-800/50 hover:bg-gray-800/80 px-3 py-2 cursor-grab active:cursor-grabbing transition-colors"
-                                                    >
-                                                        {cfg?.image && (
-                                                            <div
-                                                                className="w-8 h-8 rounded bg-cover bg-center flex-shrink-0 border border-gray-700/60"
-                                                                style={{
-                                                                    backgroundImage: `url(${cfg.image})`,
-                                                                    backgroundPosition: cfg?.imagePosition
-                                                                        ? `${cfg.imagePosition.x}% ${cfg.imagePosition.y}%`
-                                                                        : 'center'
-                                                                }}
-                                                            />
+                                {/* Formula Display Canvas */}
+                                <div className="flex-1 p-6 flex flex-col bg-[#0B1121] overflow-y-auto">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Formula Canvas</h3>
+                                        <button onClick={clearFormula} className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 transition-colors">
+                                            <RotateCcw size={12} /> Clear Canvas
+                                        </button>
+                                    </div>
+
+                                    {formula.length === 0 ? (
+                                        <div className="flex-1 flex items-center justify-center border-2 border-dashed border-gray-800 rounded-xl">
+                                            <span className="text-gray-600 text-sm font-medium">Click buttons above to add blocks here</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-wrap items-center content-start gap-2 flex-1 p-4 bg-gray-900/50 rounded-xl border border-gray-800/80 shadow-inner">
+                                            {formula.map((block, i) => (
+                                                <div 
+                                                    key={i} 
+                                                    draggable
+                                                    onDragStart={(e) => handleDragStart(e, i)}
+                                                    onDragOver={(e) => handleDragOver(e, i)}
+                                                    onDrop={(e) => handleDrop(e, i)}
+                                                    onDragEnd={handleDragEnd}
+                                                    className={`group relative flex items-stretch shadow-md rounded-lg overflow-hidden animate-in zoom-in-95 duration-200 cursor-grab active:cursor-grabbing hover:ring-2 ring-emerald-500/50 ${draggedIndex === i ? 'opacity-40 scale-95 ring-2 ring-emerald-500' : ''}`}
+                                                >
+                                                    <div className={`px-4 py-2.5 flex items-center justify-center font-bold font-mono text-lg
+                                                        ${block.type === 'variable' ? 'bg-blue-600 text-white' : 
+                                                          block.type === 'operator' ? 'bg-amber-500 text-gray-900 px-3' : 
+                                                          'bg-teal-600 text-white'}
+                                                    `}>
+                                                        {block.type !== 'operator' && (
+                                                            <span className="mr-2 text-[10px] uppercase tracking-wider opacity-70 font-sans pointer-events-none">{block.label}</span>
                                                         )}
-                                                        {!cfg?.image && (
-                                                            <div className="w-8 h-8 rounded bg-gray-700/40 flex items-center justify-center flex-shrink-0">
-                                                                <Droplets size={12} className="text-gray-500" />
-                                                            </div>
-                                                        )}
-                                                        <div className="min-w-0 flex-1">
-                                                            <div className="text-xs font-mono text-gray-400 truncate">{stationId}</div>
-                                                            <div className="text-[11px] text-gray-500 truncate">{cfg?.name || stationId}</div>
-                                                        </div>
-                                                        <button
-                                                            onClick={() => removeStationFromPreset(idx, stationId)}
-                                                            className="p-1 text-gray-600 hover:text-gray-300 opacity-0 group-hover:opacity-100 transition-all"
-                                                        >
-                                                            <X size={13} />
-                                                        </button>
+                                                        <span className="pointer-events-none">{block.value}</span>
                                                     </div>
-                                                );
-                                            })}
+                                                    <button onClick={() => removeBlock(i)} className="bg-red-500 hover:bg-red-600 text-white px-2 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity w-0 group-hover:w-8 shrink-0">
+                                                        <XIcon size={14} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
 
-                                            {/* Drop zone */}
-                                            <div className={`
-                                            flex items-center justify-center gap-2 rounded-md border border-dashed py-3 text-xs transition-all
-                                            ${isDragOver
-                                                    ? 'border-blue-500/50 text-blue-400 bg-blue-500/5'
-                                                    : 'border-gray-700/40 text-gray-600 hover:border-gray-600 hover:text-gray-500'
-                                                }
-                                        `}>
-                                                <Plus size={14} />
-                                                {t('offsetPresets.dropHere')}
+                                {/* Result & Save Footer */}
+                                <div className="p-5 border-t border-gray-800 bg-[#111827] shrink-0">
+                                    <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                                                                             {/* Result Engine */}
+                                        <div className="flex items-center gap-4 flex-1">
+                                            <div className="w-12 h-12 rounded-xl bg-gray-800 flex items-center justify-center shadow-inner shrink-0">
+                                                <Play size={20} className={targetLevel !== null ? 'text-emerald-400' : 'text-gray-600'} />
                                             </div>
+                                            <div className="flex-1">
+                                                <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-1">Formula Result</div>
+                                                {evaluation.error ? (
+                                                    <div className="text-red-400 text-sm font-bold flex items-center gap-1.5"><AlertTriangle size={14}/> {evaluation.error}</div>
+                                                ) : (
+                                                    <div className="flex flex-wrap items-end gap-x-2 gap-y-1">
+                                                        {evaluation.visual?.map((item, idx) => (
+                                                            <div key={idx} className="flex flex-col items-center">
+                                                                {item.subtext && <span className="text-[9px] text-gray-500 uppercase tracking-wider">{item.subtext}</span>}
+                                                                <span className={`text-xl font-bold font-mono ${item.color}`}>{item.text}</span>
+                                                            </div>
+                                                        ))}
+                                                        {targetLevel !== null && (
+                                                            <>
+                                                                <span className="text-xl font-bold font-mono text-gray-500 mx-1">=</span>
+                                                                <span className="text-2xl font-bold font-mono text-emerald-400 bg-emerald-500/10 px-2 rounded-md">{targetLevel.toFixed(3)}<span className="text-sm text-emerald-500/60 ml-1">m</span></span>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Implied Offset (Quietly shown) */}
+                                            {requiredOffset !== null && (
+                                                <>
+                                                    <div className="hidden lg:block h-10 w-px bg-gray-700 mx-4"></div>
+                                                    <div className="hidden lg:block">
+                                                        <div className="text-[9px] uppercase tracking-widest text-gray-500 font-bold mb-1">System Offset</div>
+                                                        <div className="text-sm text-gray-400 font-mono bg-gray-800/50 px-2 py-1 rounded">
+                                                            {requiredOffset > 0 ? '+' : ''}{requiredOffset.toFixed(3)}
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+
+                                        {/* Save & Reset Buttons */}
+                                        <div className="flex items-center gap-3 shrink-0">
+                                            {settings?.stations?.[selectedStationId]?.offset !== undefined && (
+                                                <button
+                                                    onClick={resetCalibration}
+                                                    disabled={resetting || saving}
+                                                    className={`
+                                                        flex items-center justify-center p-3.5 rounded-xl transition-all shadow-md
+                                                        ${resetting || saving
+                                                            ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                                                            : 'bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 hover:border-red-500/40'
+                                                        }
+                                                    `}
+                                                    title="Remove Calibration entirely"
+                                                >
+                                                    {resetting ? <div className="w-5 h-5 border-2 border-red-500/30 border-t-red-500 rounded-full animate-spin" /> : <Trash2 size={20} />}
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={saveCalibration}
+                                                disabled={saving || resetting || !hasChanges || requiredOffset === null}
+                                                className={`
+                                                    flex items-center gap-2 px-8 py-3.5 rounded-xl font-bold transition-all shadow-lg
+                                                    ${saving || resetting || !hasChanges || requiredOffset === null
+                                                        ? 'bg-gray-800 text-gray-500 cursor-not-allowed shadow-none'
+                                                        : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/20 hover:-translate-y-0.5'
+                                                    }
+                                                `}
+                                            >
+                                                {saving ? (
+                                                    <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving...</>
+                                                ) : (
+                                                    <><Save size={18} /> Apply Calibration</>
+                                                )}
+                                            </button>
                                         </div>
                                     </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Bottom action bar */}
-                    {presets.length > 0 && (
-                        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-800 flex-shrink-0">
-                            <button
-                                onClick={clearAll}
-                                className="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-300 px-4 py-2 rounded-md hover:bg-gray-800/60 transition-colors"
-                            >
-                                <RotateCcw size={13} />
-                                {t('offsetPresets.clearAll')}
-                            </button>
-
-                            <button
-                                onClick={savePresets}
-                                disabled={saving || !hasChanges}
-                                className={`
-                                    flex items-center gap-2 px-6 py-2.5 rounded-md text-sm font-medium transition-all
-                                    ${saving || !hasChanges
-                                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                                        : 'bg-blue-600 hover:bg-blue-500 text-white active:scale-[0.98]'
-                                    }
-                                `}
-                            >
-                                {saving ? (
-                                    <>
-                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                        Saving...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save size={14} />
-                                        {t('offsetPresets.saveApply')}
-                                    </>
-                                )}
-                            </button>
-                        </div>
+                                </div>
+                            </div>
+                        </>
                     )}
                 </div>
             </div>

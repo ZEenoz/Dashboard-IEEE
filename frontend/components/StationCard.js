@@ -169,13 +169,7 @@ const StationCard = React.memo(({ station, onClick }) => {
                                     {t('stationCard.rawData')}
                                 </span>
                             </div>
-                        ) : (
-                            station.offsetValue && station.offsetValue !== 0 ? (
-                                <span className={`text-[10px] font-mono font-bold ${station.offsetValue > 0 ? 'text-emerald-400' : 'text-red-400'} mt-1`}>
-                                    ({station.offsetValue > 0 ? '+' : ''}{(Number(station.offsetValue) || 0).toFixed(3)})
-                                </span>
-                            ) : null
-                        )}
+                        ) : null}
                     </div>
 
                     <div className="flex flex-col items-end gap-1">

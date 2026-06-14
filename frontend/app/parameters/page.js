@@ -146,7 +146,7 @@ export default function ParametersPage() {
                     {filteredStations.map((station) => (
                         <div
                             onClick={() => router.push(`/parameters/${station.stationId}`)}
-                            className={`bg-gray-800 rounded-xl p-6 border ${getStatus(station).status === 'offline' ? 'border-red-500' : 'border-gray-700'} shadow-lg hover:border-${station.sensorType === 'Float' ? 'blue' : 'purple'}-500 transition-all cursor-pointer`}
+                            className={`bg-gray-800 rounded-xl p-6 border ${getStatus(station).status === 'offline' ? 'border-red-500' : 'border-gray-700'} shadow-lg ${station.sensorType === 'Float' ? 'hover:border-blue-500' : 'hover:border-purple-500'} transition-all cursor-pointer`}
                         >
                             <div className="flex justify-between items-start mb-4">
                                 <div>
@@ -160,7 +160,7 @@ export default function ParametersPage() {
                                         <span className="ml-2 text-gray-500">m</span>
                                     </div>
                                 </div>
-                                <div className={`bg-${station.sensorType === 'Float' ? 'blue' : 'purple'}-500/10 p-2 rounded-lg`}>
+                                <div className={`${station.sensorType === 'Float' ? 'bg-blue-500/10' : 'bg-purple-500/10'} p-2 rounded-lg`}>
                                     {station.sensorType === 'Float' ? (
                                         <Droplets className="w-6 h-6 text-blue-500" />
                                     ) : (
@@ -170,7 +170,7 @@ export default function ParametersPage() {
                             </div>
                             <div className="w-full bg-gray-700 h-2 rounded-full overflow-hidden">
                                 <div
-                                    className={`bg-${station.sensorType === 'Float' ? 'blue' : 'purple'}-500 h-full rounded-full transition-all duration-500`}
+                                    className={`${station.sensorType === 'Float' ? 'bg-blue-500' : 'bg-purple-500'} h-full rounded-full transition-all duration-500`}
                                     style={{ width: `${Math.min((station.waterLevel / 5) * 100, 100)}%` }}
                                 ></div>
                             </div>

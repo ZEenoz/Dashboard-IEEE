@@ -391,7 +391,7 @@ export const translations = {
       range: 'Range',
       loadingHistory: 'Loading History...',
       peakLevel: 'Peak Level',
-      medianLevel: 'Median Level',
+      medianLevel: 'Average Level',
       minimumLevel: 'Minimum Level',
       exportCSV: 'Export CSV',
       exportFrom: 'From',

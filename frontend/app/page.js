@@ -188,14 +188,15 @@ export default function Home() {
       const config = settings?.stations?.[s.stationId];
       const offset = parseFloat(config?.offset) || 0;
 
-      // 1. Identify Raw Value: Prefer s.rawLevel from backend (true raw).
-      // If missing, calculate by subtracting offset from calibrated waterLevel.
-      const calibratedValue = parseFloat(s.waterLevel) || 0;
+      // 1. Get true Raw Value (from backend rawLevel, fallback to waterLevel)
       const rawValue = s.rawLevel !== undefined
         ? parseFloat(s.rawLevel)
-        : (calibratedValue - offset);
+        : parseFloat(s.waterLevel) || 0;
 
-      // 2. Determine what to display
+      // 2. Actively calculate Calibrated Value using CURRENT offset from Settings!
+      const calibratedValue = rawValue + offset;
+
+      // 3. Determine what to display
       const displayWaterLevel = displayMode === 'raw'
         ? rawValue
         : calibratedValue;
@@ -223,6 +224,14 @@ export default function Home() {
     const allFloatNodes = enrichedStations.filter(s => isFloat(s));
     const allStaticNodes = enrichedStations.filter(s => !isFloat(s));
 
+    const isOnline = (s) => {
+      const now = new Date();
+      const rawTs = s.rawTimestamp || s.timestamp;
+      if (!rawTs) return false;
+      const diffMinutes = (now - new Date(rawTs)) / (1000 * 60);
+      return diffMinutes < 60; // Consider online if updated within last 60 mins
+    };
+
     const filterNodes = (nodes) => nodes.filter(n =>
       (n.stationName?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
       (n.stationId?.toLowerCase() || '').includes(searchQuery.toLowerCase())
@@ -231,7 +240,9 @@ export default function Home() {
     const fNodes = (filterType === 'all' || filterType === 'float') ? filterNodes(allFloatNodes) : [];
     const sNodes = (filterType === 'all' || filterType === 'static') ? filterNodes(allStaticNodes) : [];
 
-    return { floatNodes: fNodes, staticNodes: sNodes, mapStations: [...sNodes, ...fNodes] };
+    const mapStations = [...sNodes, ...fNodes].filter(isOnline);
+
+    return { floatNodes: fNodes, staticNodes: sNodes, mapStations };
   }, [stations, settings, searchQuery, filterType]);
 
   const { floatNodes, staticNodes, mapStations } = mapData;
@@ -288,7 +299,7 @@ export default function Home() {
 
       {/* SECTION 2: Station Cards (Full Width) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {mapStations.map((station) => (
+        {[...staticNodes, ...floatNodes].map((station) => (
           <div key={station.stationId} className="h-full">
             <StationCard
               station={station}

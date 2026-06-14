@@ -278,6 +278,21 @@ export default function SensorDetailsPage() {
     const station = useMemo(() => {
         if (!rawStation) return null;
         const config = settings?.stations?.[stationId];
+        const offset = parseFloat(config?.offset) || 0;
+
+        // 1. Get true Raw Value (from backend rawLevel, fallback to waterLevel)
+        const rawValue = rawStation.rawLevel !== undefined
+            ? parseFloat(rawStation.rawLevel)
+            : parseFloat(rawStation.waterLevel) || 0;
+
+        // 2. Actively calculate Calibrated Value using CURRENT offset from Settings!
+        const calibratedValue = rawValue + offset;
+
+        // 3. Determine what to display based on displayMode
+        const displayWaterLevel = displayMode === 'raw'
+            ? rawValue
+            : calibratedValue;
+
         return {
             ...rawStation,
             stationName: config?.name || rawStation.stationName || stationId,
@@ -286,9 +301,13 @@ export default function SensorDetailsPage() {
             type: config?.type || rawStation.type,
             description: config?.description || null,
             lat: rawStation.lat,
-            lng: rawStation.lng
+            lng: rawStation.lng,
+            offsetValue: offset,
+            waterLevel: displayWaterLevel,
+            originalRawLevel: rawValue,
+            isRaw: displayMode === 'raw'
         };
-    }, [rawStation, settings, stationId]);
+    }, [rawStation, settings, stationId, displayMode]);
 
     // Update map view when station coords load
     useEffect(() => {
@@ -331,15 +350,21 @@ export default function SensorDetailsPage() {
                 return hId === targetId && h.rawTimestamp > cutoff;
             })
             .sort((a, b) => a.rawTimestamp - b.rawTimestamp)
-            .map(h => ({
-                time: new Date(h.rawTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                value: Number(
-                    displayMode === 'raw'
-                        ? (h.rawLevel || h.waterLevel || 0)
-                        : (h.waterLevel || 0)
-                ),
-                rawTimestamp: h.rawTimestamp
-            }));
+            .map(h => {
+                const rawValue = h.rawLevel !== undefined ? h.rawLevel : (h.waterLevel || 0);
+                const currentOffset = station?.offsetValue || 0;
+                const calibratedValue = rawValue + currentOffset;
+
+                return {
+                    time: new Date(h.rawTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    value: Number(
+                        displayMode === 'raw'
+                            ? rawValue
+                            : calibratedValue
+                    ),
+                    rawTimestamp: h.rawTimestamp
+                };
+            });
 
         const finalData = [];
         // Gap threshold: 60 minutes (adjust if necessary)
@@ -796,6 +821,13 @@ export default function SensorDetailsPage() {
 
                     {/* Stats Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                        <div className="bg-gray-900 p-5 rounded-2xl border border-gray-800 shadow-xl transition-all hover:border-cyan-500/20 group">
+                            <p className="text-[10px] uppercase font-bold text-gray-500 mb-2 tracking-[0.2em]">{t('stationDetail.minimumLevel')}</p>
+                            <div className="flex items-baseline gap-2">
+                                <p className="text-3xl font-bold text-white tabular-nums group-hover:text-cyan-400 transition-colors">{stats.min}</p>
+                                <span className="text-xs font-medium text-gray-500 font-mono">{t('common.m')}</span>
+                            </div>
+                        </div>
                         <div className="bg-gray-900 p-5 rounded-2xl border border-gray-800 shadow-xl transition-all hover:border-blue-500/20 group">
                             <p className="text-[10px] uppercase font-bold text-gray-500 mb-2 tracking-[0.2em]">{t('stationDetail.peakLevel')}</p>
                             <div className="flex items-baseline gap-2">
@@ -807,13 +839,6 @@ export default function SensorDetailsPage() {
                             <p className="text-[10px] uppercase font-bold text-gray-500 mb-2 tracking-[0.2em]">{t('stationDetail.medianLevel')}</p>
                             <div className="flex items-baseline gap-2">
                                 <p className="text-3xl font-bold text-white tabular-nums group-hover:text-purple-400 transition-colors">{stats.avg}</p>
-                                <span className="text-xs font-medium text-gray-500 font-mono">{t('common.m')}</span>
-                            </div>
-                        </div>
-                        <div className="bg-gray-900 p-5 rounded-2xl border border-gray-800 shadow-xl transition-all hover:border-cyan-500/20 group">
-                            <p className="text-[10px] uppercase font-bold text-gray-500 mb-2 tracking-[0.2em]">{t('stationDetail.minimumLevel')}</p>
-                            <div className="flex items-baseline gap-2">
-                                <p className="text-3xl font-bold text-white tabular-nums group-hover:text-cyan-400 transition-colors">{stats.min}</p>
                                 <span className="text-xs font-medium text-gray-500 font-mono">{t('common.m')}</span>
                             </div>
                         </div>

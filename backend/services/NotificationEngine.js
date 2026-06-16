@@ -328,42 +328,50 @@ class NotificationEngine {
             const isWarning = alert.alertLevel === 'warning';
             
             let color = "#1DB446"; // Normal
-            let statusText = "ปกติ 🟢";
+            let statusText = "ปกติ ✅";
             if (isDangerous) { color = "#e02424"; statusText = "อันตราย 🚨"; }
             else if (isWarning) { color = "#ff9f00"; statusText = "เฝ้าระวัง ⚠️"; }
 
+            const bodyContents = [
+                { type: "text", text: alert.stationName, weight: "bold", size: "xl", color: color, wrap: true },
+                { type: "separator", margin: "md" },
+                {
+                    type: "box", layout: "vertical", margin: "md", contents: [
+                        { type: "text", text: `ระดับน้ำ: ${Number(alert.waterLevel).toFixed(2)} ม.`, size: "lg", align: "start" },
+                        { type: "text", text: `สถานะ: ${statusText}`, size: "lg", weight: "bold", color: color, align: "start" }
+                    ]
+                }
+            ];
+
+            if (isDangerous) {
+                bodyContents.push({ type: "separator", margin: "lg" });
+                bodyContents.push({
+                    type: "button", style: "primary", color: "#e02424", margin: "md",
+                    action: { type: "uri", label: "📞 โทรสายด่วนฉุกเฉิน", uri: "tel:1669" }
+                });
+            }
+
+            bodyContents.push({ type: "separator", margin: "md" });
+            bodyContents.push({
+                type: "button",
+                style: "secondary",
+                color: "#06C755",
+                margin: "md",
+                height: "sm",
+                action: {
+                    type: "uri",
+                    label: "📊 เช็คสถานี",
+                    uri: `${FRONTEND_URL}/parameters/${encodeURIComponent(alert.stationId)}`
+                }
+            });
+
             return {
                 type: "bubble",
-                size: "kilo",
+                size: "giga",
                 body: {
                     type: "box",
                     layout: "vertical",
-                    contents: [
-                        { type: "text", text: alert.stationName, weight: "bold", size: "lg", color: color, wrap: true },
-                        { type: "separator", margin: "md" },
-                        {
-                            type: "box", layout: "vertical", margin: "md", contents: [
-                                { type: "text", text: `ระดับน้ำ: ${Number(alert.waterLevel).toFixed(2)} ม.`, size: "md" },
-                                { type: "text", text: `สถานะ: ${statusText}`, size: "md", weight: "bold", color: color }
-                            ]
-                        }
-                    ]
-                },
-                footer: {
-                    type: "box",
-                    layout: "vertical",
-                    contents: [
-                        {
-                            type: "button",
-                            style: "link",
-                            height: "sm",
-                            action: {
-                                type: "uri",
-                                label: "เช็คสถานี",
-                                uri: `${FRONTEND_URL}/parameters/${encodeURIComponent(alert.stationId)}`
-                            }
-                        }
-                    ]
+                    contents: bodyContents
                 }
             };
         });

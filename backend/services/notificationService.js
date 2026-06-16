@@ -175,7 +175,7 @@ function buildMonitorFlexCarousel(stationsData, altText = '📊 [Test] สถา
 
         const statusLabel = st.alertLevel === 'dangerous' ? 'อันตราย 🚨'
             : st.alertLevel === 'warning' ? 'เฝ้าระวัง ⚠️'
-            : 'ปกติ 🟢';
+            : 'ปกติ ✅';
 
         const bodyContents = [
             { type: 'text', text: `${st.stationName}`, weight: 'bold', size: 'xl', color, wrap: true },

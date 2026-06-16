@@ -372,9 +372,9 @@ export default function SensorDetailsPage() {
                 return {
                     time: new Date(h.rawTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                     value: Number(
-                        displayMode === 'raw'
+                        (displayMode === 'raw'
                             ? rawValue
-                            : calibratedValue
+                            : calibratedValue).toFixed(3)
                     ),
                     rawTimestamp: h.rawTimestamp
                 };
@@ -792,6 +792,7 @@ export default function SensorDetailsPage() {
                                             width={40}
                                         />
                                         <Tooltip
+                                            formatter={(value) => [Number(value).toFixed(3), 'Value']}
                                             labelFormatter={(label) => new Date(label).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                                             contentStyle={{
                                                 backgroundColor: 'rgba(17, 24, 39, 0.95)',

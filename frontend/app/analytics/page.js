@@ -543,6 +543,7 @@ export default function AnalyticsPage() {
                                         />
                                         <YAxis stroke="#9CA3AF" domain={['auto', 'auto']} tickFormatter={(val) => Number(val).toFixed(2)} width={70} />
                                         <Tooltip
+                                            formatter={(value, name) => [Number(value).toFixed(3), name]}
                                             labelFormatter={(label) => new Date(Number(label)).toLocaleString(locale, { timeZone: 'Asia/Bangkok', dateStyle: 'medium', timeStyle: 'short' })}
                                             contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
                                             labelStyle={{ color: '#9CA3AF', marginBottom: '4px' }}
@@ -583,6 +584,7 @@ export default function AnalyticsPage() {
                                         />
                                         <YAxis stroke="#9CA3AF" domain={['auto', 'auto']} tickFormatter={(val) => Number(val).toFixed(2)} width={70} />
                                         <Tooltip
+                                            formatter={(value, name) => [Number(value).toFixed(3), name]}
                                             labelFormatter={(label) => new Date(Number(label)).toLocaleString(locale, { timeZone: 'Asia/Bangkok', dateStyle: 'medium', timeStyle: 'short' })}
                                             contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
                                             labelStyle={{ color: '#9CA3AF', marginBottom: '4px' }}
@@ -617,6 +619,7 @@ export default function AnalyticsPage() {
                                         />
                                         <YAxis stroke="#9CA3AF" domain={['auto', 'auto']} tickFormatter={(val) => Number(val).toFixed(2)} width={70} />
                                         <Tooltip
+                                            formatter={(value, name) => [Number(value).toFixed(3), name]}
                                             labelFormatter={(label) => new Date(Number(label)).toLocaleString(locale, { timeZone: 'Asia/Bangkok', dateStyle: 'medium', timeStyle: 'short' })}
                                             contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
                                             labelStyle={{ color: '#9CA3AF', marginBottom: '4px' }}

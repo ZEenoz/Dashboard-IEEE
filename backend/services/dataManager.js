@@ -32,6 +32,12 @@ async function initDataManager() {
 
 // Save Reading
 async function saveReading(data) {
+    // Round floating point values to 3 decimal places to prevent long trailing decimals
+    if (data.rawLevel != null) data.rawLevel = Number(Number(data.rawLevel).toFixed(3));
+    if (data.waterLevel != null) data.waterLevel = Number(Number(data.waterLevel).toFixed(3));
+    if (data.temperature != null) data.temperature = Number(Number(data.temperature).toFixed(3));
+    if (data.humidity != null) data.humidity = Number(Number(data.humidity).toFixed(3));
+    if (data.batteryVoltage != null) data.batteryVoltage = Number(Number(data.batteryVoltage).toFixed(3));
     // 1. Save to Postgres
     if (usePostgres) {
         const pool = getPool();

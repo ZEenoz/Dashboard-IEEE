@@ -149,7 +149,7 @@ export default function AnalyticsPage() {
     const { t } = useLanguage();
     const { role } = useAuth();
     const [selectedStations, setSelectedStations] = useState([]);
-    const [timeRange, setTimeRange] = useState('1h'); // '1h', '6h', '24h'
+    const [timeRange, setTimeRange] = useState('24h'); // '24h', '7d', '30d'
     const [chartType, setChartType] = useState('line'); // Kept for future potential, currently only line makes sense for multi-comparison
     const [showExportModal, setShowExportModal] = useState(false);
 
@@ -292,13 +292,15 @@ export default function AnalyticsPage() {
             // Get current offset from settings
             const config = getStationConfig(item.stationId);
             const currentOffset = parseFloat(config?.offset) || 0;
-            const rawValue = item.rawLevel !== undefined ? item.rawLevel : (item.waterLevel || 0);
+            
+            // PostgreSQL numeric returns as string, so we MUST parse it to float before math
+            const rawStringOrNum = item.rawLevel !== undefined ? item.rawLevel : (item.waterLevel || 0);
+            const rawValue = parseFloat(rawStringOrNum) || 0;
+            
             const calibratedValue = rawValue + currentOffset;
 
             pivotedData[timeKey][item.stationId] = Number(
-                displayMode === 'raw'
-                    ? rawValue
-                    : calibratedValue
+                (displayMode === 'raw' ? rawValue : calibratedValue).toFixed(3)
             );
         });
 
@@ -340,12 +342,14 @@ export default function AnalyticsPage() {
 
         chartData.forEach(point => {
             selectedStations.forEach(stationId => {
-                if (point[stationId] !== undefined) {
-                    const val = point[stationId];
-                    totalSum += val;
-                    totalCount++;
-                    if (val > overallMax) overallMax = val;
-                    if (val < overallMin) overallMin = val;
+                if (point[stationId] !== undefined && point[stationId] !== null) {
+                    const val = Number(point[stationId]);
+                    if (!isNaN(val)) {
+                        totalSum += val;
+                        totalCount++;
+                        if (val > overallMax) overallMax = val;
+                        if (val < overallMin) overallMin = val;
+                    }
                 }
             });
         });
@@ -414,7 +418,7 @@ export default function AnalyticsPage() {
 
                             {/* Time Range Selector */}
                             <div className="flex bg-gray-800 rounded-xl p-1 border border-gray-700 flex-1 sm:flex-none overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-                                {['1h', '6h', '24h', '7d', '30d'].map(range => (
+                                {['24h', '7d', '30d'].map(range => (
                                     <button
                                         key={range}
                                         onClick={() => setTimeRange(range)}
@@ -547,10 +551,11 @@ export default function AnalyticsPage() {
                                                 dataKey={stationId}
                                                 name={getStationConfig(stationId)?.name || stations[stationId]?.stationName || stationId}
                                                 stroke={getStationColor(stationId)}
+                                                strokeWidth={2}
                                                 fill={`url(#grad-${stationId})`}
                                                 fillOpacity={0.5}
                                                 activeDot={{ r: 6 }}
-                                                connectNulls={false}
+                                                connectNulls={true}
                                             />
                                         ))}
                                         <Brush dataKey="rawTimestamp" height={30} stroke="#8884d8" fill="#1F2937" tickFormatter={(unixTime) => new Date(Number(unixTime)).toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' })} />
@@ -623,7 +628,7 @@ export default function AnalyticsPage() {
                                                 strokeWidth={2}
                                                 dot={false}
                                                 activeDot={{ r: 6 }}
-                                                connectNulls={false}
+                                                connectNulls={true}
                                             />
                                         ))}
                                         <Brush dataKey="rawTimestamp" height={30} stroke="#8884d8" fill="#1F2937" tickFormatter={(unixTime) => new Date(Number(unixTime)).toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' })} />

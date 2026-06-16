@@ -33,8 +33,9 @@ export default function OffsetPresetsPage() {
 
     // Custom Variable Modal State
     const [showCustomModal, setShowCustomModal] = useState(false);
-    const [customName, setCustomName] = useState('Bank Level');
+    const [customName, setCustomName] = useState('');
     const [customValue, setCustomValue] = useState('');
+    const [editingCustomVarId, setEditingCustomVarId] = useState(null);
 
     // Route Protection
     useEffect(() => {
@@ -77,8 +78,8 @@ export default function OffsetPresetsPage() {
     // Live data for selected station
     const selectedLive = selectedStationId ? liveStations[selectedStationId] : null;
     const selectedConfig = selectedStationId ? allStations[selectedStationId] : null;
-    const rawLevel = selectedLive 
-        ? (selectedLive.rawLevel !== undefined ? Number(selectedLive.rawLevel) : Number(selectedLive.waterLevel) || 0) 
+    const rawLevel = selectedLive
+        ? (selectedLive.rawLevel !== undefined ? Number(selectedLive.rawLevel) : Number(selectedLive.waterLevel) || 0)
         : 0;
     const currentOffset = selectedConfig?.offset || 0;
 
@@ -93,6 +94,11 @@ export default function OffsetPresetsPage() {
             if (block.type === 'number') {
                 expression += block.value + ' ';
                 visualExpression.push({ text: block.value, subtext: block.label, color: 'text-teal-400' });
+            } else if (block.type === 'customVar') {
+                const cv = (settings?.customVariables || []).find(v => v.id === block.id);
+                const val = cv ? cv.value : 0;
+                expression += val + ' ';
+                visualExpression.push({ text: val, subtext: block.label || (cv ? cv.name : ''), color: 'text-emerald-400' });
             } else if (block.type === 'variable' && block.value === 'RAW') {
                 expression += rawLevel + ' ';
                 visualExpression.push({ text: rawLevel.toFixed(3), subtext: block.label, color: 'text-blue-400' });
@@ -108,7 +114,7 @@ export default function OffsetPresetsPage() {
             // eslint-disable-next-line no-new-func
             const result = new Function('return ' + evalExpr)();
             if (!isFinite(result) || isNaN(result)) {
-                 return { result: null, error: 'Invalid calculation', visual: visualExpression };
+                return { result: null, error: 'Invalid calculation', visual: visualExpression };
             }
             return { result: Number(result), error: null, visual: visualExpression };
         } catch (e) {
@@ -126,15 +132,78 @@ export default function OffsetPresetsPage() {
         setFormula(prev => [...prev, block]);
     };
 
-    const handleAddCustom = () => {
+    const handleSaveCustomVar = async () => {
         const num = parseFloat(customValue);
-        if (isNaN(num)) {
-            toast.error('Please enter a valid number');
+        if (isNaN(num) || !customName.trim()) {
+            toast.error('Please enter a valid name and number');
             return;
         }
-        addBlock({ type: 'number', value: num.toString(), label: customName || 'Custom' });
+
+        const newVar = { id: editingCustomVarId || 'var_' + Date.now(), name: customName.trim(), value: num };
+
+        let newVars = [...(settings?.customVariables || [])];
+        if (editingCustomVarId) {
+            newVars = newVars.map(v => v.id === editingCustomVarId ? newVar : v);
+        } else {
+            newVars.push(newVar);
+        }
+
+        const updatedSettings = { ...settings, customVariables: newVars };
+
+        try {
+            const res = await fetch(`${API_URL}/settings`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': 'IEEE_SECURE_API_KEY_2025',
+                    'ngrok-skip-browser-warning': 'true'
+                },
+                body: JSON.stringify(updatedSettings)
+            });
+            if (!res.ok) throw new Error('Failed to save custom variable');
+            setSettings(updatedSettings);
+            toast.success(editingCustomVarId ? 'Updated custom variable' : 'Added custom variable');
+        } catch (e) {
+            toast.error('Failed to save custom variable');
+        }
+
         setCustomValue('');
+        setCustomName('');
+        setEditingCustomVarId(null);
         setShowCustomModal(false);
+    };
+
+    const handleDeleteCustomVar = async (id) => {
+        if (!confirm('Delete this custom variable?')) return;
+        const newVars = (settings?.customVariables || []).filter(v => v.id !== id);
+        const updatedSettings = { ...settings, customVariables: newVars };
+        try {
+            await fetch(`${API_URL}/settings`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-api-key': 'IEEE_SECURE_API_KEY_2025' },
+                body: JSON.stringify(updatedSettings)
+            });
+            setSettings(updatedSettings);
+            toast.success('Deleted custom variable');
+            setShowCustomModal(false);
+            setEditingCustomVarId(null);
+        } catch (e) {
+            toast.error('Failed to delete custom variable');
+        }
+    };
+
+    const openEditCustomModal = (cv) => {
+        setEditingCustomVarId(cv.id);
+        setCustomName(cv.name);
+        setCustomValue(cv.value.toString());
+        setShowCustomModal(true);
+    };
+
+    const openAddCustomModal = () => {
+        setEditingCustomVarId(null);
+        setCustomName('');
+        setCustomValue('');
+        setShowCustomModal(true);
     };
 
     const removeBlock = (index) => {
@@ -169,7 +238,7 @@ export default function OffsetPresetsPage() {
     const handleDrop = (e, targetIndex) => {
         e.preventDefault();
         if (draggedIndex === null || draggedIndex === targetIndex) return;
-        
+
         setFormula(prev => {
             const newFormula = [...prev];
             const [movedItem] = newFormula.splice(draggedIndex, 1);
@@ -190,7 +259,7 @@ export default function OffsetPresetsPage() {
             const updatedSettings = { ...settings };
             if (!updatedSettings.stations) updatedSettings.stations = {};
             if (!updatedSettings.stations[selectedStationId]) updatedSettings.stations[selectedStationId] = {};
-            
+
             // Round to 3 decimal places for neatness
             updatedSettings.stations[selectedStationId].offset = Number(requiredOffset.toFixed(3));
             updatedSettings.stations[selectedStationId].formula = formula;
@@ -265,54 +334,9 @@ export default function OffsetPresetsPage() {
                 </div>
             </div>
 
-            {/* Custom Variable Modal */}
-            {showCustomModal && (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 backdrop-blur-sm p-4">
-                    <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl relative fade-in">
-                        <button
-                            onClick={() => setShowCustomModal(false)}
-                            className="absolute top-4 right-4 text-gray-500 hover:text-white"
-                        >
-                            <X size={20} />
-                        </button>
-                        <h2 className="text-lg font-bold text-white mb-4">Add Custom Variable</h2>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Name Variable:</label>
-                                <input
-                                    type="text"
-                                    value={customName}
-                                    onChange={e => setCustomName(e.target.value)}
-                                    placeholder="e.g. Bank Level"
-                                    className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-emerald-500 outline-none"
-                                    autoFocus
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Value:</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    value={customValue}
-                                    onChange={e => setCustomValue(e.target.value)}
-                                    placeholder="0.00"
-                                    className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white font-mono focus:border-emerald-500 outline-none"
-                                />
-                            </div>
-                            <button
-                                onClick={handleAddCustom}
-                                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-lg transition-colors mt-2"
-                            >
-                                Add to Formula
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {/* Main Layout */}
             <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
-                
+
                 {/* Left: Station List */}
                 <div className="w-full lg:w-80 flex-shrink-0 lg:h-full flex flex-col bg-gray-900/50 border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
                     <div className="p-4 border-b border-gray-800 bg-gray-900">
@@ -337,11 +361,10 @@ export default function OffsetPresetsPage() {
                                             clearFormula();
                                         }
                                     }}
-                                    className={`w-full text-left p-3 rounded-xl border transition-all duration-200 flex items-center gap-3 ${
-                                        isSelected 
-                                            ? 'bg-emerald-500/10 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]' 
-                                            : 'bg-gray-800/40 border-gray-700/50 hover:bg-gray-800 hover:border-gray-600'
-                                    }`}
+                                    className={`w-full text-left p-3 rounded-xl border transition-all duration-200 flex items-center gap-3 ${isSelected
+                                        ? 'bg-emerald-500/10 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]'
+                                        : 'bg-gray-800/40 border-gray-700/50 hover:bg-gray-800 hover:border-gray-600'
+                                        }`}
                                 >
                                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${isSelected ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-700 text-gray-400'}`}>
                                         <Droplets size={18} />
@@ -394,7 +417,7 @@ export default function OffsetPresetsPage() {
                             <div className="bg-gray-900 border border-gray-700 rounded-2xl shadow-xl flex-1 flex flex-col overflow-hidden min-h-[400px]">
                                 {/* Toolbar / Toolbox */}
                                 <div className="p-4 border-b border-gray-800 bg-[#111827] flex flex-wrap gap-6 shrink-0">
-                                    
+
                                     {/* Variables */}
                                     <div>
                                         <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-2">Variables</div>
@@ -419,16 +442,21 @@ export default function OffsetPresetsPage() {
 
                                     {/* Custom Numbers */}
                                     <div className="flex-1 min-w-[200px]">
-                                        <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-2">Custom Value (e.g., Bank)</div>
-                                        <div className="flex gap-2">
-                                            <button onClick={() => setShowCustomModal(true)} className="bg-teal-600/20 text-teal-400 hover:bg-teal-600/40 border border-teal-500/30 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-1.5 transition-colors">
-                                                <Plus size={14} /> Add Custom Variable
+                                        <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-2">Global Custom Variables</div>
+                                        <div className="flex flex-wrap gap-2 items-center">
+                                            {(settings?.customVariables || []).map(cv => (
+                                                <div key={cv.id} className="flex items-center bg-teal-900/30 border border-teal-500/30 rounded-lg overflow-hidden">
+                                                    <button onClick={() => addBlock({ type: 'customVar', id: cv.id, label: cv.name })} className="px-3 py-1.5 text-sm font-bold text-teal-400 hover:bg-teal-500/20 transition-colors">
+                                                        {cv.name}: {cv.value}
+                                                    </button>
+                                                    <button onClick={() => openEditCustomModal(cv)} className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors border-l border-teal-500/30">
+                                                        <Activity size={12} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            <button onClick={openAddCustomModal} className="bg-gray-800 text-gray-300 hover:text-white hover:bg-gray-700 border border-gray-700 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-1.5 transition-colors">
+                                                <Plus size={14} /> Add New
                                             </button>
-                                            <div className="ml-auto">
-                                                <button onClick={loadPresetBankMinusRaw} className="bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/40 border border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">
-                                                    Preset: Bank - Raw
-                                                </button>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -449,8 +477,8 @@ export default function OffsetPresetsPage() {
                                     ) : (
                                         <div className="flex flex-wrap items-center content-start gap-2 flex-1 p-4 bg-gray-900/50 rounded-xl border border-gray-800/80 shadow-inner">
                                             {formula.map((block, i) => (
-                                                <div 
-                                                    key={i} 
+                                                <div
+                                                    key={i}
                                                     draggable
                                                     onDragStart={(e) => handleDragStart(e, i)}
                                                     onDragOver={(e) => handleDragOver(e, i)}
@@ -459,9 +487,9 @@ export default function OffsetPresetsPage() {
                                                     className={`group relative flex items-stretch shadow-md rounded-lg overflow-hidden animate-in zoom-in-95 duration-200 cursor-grab active:cursor-grabbing hover:ring-2 ring-emerald-500/50 ${draggedIndex === i ? 'opacity-40 scale-95 ring-2 ring-emerald-500' : ''}`}
                                                 >
                                                     <div className={`px-4 py-2.5 flex items-center justify-center font-bold font-mono text-lg
-                                                        ${block.type === 'variable' ? 'bg-blue-600 text-white' : 
-                                                          block.type === 'operator' ? 'bg-amber-500 text-gray-900 px-3' : 
-                                                          'bg-teal-600 text-white'}
+                                                        ${block.type === 'variable' ? 'bg-blue-600 text-white' :
+                                                            block.type === 'operator' ? 'bg-amber-500 text-gray-900 px-3' :
+                                                                'bg-teal-600 text-white'}
                                                     `}>
                                                         {block.type !== 'operator' && (
                                                             <span className="mr-2 text-[10px] uppercase tracking-wider opacity-70 font-sans pointer-events-none">{block.label}</span>
@@ -480,7 +508,7 @@ export default function OffsetPresetsPage() {
                                 {/* Result & Save Footer */}
                                 <div className="p-5 border-t border-gray-800 bg-[#111827] shrink-0">
                                     <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                                                                             {/* Result Engine */}
+                                        {/* Result Engine */}
                                         <div className="flex items-center gap-4 flex-1">
                                             <div className="w-12 h-12 rounded-xl bg-gray-800 flex items-center justify-center shadow-inner shrink-0">
                                                 <Play size={20} className={targetLevel !== null ? 'text-emerald-400' : 'text-gray-600'} />
@@ -488,7 +516,7 @@ export default function OffsetPresetsPage() {
                                             <div className="flex-1">
                                                 <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-1">Formula Result</div>
                                                 {evaluation.error ? (
-                                                    <div className="text-red-400 text-sm font-bold flex items-center gap-1.5"><AlertTriangle size={14}/> {evaluation.error}</div>
+                                                    <div className="text-red-400 text-sm font-bold flex items-center gap-1.5"><AlertTriangle size={14} /> {evaluation.error}</div>
                                                 ) : (
                                                     <div className="flex flex-wrap items-end gap-x-2 gap-y-1">
                                                         {evaluation.visual?.map((item, idx) => (
@@ -564,6 +592,50 @@ export default function OffsetPresetsPage() {
                     )}
                 </div>
             </div>
+
+            {/* Custom Variable Modal */}
+            {showCustomModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                    <div className="bg-gray-900 rounded-xl p-6 w-full max-w-sm border border-gray-700 shadow-2xl">
+                        <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-teal-400">
+                            <Activity size={20} />
+                            {editingCustomVarId ? 'Edit Global Variable' : 'Add Global Variable'}
+                        </h3>
+                        <div className="space-y-4 mb-6">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Variable Name</label>
+                                <input
+                                    type="text"
+                                    value={customName}
+                                    onChange={(e) => setCustomName(e.target.value)}
+                                    placeholder="e.g. Bank Level"
+                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-teal-500 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Value (m)</label>
+                                <input
+                                    type="number"
+                                    step="0.001"
+                                    value={customValue}
+                                    onChange={(e) => setCustomValue(e.target.value)}
+                                    placeholder="e.g. 1.50"
+                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white font-mono focus:border-teal-500 outline-none"
+                                />
+                            </div>
+                        </div>
+                        <div className="flex justify-between gap-2">
+                            {editingCustomVarId ? (
+                                <button onClick={() => handleDeleteCustomVar(editingCustomVarId)} className="px-4 py-2 bg-red-900/30 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors font-bold text-sm">Delete</button>
+                            ) : <div></div>}
+                            <div className="flex gap-2">
+                                <button onClick={() => setShowCustomModal(false)} className="px-4 py-2 text-gray-400 hover:text-white transition-colors text-sm font-bold">Cancel</button>
+                                <button onClick={handleSaveCustomVar} className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg transition-colors text-sm font-bold">Save</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

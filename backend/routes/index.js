@@ -328,24 +328,24 @@ router.get('/history', async (req, res) => {
             // Define time constraint and aggregation level
             if (range === '1h') {
                 timeFilter = "r.timestamp >= NOW() - INTERVAL '1 hour'";
-                truncateSQL = "date_trunc('minute', r.timestamp)"; 
+                truncateSQL = "date_trunc('minute', r.timestamp) AT TIME ZONE 'Asia/Bangkok'"; 
             } else if (range === '6h') {
                 timeFilter = "r.timestamp >= NOW() - INTERVAL '6 hours'";
                 // Group by 5 minutes
-                truncateSQL = "to_timestamp(floor((extract('epoch' from r.timestamp) / 300 )) * 300)"; 
+                truncateSQL = "to_timestamp(floor((extract('epoch' from r.timestamp AT TIME ZONE 'Asia/Bangkok') / 300 )) * 300)"; 
             } else if (range === '24h') {
                 timeFilter = "r.timestamp >= NOW() - INTERVAL '24 hours'";
                 // Group by 15 minutes
-                truncateSQL = "to_timestamp(floor((extract('epoch' from r.timestamp) / 900 )) * 900)";
+                truncateSQL = "to_timestamp(floor((extract('epoch' from r.timestamp AT TIME ZONE 'Asia/Bangkok') / 900 )) * 900)";
             } else if (range === '7d') {
                 timeFilter = "r.timestamp >= NOW() - INTERVAL '7 days'";
-                truncateSQL = "date_trunc('hour', r.timestamp)"; // 1 point per hour
+                truncateSQL = "date_trunc('hour', r.timestamp) AT TIME ZONE 'Asia/Bangkok'"; // 1 point per hour
             } else if (range === '30d') {
                 timeFilter = "r.timestamp >= NOW() - INTERVAL '30 days'";
-                truncateSQL = "date_trunc('day', r.timestamp)"; // 1 point per day
+                truncateSQL = "date_trunc('day', r.timestamp) AT TIME ZONE 'Asia/Bangkok'"; // 1 point per day
             } else if (range === 'all') {
                 timeFilter = "1=1";
-                truncateSQL = "date_trunc('day', r.timestamp)"; 
+                truncateSQL = "date_trunc('day', r.timestamp) AT TIME ZONE 'Asia/Bangkok'"; 
             }
         }
 
@@ -385,7 +385,7 @@ router.get('/history', async (req, res) => {
             query = `
                 SELECT 
                     r.id, 
-                    r.timestamp as "rawTimestamp", 
+                    r.timestamp AT TIME ZONE 'Asia/Bangkok' as "rawTimestamp", 
                     r.station_id as "stationId",
                     COALESCE(s.name, r.station_id) as "stationName",
                     r.water_level as "rawLevel",

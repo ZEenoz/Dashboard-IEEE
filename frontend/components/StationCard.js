@@ -76,6 +76,22 @@ const StationCard = React.memo(({ station, onClick }) => {
 
     const stationName = station.stationName || station.stationId || t('history.station');
 
+    // --- Dynamic Status Text for Float ---
+    let floatStatusText = null;
+    let floatStatusColor = '';
+    let floatStatusDot = '';
+    if (isFloat && waterLevelValue != null) {
+        if (Number(waterLevelValue) >= 0) {
+            floatStatusText = station.statusTextPositive || 'ระดับน้ำสูงกว่าริมคลอง';
+            floatStatusColor = 'text-emerald-400';
+            floatStatusDot = 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]';
+        } else {
+            floatStatusText = station.statusTextNegative || 'ระดับน้ำต่ำกว่าริมคลอง';
+            floatStatusColor = 'text-rose-400';
+            floatStatusDot = 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]';
+        }
+    }
+
     return (
         <div
             role="button"
@@ -148,6 +164,13 @@ const StationCard = React.memo(({ station, onClick }) => {
                             <Info size={12} className="mt-0.5 flex-shrink-0 text-gray-500" />
                             {station.description}
                         </p>
+                    )}
+
+                    {floatStatusText && (
+                        <div className={`mt-0.5 flex items-center gap-2 text-[14px] font-medium tracking-wide ${floatStatusColor}`}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${floatStatusDot} shrink-0`} />
+                            {floatStatusText}
+                        </div>
                     )}
                 </div>
 

@@ -415,6 +415,35 @@ export default function SettingsPage() {
                                                         className="w-full bg-gray-800 border-gray-600 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none resize-none h-20 font-mono"
                                                     />
                                                 </div>
+
+                                                {config.type === 'Float' && (
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                                                        <div className="bg-gray-800/50 p-3 rounded-lg border border-gray-700">
+                                                            <label className="text-xs font-bold text-green-400 uppercase tracking-wider mb-2 block flex items-center gap-2">
+                                                                <span className="w-2 h-2 rounded-full bg-green-500"></span> Positive Status Text (≥ 0m)
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={config.statusTextPositive || ''}
+                                                                onChange={(e) => handleStationChange(id, 'statusTextPositive', e.target.value)}
+                                                                placeholder="ระดับน้ำสูงกว่าริมคลอง"
+                                                                className="w-full bg-gray-900 border-gray-700 rounded px-3 py-2 text-sm text-white focus:border-green-500 outline-none"
+                                                            />
+                                                        </div>
+                                                        <div className="bg-gray-800/50 p-3 rounded-lg border border-gray-700">
+                                                            <label className="text-xs font-bold text-red-400 uppercase tracking-wider mb-2 block flex items-center gap-2">
+                                                                <span className="w-2 h-2 rounded-full bg-red-500"></span> Negative Status Text (≤ 0m)
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={config.statusTextNegative || ''}
+                                                                onChange={(e) => handleStationChange(id, 'statusTextNegative', e.target.value)}
+                                                                placeholder="ระดับน้ำต่ำกว่าริมคลอง"
+                                                                className="w-full bg-gray-900 border-gray-700 rounded px-3 py-2 text-sm text-white focus:border-red-500 outline-none"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <div>
                                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">{t('settings.latitude')}</label>

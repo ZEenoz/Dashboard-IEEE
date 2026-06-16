@@ -44,8 +44,8 @@ export function LanguageProvider({ children }) {
         setLang(lang === 'en' ? 'th' : 'en');
     }, [lang, setLang]);
 
-    // Translation helper: t('sidebar.overview') → 'ภาพรวม'
-    const t = useCallback((path) => {
+    // Translation helper: t('sidebar.overview') → 'ภาพรวม', t('key', { count: 5 })
+    const t = useCallback((path, vars = {}) => {
         const keys = path.split('.');
         let result = translations[lang];
         for (const key of keys) {
@@ -61,10 +61,15 @@ export function LanguageProvider({ children }) {
                         return path; // Return the key path as final fallback
                     }
                 }
-                return typeof fallback === 'string' ? fallback : path;
+                result = typeof fallback === 'string' ? fallback : path;
+                break;
             }
         }
-        return typeof result === 'string' ? result : path;
+        let finalStr = typeof result === 'string' ? result : path;
+        for (const [k, v] of Object.entries(vars)) {
+            finalStr = finalStr.replace(new RegExp(`\\{${k}\\}`, 'g'), v);
+        }
+        return finalStr;
     }, [lang]);
 
     // Sync <html lang> on mount

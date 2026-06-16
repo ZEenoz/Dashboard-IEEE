@@ -19,6 +19,15 @@ if (typeof window !== 'undefined') {
     console.log("MapTiler Key Check:", MAPTILER_KEY ? "Present" : "MISSING");
 }
 
+// ─── Column preview: mirrors googleSheetService.js exactly ──────────────────
+const CSV_COLUMNS = [
+    'Time (Bangkok)', 'Station Name', 'Station ID',
+    'Water Level Raw (m)', 'Water Level Calibrated (m)', 'Data Rate',
+    'RSSI (dBm)', 'SNR (dB)', 'Battery (%)', 'Battery Voltage (V)',
+    'Sensor Type', 'Latitude', 'Longitude', 'Location Source',
+    'Temperature (°C)', 'Humidity (%)', 'Gyro X (°)', 'Gyro Y (°)'
+];
+
 // ─── Export CSV Modal ────────────────────────────────────────────────────────
 function ExportModal({ stationId, stationName, onClose }) {
     const { t } = useLanguage();
@@ -28,92 +37,97 @@ function ExportModal({ stationId, stationName, onClose }) {
     const [loading, setLoading] = useState(false);
 
     const handleExport = async () => {
+        if (!fromDate || !toDate) {
+            toast.error(t('stationDetail.errorSelectDates') || t('analytics.errorSelectDates'));
+            return;
+        }
         setLoading(true);
-        toast.loading(t('stationDetail.exporting'), { id: 'csv-export' });
+        toast.loading(t('analytics.exporting'), { id: 'csv-export' });
         try {
             const url = `${API}/export?start_date=${fromDate}&end_date=${toDate}&station_id=${stationId}`;
-            const res = await fetch(url, {
-                headers: { 'ngrok-skip-browser-warning': 'true' }
-            });
+            const res = await fetch(url, { headers: { 'ngrok-skip-browser-warning': 'true' } });
+            if (!res.ok) throw new Error('Export failed');
             const blob = await res.blob();
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
             link.download = `${stationId}_${fromDate}_to_${toDate}.csv`;
             link.click();
-            toast.success(t('stationDetail.exportComplete'), { id: 'csv-export' });
+            toast.success(t('stationDetail.exportComplete') || t('analytics.exportComplete'), { id: 'csv-export' });
+            onClose();
         } catch (e) {
-            toast.error(t('stationDetail.exportFailed') + ': ' + e.message, { id: 'csv-export' });
+            toast.error((t('stationDetail.exportFailed') || t('analytics.exportFailed')) + ': ' + e.message, { id: 'csv-export' });
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-[#151E32] border border-gray-700 rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 backdrop-blur-sm p-4">
+            <div className="bg-[#111827] border border-gray-700 rounded-2xl shadow-2xl w-full max-w-lg">
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700/60">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-green-500/10 rounded-lg">
+                        <div className="p-2 bg-green-500/10 rounded-xl border border-green-500/20">
                             <Download className="w-5 h-5 text-green-400" />
                         </div>
                         <div>
-                            <h2 className="text-white font-bold">{t('stationDetail.exportCSV')}</h2>
-                            <p className="text-xs text-gray-500 font-mono">{stationName}</p>
+                            <h2 className="text-white font-bold text-base">{t('stationDetail.exportCSV') || t('analytics.exportData')}</h2>
+                            <p className="text-[11px] text-gray-500">{stationName}</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white transition-colors">
+                    <button onClick={onClose} className="p-2 hover:bg-gray-700 rounded-lg text-gray-500 hover:text-white transition-colors">
                         <X className="w-4 h-4" />
                     </button>
                 </div>
 
-                {/* Body */}
-                <div className="p-6 space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                <div className="p-6 space-y-5">
+                    {/* Date Range */}
+                    <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1 mb-2">
-                                <Calendar className="w-3 h-3" /> {t('stationDetail.exportFrom')}
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1 mb-2">
+                                <Calendar className="w-3 h-3" /> {t('stationDetail.exportFrom') || t('analytics.startDate')}
                             </label>
                             <input
-                                type="date"
-                                value={fromDate}
+                                type="date" value={fromDate}
                                 onChange={e => setFromDate(e.target.value)}
-                                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-green-500"
+                                className="w-full bg-gray-800 border border-gray-600 rounded-xl px-3 py-2.5 text-white text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500/30 outline-none transition-all"
                             />
                         </div>
                         <div>
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1 mb-2">
-                                <Calendar className="w-3 h-3" /> {t('stationDetail.exportTo')}
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1 mb-2">
+                                <Calendar className="w-3 h-3" /> {t('stationDetail.exportTo') || t('analytics.endDate')}
                             </label>
                             <input
-                                type="date"
-                                value={toDate}
+                                type="date" value={toDate}
                                 onChange={e => setToDate(e.target.value)}
-                                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-green-500"
+                                min={fromDate}
+                                className="w-full bg-gray-800 border border-gray-600 rounded-xl px-3 py-2.5 text-white text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500/30 outline-none transition-all"
                             />
                         </div>
                     </div>
 
-                    <div className="bg-gray-900/50 rounded-xl p-3 border border-gray-700/50 text-xs text-gray-500">
-                        📋 {t('stationDetail.exportColumns')}
+                    {/* Column Preview */}
+                    <div className="bg-gray-800/60 border border-gray-700/60 rounded-xl p-3">
+                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">
+                            {t('analytics.exportColumnsCount', { count: CSV_COLUMNS.length })}
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                            {CSV_COLUMNS.map((col, i) => (
+                                <span key={i} className="text-[10px] bg-gray-700/80 text-gray-300 px-2 py-0.5 rounded-md border border-gray-600/50 font-mono">
+                                    {String.fromCharCode(65 + i)}. {col}
+                                </span>
+                            ))}
+                        </div>
                     </div>
-                </div>
 
-                {/* Footer */}
-                <div className="px-6 pb-6 flex gap-3">
-                    <button onClick={onClose} className="flex-1 px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-bold transition-colors">
-                        {t('common.cancel')}
-                    </button>
+                    {/* Download Button */}
                     <button
                         onClick={handleExport}
                         disabled={loading}
-                        className="flex-1 px-4 py-2.5 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2"
+                        className="w-full bg-green-600 hover:bg-green-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-green-900/20"
                     >
-                        {loading ? (
-                            <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t('stationDetail.exporting')}</>
-                        ) : (
-                            <><Download className="w-4 h-4" /> {t('stationDetail.downloadCSV')}</>
-                        )}
+                        <Download size={18} />
+                        {loading ? t('analytics.exporting') : (t('stationDetail.downloadCSV') || t('analytics.downloadCSV'))}
                     </button>
                 </div>
             </div>

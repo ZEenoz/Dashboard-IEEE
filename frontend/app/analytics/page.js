@@ -119,7 +119,9 @@ function ExportModal({ onClose, stations, settings, apiUrl, t }) {
 
                     {/* Column Preview */}
                     <div className="bg-gray-800/60 border border-gray-700/60 rounded-xl p-3">
-                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">คอลัมน์ที่จะ Export ({CSV_COLUMNS.length} คอลัมน์)</p>
+                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">
+                            {t('analytics.exportColumnsCount', { count: CSV_COLUMNS.length })}
+                        </p>
                         <div className="flex flex-wrap gap-1.5">
                             {CSV_COLUMNS.map((col, i) => (
                                 <span key={i} className="text-[10px] bg-gray-700/80 text-gray-300 px-2 py-0.5 rounded-md border border-gray-600/50 font-mono">
@@ -136,7 +138,7 @@ function ExportModal({ onClose, stations, settings, apiUrl, t }) {
                         className="w-full bg-green-600 hover:bg-green-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-green-900/20"
                     >
                         <Download size={18} />
-                        {loading ? 'กำลัง Export...' : t('analytics.downloadCSV')}
+                        {loading ? t('analytics.exporting') : t('analytics.downloadCSV')}
                     </button>
                 </div>
             </div>
@@ -146,7 +148,8 @@ function ExportModal({ onClose, stations, settings, apiUrl, t }) {
 
 export default function AnalyticsPage() {
     const { history, stations, displayMode } = useSocket();
-    const { t } = useLanguage();
+    const { t, lang } = useLanguage();
+    const locale = lang === 'th' ? 'th-TH' : 'en-US';
     const { role } = useAuth();
     const [selectedStations, setSelectedStations] = useState([]);
     const [timeRange, setTimeRange] = useState('24h'); // '24h', '7d', '30d'
@@ -284,7 +287,7 @@ export default function AnalyticsPage() {
                     ? { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' }
                     : { timeZone: 'Asia/Bangkok', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
                 pivotedData[timeKey] = {
-                    timestamp: date.toLocaleString('th-TH', fmtOpts),
+                    timestamp: date.toLocaleString(locale, fmtOpts),
                     rawTimestamp: timeKey
                 };
             }
@@ -319,7 +322,7 @@ export default function AnalyticsPage() {
                         ? { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' }
                         : { timeZone: 'Asia/Bangkok', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
                     const gapPoint = {
-                        timestamp: gapDate.toLocaleString('th-TH', fmtOpts),
+                        timestamp: gapDate.toLocaleString(locale, fmtOpts),
                         rawTimestamp: gapTime
                     };
                     selectedStations.forEach(id => gapPoint[id] = null);
@@ -534,13 +537,13 @@ export default function AnalyticsPage() {
                                             tickFormatter={(unixTime) => {
                                                 const date = new Date(Number(unixTime));
                                                 return (timeRange === '1h' || timeRange === '6h' || timeRange === '24h')
-                                                    ? date.toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' })
-                                                    : date.toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok', month: 'short', day: 'numeric' });
+                                                    ? date.toLocaleTimeString(locale, { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' })
+                                                    : date.toLocaleDateString(locale, { timeZone: 'Asia/Bangkok', month: 'short', day: 'numeric' });
                                             }}
                                         />
                                         <YAxis stroke="#9CA3AF" domain={['auto', 'auto']} tickFormatter={(val) => Number(val).toFixed(2)} width={70} />
                                         <Tooltip
-                                            labelFormatter={(label) => new Date(Number(label)).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', dateStyle: 'medium', timeStyle: 'short' })}
+                                            labelFormatter={(label) => new Date(Number(label)).toLocaleString(locale, { timeZone: 'Asia/Bangkok', dateStyle: 'medium', timeStyle: 'short' })}
                                             contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
                                             labelStyle={{ color: '#9CA3AF', marginBottom: '4px' }}
                                         />
@@ -558,7 +561,7 @@ export default function AnalyticsPage() {
                                                 connectNulls={true}
                                             />
                                         ))}
-                                        <Brush dataKey="rawTimestamp" height={30} stroke="#8884d8" fill="#1F2937" tickFormatter={(unixTime) => new Date(Number(unixTime)).toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' })} />
+                                        <Brush dataKey="rawTimestamp" height={30} stroke="#8884d8" fill="#1F2937" tickFormatter={(unixTime) => new Date(Number(unixTime)).toLocaleTimeString(locale, { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' })} />
                                     </AreaChart>
                                 ) : chartType === 'bar' ? (
                                     <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 10 }}>
@@ -574,13 +577,13 @@ export default function AnalyticsPage() {
                                         tickFormatter={(unixTime) => {
                                                 const date = new Date(Number(unixTime));
                                                 return (timeRange === '1h' || timeRange === '6h' || timeRange === '24h')
-                                                    ? date.toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' })
-                                                    : date.toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok', month: 'short', day: 'numeric' });
+                                                    ? date.toLocaleTimeString(locale, { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' })
+                                                    : date.toLocaleDateString(locale, { timeZone: 'Asia/Bangkok', month: 'short', day: 'numeric' });
                                             }}
                                         />
                                         <YAxis stroke="#9CA3AF" domain={['auto', 'auto']} tickFormatter={(val) => Number(val).toFixed(2)} width={70} />
                                         <Tooltip
-                                            labelFormatter={(label) => new Date(Number(label)).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', dateStyle: 'medium', timeStyle: 'short' })}
+                                            labelFormatter={(label) => new Date(Number(label)).toLocaleString(locale, { timeZone: 'Asia/Bangkok', dateStyle: 'medium', timeStyle: 'short' })}
                                             contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
                                             labelStyle={{ color: '#9CA3AF', marginBottom: '4px' }}
                                         />
@@ -592,7 +595,7 @@ export default function AnalyticsPage() {
                                                 fill={getStationColor(stationId)}
                                             />
                                         ))}
-                                        <Brush dataKey="rawTimestamp" height={30} stroke="#8884d8" fill="#1F2937" tickFormatter={(unixTime) => new Date(Number(unixTime)).toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' })} />
+                                        <Brush dataKey="rawTimestamp" height={30} stroke="#8884d8" fill="#1F2937" tickFormatter={(unixTime) => new Date(Number(unixTime)).toLocaleTimeString(locale, { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' })} />
                                     </BarChart>
                                 ) : (
                                     <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 10 }}>
@@ -608,13 +611,13 @@ export default function AnalyticsPage() {
                                         tickFormatter={(unixTime) => {
                                                 const date = new Date(Number(unixTime));
                                                 return (timeRange === '1h' || timeRange === '6h' || timeRange === '24h')
-                                                    ? date.toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' })
-                                                    : date.toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok', month: 'short', day: 'numeric' });
+                                                    ? date.toLocaleTimeString(locale, { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' })
+                                                    : date.toLocaleDateString(locale, { timeZone: 'Asia/Bangkok', month: 'short', day: 'numeric' });
                                             }}
                                         />
                                         <YAxis stroke="#9CA3AF" domain={['auto', 'auto']} tickFormatter={(val) => Number(val).toFixed(2)} width={70} />
                                         <Tooltip
-                                            labelFormatter={(label) => new Date(Number(label)).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', dateStyle: 'medium', timeStyle: 'short' })}
+                                            labelFormatter={(label) => new Date(Number(label)).toLocaleString(locale, { timeZone: 'Asia/Bangkok', dateStyle: 'medium', timeStyle: 'short' })}
                                             contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
                                             labelStyle={{ color: '#9CA3AF', marginBottom: '4px' }}
                                         />
@@ -631,7 +634,7 @@ export default function AnalyticsPage() {
                                                 connectNulls={true}
                                             />
                                         ))}
-                                        <Brush dataKey="rawTimestamp" height={30} stroke="#8884d8" fill="#1F2937" tickFormatter={(unixTime) => new Date(Number(unixTime)).toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' })} />
+                                        <Brush dataKey="rawTimestamp" height={30} stroke="#8884d8" fill="#1F2937" tickFormatter={(unixTime) => new Date(Number(unixTime)).toLocaleTimeString(locale, { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' })} />
                                     </LineChart>
                                 )}
                             </ResponsiveContainer>

@@ -192,7 +192,7 @@ class NotificationEngine {
 
     createFlexAlertMessage(alertEntry) {
         const { stationId, stationName, waterLevel, alertLevel, isRapidChange } = alertEntry;
-        const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const FRONTEND_URL = process.env.FRONTEND_URL || 'https://dashboard-ieee-kappa.vercel.app';
 
         const isDangerous = alertLevel === 'dangerous';
         const statusText = isDangerous ? "อันตราย 🚨" : "เฝ้าระวัง ⚠️";
@@ -321,7 +321,7 @@ class NotificationEngine {
     createMorningFlexMessage(alerts, headerTitle = "⛅ สรุปสถานการณ์") {
         if (!alerts || alerts.length === 0) return null;
 
-        const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const FRONTEND_URL = process.env.FRONTEND_URL || 'https://dashboard-ieee-kappa.vercel.app';
         
         const bubbles = alerts.map(alert => {
             const isDangerous = alert.alertLevel === 'dangerous';

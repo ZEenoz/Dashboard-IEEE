@@ -597,9 +597,9 @@ async function handleMessage(message, io) {
         // 🛡️ ANTI-RIPPLE DATA PIPELINE
         // ──────────────────────────────────────────
 
-        // 1. Out-of-Bounds Filter (0 to 10m limit)
-        // If the reading is physically impossible (e.g. 999m or -5m), discard it entirely.
-        if (calibratedRaw < 0 || calibratedRaw > 10) {
+        // 1. Out-of-Bounds Filter (-50m to +50m limit)
+        // Discard truly impossible anomalies (e.g. 999m), but allow negative offsets
+        if (calibratedRaw < -50 || calibratedRaw > 50) {
             console.log(`⚠️ Ignored out-of-bounds reading for ${deviceId}: ${calibratedRaw}m`);
             return; // Stop processing this payload entirely
         }

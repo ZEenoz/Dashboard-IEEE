@@ -365,16 +365,17 @@ export default function SensorDetailsPage() {
             })
             .sort((a, b) => a.rawTimestamp - b.rawTimestamp)
             .map(h => {
-                const rawValue = h.rawLevel !== undefined ? h.rawLevel : (h.waterLevel || 0);
-                const currentOffset = station?.offsetValue || 0;
-                const calibratedValue = rawValue + currentOffset;
+                // Backend already stores calibrated (offset_water_level) and raw (water_level)
+                // h.waterLevel = calibrated, h.rawLevel = raw
+                const calibratedFromBackend = h.waterLevel !== undefined ? Number(h.waterLevel) : 0;
+                const rawFromBackend = h.rawLevel !== undefined ? Number(h.rawLevel) : calibratedFromBackend;
 
                 return {
                     time: new Date(h.rawTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                     value: Number(
                         (displayMode === 'raw'
-                            ? rawValue
-                            : calibratedValue).toFixed(3)
+                            ? rawFromBackend
+                            : calibratedFromBackend).toFixed(3)
                     ),
                     rawTimestamp: h.rawTimestamp
                 };

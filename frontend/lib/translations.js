@@ -412,7 +412,7 @@ export const translations = {
 
     // ─── StationCard (components/StationCard.js) ───────────────────────────
     stationCard: {
-      waterDepth: 'Water Depth',
+      waterDepth: 'Water Level',
       battery: 'Battery',
       rawData: 'Raw Data',
       online: 'Online',
@@ -447,6 +447,7 @@ export const translations = {
       signalCol: 'Signal',
       lastUpdateCol: 'Last Update',
       temperature: 'Temperature',
+      gatewayStatus: 'Gateway Status',
     },
 
     // ─── UserManagement (components/UserManagement.js) ─────────────────────
@@ -880,7 +881,7 @@ export const translations = {
 
     // ─── StationCard (components/StationCard.js) ───────────────────────────
     stationCard: {
-      waterDepth: 'ความลึกน้ำ',
+      waterDepth: 'ระบบน้ำ',
       battery: 'แบตเตอรี่',
       rawData: 'ข้อมูลดิบ',
       online: 'ออนไลน์',
@@ -915,6 +916,7 @@ export const translations = {
       signalCol: 'สัญญาณ',
       lastUpdateCol: 'อัปเดตล่าสุด',
       temperature: 'อุณหภูมิ',
+      gatewayStatus: 'สถานะเกตเวย์',
     },
 
     // ─── UserManagement (components/UserManagement.js) ─────────────────────

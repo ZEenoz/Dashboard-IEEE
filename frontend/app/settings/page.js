@@ -669,18 +669,9 @@ export default function SettingsPage() {
                                 <Cpu className="w-6 h-6 text-gray-400" />
                                 {t('settings.systemStatusHealth')}
                             </h2>
-                            {isConnected ? (
-                                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-widest shrink-0">
-                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> GATEWAY: ONLINE
-                                </div>
-                            ) : (
-                                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold uppercase tracking-widest shrink-0">
-                                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> GATEWAY: OFFLINE
-                                </div>
-                            )}
                         </div>
 
-                        <SystemHealthDashboard />
+                        <SystemHealthDashboard isConnected={isConnected} />
 
                         <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-700/50 space-y-4 mt-8">
                             <h3 className="text-lg font-bold text-gray-300">{t('settings.applicationInfo')}</h3>

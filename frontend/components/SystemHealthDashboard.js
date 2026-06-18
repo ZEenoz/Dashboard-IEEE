@@ -23,7 +23,7 @@ import {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
-const SystemHealthDashboard = React.memo(() => {
+const SystemHealthDashboard = React.memo(({ isConnected }) => {
     const { t } = useLanguage();
     const [health, setHealth] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -197,10 +197,12 @@ const SystemHealthDashboard = React.memo(() => {
             <div className="grid grid-cols-1 gap-6">
                 {/* Gateways Table */}
                 <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-700">
-                    <h3 className="flex items-center gap-2 font-bold text-gray-300 mb-4">
-                        <Radio className="w-5 h-5 text-yellow-400" />
-                        {t('systemHealth.gateways')} ({health.network?.gateways?.gateways?.length || 0})
-                    </h3>
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="flex items-center gap-2 font-bold text-gray-300">
+                            <Radio className="w-5 h-5 text-yellow-400" />
+                            {t('systemHealth.gateways')} ({health.network?.gateways?.gateways?.length || 0})
+                        </h3>
+                    </div>
 
                     {(!health.network?.gateways?.gateways || health.network?.gateways?.gateways.length === 0) ? (
                         <div className="text-gray-500 text-sm italic py-4 text-center border border-dashed border-gray-700 rounded-lg">
@@ -215,7 +217,8 @@ const SystemHealthDashboard = React.memo(() => {
                                         <th className="p-3">{t('systemHealth.signalRssiSnr')}</th>
                                         <th className="p-3">{t('systemHealth.temperature')}</th>
                                         <th className="p-3">{t('systemHealth.lastSeen')}</th>
-                                        <th className="p-3 rounded-tr-lg text-right">{t('systemHealth.packets')}</th>
+                                        <th className="p-3 text-right">{t('systemHealth.packets')}</th>
+                                        <th className="p-3 rounded-tr-lg text-right">{t('systemHealth.gatewayStatus')}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-800">
@@ -238,7 +241,15 @@ const SystemHealthDashboard = React.memo(() => {
                                             <td className="p-3 font-mono text-xs">
                                                 {new Date(gw.lastSeen).toLocaleTimeString()}
                                             </td>
-                                            <td className="p-3 text-right font-mono">{gw.count}</td>
+                                            <td className="p-3 text-right font-mono">{gw.count}
+                                            </td>
+                                            <td className="p-3 text-right font-mono text-[14px] font-bold">
+                                                {isConnected ? (
+                                                    <span className="text-emerald-400">Online</span>
+                                                ) : (
+                                                    <span className="text-red-400">Offline</span>
+                                                )}
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>

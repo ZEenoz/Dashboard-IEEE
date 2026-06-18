@@ -65,7 +65,7 @@ function ExportModal({ onClose, stations, settings, apiUrl, t }) {
                             <Download className="w-5 h-5 text-green-400" />
                         </div>
                         <div>
-                            <h2 className="text-white font-bold text-base">{t('analytics.exportData')}</h2>
+                            <h2 className="text-white text-base">{t('analytics.exportData')}</h2>
                             <p className="text-[11px] text-gray-500">18 columns · Bangkok time (UTC+7)</p>
                         </div>
                     </div>
@@ -135,7 +135,7 @@ function ExportModal({ onClose, stations, settings, apiUrl, t }) {
                     <button
                         onClick={handleExport}
                         disabled={loading}
-                        className="w-full bg-green-600 hover:bg-green-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-green-900/20"
+                        className="w-full bg-green-600 hover:bg-green-500 disabled:opacity-60 disabled:cursor-not-allowed text-white py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-green-900/20"
                     >
                         <Download size={18} />
                         {loading ? t('analytics.exporting') : t('analytics.downloadCSV')}
@@ -386,7 +386,7 @@ export default function AnalyticsPage() {
                         {(role === 'admin' || role === 'local_authority') && (
                             <button
                                 onClick={() => setShowExportModal(true)}
-                                className="bg-gray-800 hover:bg-gray-700 text-white px-2 py-2 rounded-lg font-bold flex items-center gap-2 border border-gray-700 transition-all"
+                                className="bg-gray-800 hover:bg-gray-700 text-white px-2 py-2 rounded-lg flex items-center gap-2 border border-gray-700 transition-all"
                             >
                                 <Download size={18} className="text-green-500" />
                                 {t('analytics.exportCSV')}

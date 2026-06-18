@@ -881,7 +881,7 @@ export const translations = {
 
     // ─── StationCard (components/StationCard.js) ───────────────────────────
     stationCard: {
-      waterDepth: 'ระบบน้ำ',
+      waterDepth: 'ระดับน้ำ',
       battery: 'แบตเตอรี่',
       rawData: 'ข้อมูลดิบ',
       online: 'ออนไลน์',

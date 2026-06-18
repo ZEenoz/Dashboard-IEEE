@@ -1,4 +1,4 @@
-import { Inter } from "next/font/google";
+import { Kanit } from "next/font/google";
 import "./globals.css";
 import { SocketProvider } from "@/contexts/SocketContext";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -8,7 +8,11 @@ import MobileNav from "@/components/MobileNav";
 import { Providers } from "@/components/Providers";
 import { Toaster } from 'react-hot-toast';
 
-const inter = Inter({ subsets: ["latin"] });
+const kanit = Kanit({
+  subsets: ["latin", "thai"],
+  weight: "400",
+  display: "swap",
+});
 
 export const metadata = {
   title: "Water Monitoring Dashboard",
@@ -18,7 +22,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} bg-[#111827] text-white flex`}>
+      <body className={`${kanit.className} bg-[#111827] text-white flex`}>
         <Providers>
           <AuthProvider>
             <LanguageProvider>

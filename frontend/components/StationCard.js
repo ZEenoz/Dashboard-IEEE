@@ -155,7 +155,7 @@ const StationCard = React.memo(({ station, onClick }) => {
             {/* === Bottom: Content Section === */}
             <div className="p-5 flex-1 flex flex-col justify-between">
                 <div>
-                    <h3 className={`text-lg font-bold text-white mb-1.5 leading-snug transition-colors ${isFloat ? 'group-hover:text-blue-400' : 'group-hover:text-purple-400'} truncate`}>
+                    <h3 className={`text-[20px] font-bold text-white mb-1.5 leading-snug transition-colors ${isFloat ? 'group-hover:text-blue-400' : 'group-hover:text-purple-400'} truncate`}>
                         {stationName}
                     </h3>
 
@@ -176,7 +176,7 @@ const StationCard = React.memo(({ station, onClick }) => {
 
                 <div className="flex items-end justify-between border-t border-white/5 pt-4 mt-3">
                     <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.25em] mb-1.5">
+                        <span className="text-[12px] font-black text-gray-500 uppercase tracking-[0.25em] mb-1.5">
                             {t('stationCard.waterDepth')}
                         </span>
                         <div className="flex items-baseline gap-1">

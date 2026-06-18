@@ -11,7 +11,7 @@
 body {
   color: rgb(var(--foreground-rgb));
   background: rgb(var(--background-start-rgb));
-  font-family: 'Inter', sans-serif; /* Recommended font for this look */
+  font-family: 'Kanit', sans-serif;
 }
 
 /* Custom Scrollbar for Webkit */

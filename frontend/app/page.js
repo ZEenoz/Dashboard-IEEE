@@ -11,6 +11,7 @@ import { Activity, Droplets, Gauge, Wifi, Search, ArrowRight, Layers, Globe, Map
 import Map, { Marker, NavigationControl } from 'react-map-gl/maplibre';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { evaluateFormula } from '@/lib/formulaEvaluator';
 
 const MAPTILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
@@ -137,21 +138,30 @@ export default function Home() {
 
   // Fetch Settings (to get images/names)
   useEffect(() => {
-    fetch(`${API_URL}/settings`, {
-      headers: {
-        'ngrok-skip-browser-warning': 'true',
-        'Accept': 'application/json'
-      }
-    })
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        return res.json();
+    const fetchSettings = () => {
+      fetch(`${API_URL}/settings?_=${Date.now()}`, {
+        cache: 'reload',
+        headers: {
+          'ngrok-skip-browser-warning': 'true',
+          'Accept': 'application/json'
+        }
       })
-      .then(data => setSettings(data))
-      .catch(err => {
-        console.error("Failed to fetch settings:", err.message);
-        toast.error("Failed to load global settings");
-      });
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          return res.json();
+        })
+        .then(data => setSettings(data))
+        .catch(err => {
+          console.error("Failed to fetch settings:", err.message);
+          toast.error("Failed to load global settings");
+        });
+    };
+
+    fetchSettings();
+
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchSettings(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
 
   // Map State
@@ -183,7 +193,7 @@ export default function Home() {
   const mapData = useMemo(() => {
     const stationList = Object.values(stations).filter(s => settings?.stations?.[s.stationId] && settings.stations[s.stationId].isVisible !== false);
 
-    // Apply Settings Overrides (Name, Image, Offset)
+    // Apply Settings Overrides (Name, Image, Offset/Formula)
     const enrichedStations = stationList.map(s => {
       const config = settings?.stations?.[s.stationId];
       const offset = parseFloat(config?.offset) || 0;
@@ -193,13 +203,18 @@ export default function Home() {
         ? parseFloat(s.rawLevel)
         : parseFloat(s.waterLevel) || 0;
 
-      // 2. Actively calculate Calibrated Value using CURRENT offset from Settings!
-      const calibratedValue = rawValue + offset;
-
-      // 3. Determine what to display
-      const displayWaterLevel = displayMode === 'raw'
-        ? rawValue
-        : calibratedValue;
+      // 2. Calculate display value — prefer Formula over fixed offset
+      let displayWaterLevel;
+      if (displayMode === 'raw') {
+        displayWaterLevel = rawValue;
+      } else if (config?.formula && Array.isArray(config.formula) && config.formula.length > 0) {
+        // 🎯 Dynamically evaluate formula with current rawLevel (shared utility)
+        const formulaResult = evaluateFormula(config.formula, rawValue, settings?.customVariables);
+        displayWaterLevel = formulaResult !== null ? formulaResult : rawValue + offset;
+      } else {
+        // Fallback: use fixed offset from settings
+        displayWaterLevel = rawValue + offset;
+      }
 
       return {
         ...s,
@@ -243,7 +258,7 @@ export default function Home() {
     const mapStations = [...sNodes, ...fNodes].filter(isOnline);
 
     return { floatNodes: fNodes, staticNodes: sNodes, mapStations };
-  }, [stations, settings, searchQuery, filterType]);
+  }, [stations, settings, searchQuery, filterType, displayMode]);
 
   const { floatNodes, staticNodes, mapStations } = mapData;
 

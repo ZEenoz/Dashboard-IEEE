@@ -46,17 +46,14 @@ export default function OffsetPresetsPage() {
     // Fetch settings
     useEffect(() => {
         const fetchOpts = {
-            cache: 'no-store',
             headers: {
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache',
                 'ngrok-skip-browser-warning': 'true'
             }
         };
 
         const fetchData = async () => {
             try {
-                const res = await fetch(`${API_URL}/settings`, fetchOpts);
+                const res = await fetch(`${API_URL}/settings?_=${Date.now()}`, fetchOpts);
                 const data = await res.json();
                 setSettings(data);
             } catch (err) {
@@ -68,6 +65,10 @@ export default function OffsetPresetsPage() {
         };
 
         fetchData();
+
+        const onVisible = () => { if (document.visibilityState === 'visible') fetchData(); };
+        document.addEventListener('visibilitychange', onVisible);
+        return () => document.removeEventListener('visibilitychange', onVisible);
     }, []);
 
     // Get all visible stations
@@ -405,11 +406,21 @@ export default function OffsetPresetsPage() {
                                 </div>
                                 <div className="bg-gray-800/60 border border-gray-700 rounded-2xl p-4">
                                     <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-1">Current Offset</div>
-                                    <div className="text-3xl font-bold font-mono text-purple-400">{currentOffset > 0 ? '+' : ''}{currentOffset.toFixed(3)}<span className="text-sm text-gray-500 ml-1">m</span></div>
+                                    <div className="text-3xl font-bold font-mono text-purple-400">
+                                        {requiredOffset !== null
+                                            ? <>{requiredOffset > 0 ? '+' : ''}{requiredOffset.toFixed(3)}<span className="text-sm text-gray-500 ml-1">m</span></>
+                                            : <>{currentOffset > 0 ? '+' : ''}{currentOffset.toFixed(3)}<span className="text-sm text-gray-500 ml-1">m</span></>
+                                        }
+                                    </div>
                                 </div>
                                 <div className="bg-gray-800/60 border border-gray-700 rounded-2xl p-4">
                                     <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-1">Current Display</div>
-                                    <div className="text-3xl font-bold font-mono text-white">{(rawLevel + currentOffset).toFixed(3)}<span className="text-sm text-gray-500 ml-1">m</span></div>
+                                    <div className="text-3xl font-bold font-mono text-white">
+                                        {targetLevel !== null
+                                            ? <>{targetLevel.toFixed(3)}<span className="text-sm text-gray-500 ml-1">m</span></>
+                                            : <>{(rawLevel + currentOffset).toFixed(3)}<span className="text-sm text-gray-500 ml-1">m</span></>
+                                        }
+                                    </div>
                                 </div>
                             </div>
 

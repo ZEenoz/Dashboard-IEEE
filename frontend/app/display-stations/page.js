@@ -41,7 +41,7 @@ export default function DisplayStationsPage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await fetch(`${API_URL}/settings`, {
+                const res = await fetch(`${API_URL}/settings?_=${Date.now()}`, {
                     headers: { 'ngrok-skip-browser-warning': 'true' }
                 });
                 const data = await res.json();
@@ -76,6 +76,10 @@ export default function DisplayStationsPage() {
         };
 
         fetchData();
+
+        const onVisible = () => { if (document.visibilityState === 'visible') fetchData(); };
+        document.addEventListener('visibilitychange', onVisible);
+        return () => document.removeEventListener('visibilitychange', onVisible);
     }, []);
 
     // Drag handlers

@@ -6,6 +6,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
 import { History, Filter, Calendar, Smartphone, Droplets, Gauge, AlertCircle, Info, Activity, RefreshCw, Download } from 'lucide-react';
+import { getDisplayWaterLevel } from '@/lib/formulaEvaluator';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
@@ -294,7 +295,11 @@ export default function HistoryPage() {
                                             <td className="px-4 md:px-6 py-4 border-r border-gray-800/50">
                                                 <div className="flex items-center gap-2">
                                                     <span className={`${item.sensorType === 'Float' ? 'text-blue-400' : 'text-purple-400'} font-bold tabular-nums`}>
-                                                        {(Number(displayMode === 'raw' ? (item.rawLevel ?? item.waterLevel) : (item.waterLevel ?? 0)) || 0).toFixed(3)}m
+                                                        {(() => {
+                                                            const cfg = settings?.stations?.[item.stationId];
+                                                            const rawVal = item.rawLevel !== undefined ? Number(item.rawLevel) : Number(item.waterLevel) || 0;
+                                                            return getDisplayWaterLevel(cfg, rawVal, displayMode, settings?.customVariables).toFixed(3);
+                                                        })()}m
                                                     </span>
                                                 </div>
                                             </td>

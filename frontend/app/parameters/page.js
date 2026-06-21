@@ -3,6 +3,7 @@
 import { useSocket } from '@/contexts/SocketContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LayoutGrid, List, Droplets, Gauge, Battery, Signal, WifiOff } from 'lucide-react';
+import { getDisplayWaterLevel } from '@/lib/formulaEvaluator';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -143,7 +144,11 @@ export default function ParametersPage() {
 
             {viewMode === 'grid' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredStations.map((station) => (
+                    {filteredStations.map((station) => {
+                        const cfg = settings?.stations?.[station.stationId];
+                        const rawVal = station.rawLevel !== undefined ? Number(station.rawLevel) : Number(station.waterLevel) || 0;
+                        const displayVal = getDisplayWaterLevel(cfg, rawVal, displayMode, settings?.customVariables);
+                        return (
                         <div
                             onClick={() => router.push(`/parameters/${station.stationId}`)}
                             className={`bg-gray-800 rounded-xl p-6 border ${getStatus(station).status === 'offline' ? 'border-red-500' : 'border-gray-700'} shadow-lg ${station.sensorType === 'Float' ? 'hover:border-blue-500' : 'hover:border-purple-500'} transition-all cursor-pointer`}
@@ -155,7 +160,7 @@ export default function ParametersPage() {
                                     </h3>
                                     <div className="mt-2 flex items-baseline">
                                         <span className="text-3xl font-bold text-white">
-                                            {(Number(displayMode === 'raw' ? (station.rawLevel ?? station.waterLevel) : (station.waterLevel ?? 0)) || 0).toFixed(3)}
+                                            {displayVal.toFixed(3)}
                                         </span>
                                         <span className="ml-2 text-gray-500">m</span>
                                     </div>
@@ -171,7 +176,7 @@ export default function ParametersPage() {
                             <div className="w-full bg-gray-700 h-2 rounded-full overflow-hidden">
                                 <div
                                     className={`${station.sensorType === 'Float' ? 'bg-blue-500' : 'bg-purple-500'} h-full rounded-full transition-all duration-500`}
-                                    style={{ width: `${Math.min((station.waterLevel / 5) * 100, 100)}%` }}
+                                    style={{ width: `${Math.min((displayVal / 5) * 100, 100)}%` }}
                                 ></div>
                             </div>
                             <div className="mt-4 flex justify-between items-center text-xs">
@@ -187,7 +192,8 @@ export default function ParametersPage() {
                                 </div>
                             </div>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             ) : (
                 <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
@@ -202,7 +208,11 @@ export default function ParametersPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-700">
-                            {filteredStations.map((station) => (
+                            {filteredStations.map((station) => {
+                                const cfg = settings?.stations?.[station.stationId];
+                                const rawVal = station.rawLevel !== undefined ? Number(station.rawLevel) : Number(station.waterLevel) || 0;
+                                const displayVal = getDisplayWaterLevel(cfg, rawVal, displayMode, settings?.customVariables);
+                                return (
                                 <tr
                                     key={station.stationId}
                                     onClick={() => router.push(`/parameters/${station.stationId}`)}
@@ -217,7 +227,7 @@ export default function ParametersPage() {
                                                 <Gauge size={16} className="text-purple-500" />
                                             )}
                                             <span className={`font-mono ${station.sensorType === 'Float' ? 'text-blue-300' : 'text-purple-300'}`}>
-                                                {(Number(displayMode === 'raw' ? (station.rawLevel ?? station.waterLevel) : (station.waterLevel ?? 0)) || 0).toFixed(3)} m
+                                                {displayVal.toFixed(3)} m
                                             </span>
 
                                         </div>
@@ -237,7 +247,8 @@ export default function ParametersPage() {
                                         {station.timestamp}
                                     </td>
                                 </tr>
-                            ))}
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

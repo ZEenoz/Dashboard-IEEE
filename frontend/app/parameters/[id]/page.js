@@ -11,6 +11,7 @@ import Map, { Marker, NavigationControl } from 'react-map-gl/maplibre';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { getDisplayWaterLevel } from '@/lib/formulaEvaluator';
 
 const MAPTILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
@@ -268,18 +269,26 @@ export default function SensorDetailsPage() {
     });
 
     useEffect(() => {
-        fetch(`${API}/settings`, {
-            headers: { 'ngrok-skip-browser-warning': 'true' }
-        })
-            .then(res => {
-                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-                return res.json();
+        const fetchSettings = () => {
+            fetch(`${API}/settings?_=${Date.now()}`, {
+                headers: { 'ngrok-skip-browser-warning': 'true' }
             })
-            .then(data => setSettings(data))
-            .catch(err => {
-                console.error("Failed to fetch settings:", err.message);
-                toast.error(t('settings.failedToLoad'));
-            });
+                .then(res => {
+                    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                    return res.json();
+                })
+                .then(data => setSettings(data))
+                .catch(err => {
+                    console.error("Failed to fetch settings:", err.message);
+                    toast.error(t('settings.failedToLoad'));
+                });
+        };
+
+        fetchSettings();
+
+        const onVisible = () => { if (document.visibilityState === 'visible') fetchSettings(); };
+        document.addEventListener('visibilitychange', onVisible);
+        return () => document.removeEventListener('visibilitychange', onVisible);
     }, []);
 
     const rawStation = useMemo(() => {
@@ -299,13 +308,8 @@ export default function SensorDetailsPage() {
             ? parseFloat(rawStation.rawLevel)
             : parseFloat(rawStation.waterLevel) || 0;
 
-        // 2. Actively calculate Calibrated Value using CURRENT offset from Settings!
-        const calibratedValue = rawValue + offset;
-
-        // 3. Determine what to display based on displayMode
-        const displayWaterLevel = displayMode === 'raw'
-            ? rawValue
-            : calibratedValue;
+        // 2. Calculate display value — prefer Formula over fixed offset
+        const displayWaterLevel = getDisplayWaterLevel(config, rawValue, displayMode, settings?.customVariables);
 
         return {
             ...rawStation,

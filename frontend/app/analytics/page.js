@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Brush } from 'recharts';
 import { PlayCircle, PauseCircle, CheckSquare, Square, Download, X, Calendar } from 'lucide-react';
+import { getDisplayWaterLevel } from '@/lib/formulaEvaluator';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
@@ -292,19 +293,17 @@ export default function AnalyticsPage() {
                 };
             }
 
-            // Get current offset from settings
+            // Get current config from settings
             const config = getStationConfig(item.stationId);
-            const currentOffset = parseFloat(config?.offset) || 0;
             
             // PostgreSQL numeric returns as string, so we MUST parse it to float before math
             const rawStringOrNum = item.rawLevel !== undefined ? item.rawLevel : (item.waterLevel || 0);
             const rawValue = parseFloat(rawStringOrNum) || 0;
             
-            const calibratedValue = rawValue + currentOffset;
+            // 🎯 Use formula evaluation (or fallback to offset) for consistency with card display
+            const displayValue = getDisplayWaterLevel(config, rawValue, displayMode, settings?.customVariables);
 
-            pivotedData[timeKey][item.stationId] = Number(
-                (displayMode === 'raw' ? rawValue : calibratedValue).toFixed(3)
-            );
+            pivotedData[timeKey][item.stationId] = Number(displayValue.toFixed(3));
         });
 
         const sortedData = Object.values(pivotedData).sort((a, b) => a.rawTimestamp - b.rawTimestamp);

@@ -369,18 +369,16 @@ export default function SensorDetailsPage() {
             })
             .sort((a, b) => a.rawTimestamp - b.rawTimestamp)
             .map(h => {
-                // Backend already stores calibrated (offset_water_level) and raw (water_level)
-                // h.waterLevel = calibrated, h.rawLevel = raw
-                const calibratedFromBackend = h.waterLevel !== undefined ? Number(h.waterLevel) : 0;
-                const rawFromBackend = h.rawLevel !== undefined ? Number(h.rawLevel) : calibratedFromBackend;
+                // Get raw value (from backend rawLevel, fallback to waterLevel)
+                const rawVal = h.rawLevel !== undefined ? Number(h.rawLevel) : Number(h.waterLevel) || 0;
+
+                // 🎯 Use formula evaluation (or fallback to offset) for consistency
+                const config = settings?.stations?.[stationId];
+                const displayValue = getDisplayWaterLevel(config, rawVal, displayMode, settings?.customVariables);
 
                 return {
                     time: new Date(h.rawTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    value: Number(
-                        (displayMode === 'raw'
-                            ? rawFromBackend
-                            : calibratedFromBackend).toFixed(3)
-                    ),
+                    value: Number(displayValue.toFixed(3)),
                     rawTimestamp: h.rawTimestamp
                 };
             });
@@ -406,7 +404,7 @@ export default function SensorDetailsPage() {
         }
 
         return { chartData: finalData, timeDomain: [cutoff, now] };
-    }, [history, stationId, displayMode]);
+    }, [history, stationId, displayMode, settings]);
 
     const stats = useMemo(() => {
         if (chartData.length === 0) return { min: 0, max: 0, avg: 0 };

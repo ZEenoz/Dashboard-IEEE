@@ -289,7 +289,7 @@ export default function Home() {
 
         {/* Right Side: Display Mode Toggle */}
         <div className="flex flex-col items-start md:items-end gap-2 w-full md:w-auto">
-          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 md:mr-2">
+          <span className="text-[12px] font-bold uppercase tracking-[0.2em] text-gray-500 md:mr-2">
             {t('overview.dataMode')}
           </span>
           <div className="mode-toggle-container w-full sm:w-auto" data-mode={displayMode}>

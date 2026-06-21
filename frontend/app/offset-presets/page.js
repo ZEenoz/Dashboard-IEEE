@@ -330,7 +330,7 @@ export default function OffsetPresetsPage() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 px-1">
                 <div className="flex items-center gap-4">
                     <h1 className="text-3xl font-bold text-white tracking-tight border-l-4 border-emerald-500 pl-4">
-                        Offset Calibration
+                        {t('offsetPresets.title')}
                     </h1>
                 </div>
             </div>
@@ -343,7 +343,7 @@ export default function OffsetPresetsPage() {
                     <div className="p-4 border-b border-gray-800 bg-gray-900">
                         <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
                             <Activity size={14} className="text-blue-500" />
-                            Select Station
+                            {t('offsetPresets.selectStation')}
                         </h2>
                     </div>
                     <div className="overflow-y-auto flex-1 p-3 space-y-2">
@@ -386,36 +386,38 @@ export default function OffsetPresetsPage() {
                 {/* Right: Formula Builder Workspace */}
                 <div className="flex-1 min-w-0 h-full flex flex-col gap-6">
                     {!selectedStationId ? (
-                        <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-gray-900/30 border border-gray-800/50 rounded-2xl border-dashed">
-                            <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mb-4 text-gray-600">
+                        <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-gray-900/30 border border-gray-800/50 rounded-2xl border-dashed transition-all duration-500 hover:border-gray-700/80 group">
+                            <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mb-4 text-gray-600 transition-all duration-500 group-hover:scale-110 group-hover:text-gray-400 group-hover:bg-gray-700/50">
                                 <Calculator size={28} />
                             </div>
-                            <h3 className="text-lg font-bold text-gray-400 mb-2">Formula Builder</h3>
-                            <p className="text-sm text-gray-600 max-w-sm">
-                                Select a station from the list to start building a custom calibration offset using visual math blocks.
+                            <h3 className="text-lg font-bold text-gray-400 mb-2 transition-colors duration-300 group-hover:text-gray-300">{t('offsetPresets.title')}</h3>
+                            <p className="text-sm text-gray-600 max-w-sm transition-colors duration-300 group-hover:text-gray-500">
+                                {t('offsetPresets.subtitle')}
                             </p>
                         </div>
                     ) : (
                         <>
                             {/* Top Stats Strip */}
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 shrink-0">
-                                <div className="bg-gray-800/60 border border-gray-700 rounded-2xl p-4 relative overflow-hidden">
-                                    <div className="absolute -right-4 -bottom-4 opacity-5"><Droplets size={80} /></div>
-                                    <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-1">Raw Level</div>
-                                    <div className="text-3xl font-bold font-mono text-blue-400">{rawLevel.toFixed(3)}<span className="text-sm text-gray-500 ml-1">m</span></div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 shrink-0 animate-in fade-in slide-in-from-top-3 duration-500">
+                                <div className="bg-gray-800/60 border border-gray-700 rounded-2xl p-4 relative overflow-hidden transition-all duration-300 hover:border-blue-500/40 hover:shadow-[0_0_20px_rgba(59,130,246,0.1)] group">
+                                    <div className="absolute -right-4 -bottom-4 opacity-5 transition-all duration-500 group-hover:opacity-10 group-hover:scale-110"><Droplets size={80} /></div>
+                                    <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-1">{t('offsetPresets.rawLevel')}</div>
+                                    <div className="text-3xl font-bold font-mono text-blue-400 transition-all duration-300 group-hover:text-blue-300">
+                                        {rawLevel.toFixed(3)}<span className="text-sm text-gray-500 ml-1">m</span>
+                                    </div>
                                 </div>
-                                <div className="bg-gray-800/60 border border-gray-700 rounded-2xl p-4">
-                                    <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-1">Current Offset</div>
-                                    <div className="text-3xl font-bold font-mono text-purple-400">
+                                <div className="bg-gray-800/60 border border-gray-700 rounded-2xl p-4 relative overflow-hidden transition-all duration-300 hover:border-purple-500/40 hover:shadow-[0_0_20px_rgba(168,85,247,0.1)] group">
+                                    <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-1">{t('offsetPresets.currentOffset')}</div>
+                                    <div className="text-3xl font-bold font-mono text-purple-400 transition-all duration-300 group-hover:text-purple-300">
                                         {requiredOffset !== null
                                             ? <>{requiredOffset > 0 ? '+' : ''}{requiredOffset.toFixed(3)}<span className="text-sm text-gray-500 ml-1">m</span></>
                                             : <>{currentOffset > 0 ? '+' : ''}{currentOffset.toFixed(3)}<span className="text-sm text-gray-500 ml-1">m</span></>
                                         }
                                     </div>
                                 </div>
-                                <div className="bg-gray-800/60 border border-gray-700 rounded-2xl p-4">
-                                    <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-1">Current Display</div>
-                                    <div className="text-3xl font-bold font-mono text-white">
+                                <div className="bg-gray-800/60 border border-gray-700 rounded-2xl p-4 relative overflow-hidden transition-all duration-300 hover:border-white/30 hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] group">
+                                    <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-1">{t('offsetPresets.currentDisplay')}</div>
+                                    <div className="text-3xl font-bold font-mono text-white transition-all duration-300 group-hover:text-gray-100">
                                         {targetLevel !== null
                                             ? <>{targetLevel.toFixed(3)}<span className="text-sm text-gray-500 ml-1">m</span></>
                                             : <>{(rawLevel + currentOffset).toFixed(3)}<span className="text-sm text-gray-500 ml-1">m</span></>
@@ -425,26 +427,26 @@ export default function OffsetPresetsPage() {
                             </div>
 
                             {/* Canvas Area */}
-                            <div className="bg-gray-900 border border-gray-700 rounded-2xl shadow-xl flex-1 flex flex-col overflow-hidden min-h-[400px]">
+                            <div className="bg-gray-900 border border-gray-700 rounded-2xl shadow-xl flex-1 flex flex-col overflow-hidden min-h-[400px] animate-in fade-in slide-in-from-top-2 duration-500 delay-150">
                                 {/* Toolbar / Toolbox */}
-                                <div className="p-4 border-b border-gray-800 bg-[#111827] flex flex-wrap gap-6 shrink-0">
+                                <div className="p-4 border-b border-gray-800 bg-[#111827] flex flex-wrap gap-6 shrink-0 animate-in fade-in duration-300">
 
                                     {/* Variables */}
                                     <div>
-                                        <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-2">Variables</div>
+                                        <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-2">{t('offsetPresets.variables')}</div>
                                         <div className="flex gap-2">
-                                            <button onClick={() => addBlock({ type: 'variable', value: 'RAW', label: 'Raw Level' })} className="bg-blue-600/20 text-blue-400 hover:bg-blue-600/40 border border-blue-500/30 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-1.5 transition-colors">
-                                                <Baseline size={14} /> Raw Level
+                                            <button onClick={() => addBlock({ type: 'variable', value: 'RAW', label: 'Raw Level' })} className="bg-blue-600/20 text-blue-400 hover:bg-blue-600/40 border border-blue-500/30 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-1.5 transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+                                                <Baseline size={14} /> {t('offsetPresets.rawLevel')}
                                             </button>
                                         </div>
                                     </div>
 
                                     {/* Operators */}
                                     <div>
-                                        <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-2">Operators</div>
+                                        <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-2">{t('offsetPresets.operators')}</div>
                                         <div className="flex gap-2">
                                             {['+', '-', '×', '÷', '(', ')'].map(op => (
-                                                <button key={op} onClick={() => addBlock({ type: 'operator', value: op })} className="w-9 h-9 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 rounded-lg text-lg font-bold transition-colors">
+                                                <button key={op} onClick={() => addBlock({ type: 'operator', value: op })} className="w-9 h-9 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 rounded-lg text-lg font-bold transition-all duration-200 hover:scale-110 active:scale-90 hover:border-amber-500/50 hover:text-amber-400 hover:shadow-[0_0_12px_rgba(245,158,11,0.15)]">
                                                     {op}
                                                 </button>
                                             ))}
@@ -453,10 +455,10 @@ export default function OffsetPresetsPage() {
 
                                     {/* Custom Numbers */}
                                     <div className="flex-1 min-w-[200px]">
-                                        <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-2">Global Custom Variables</div>
+                                        <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-2">{t('offsetPresets.globalCustomVariables')}</div>
                                         <div className="flex flex-wrap gap-2 items-center">
-                                            {(settings?.customVariables || []).map(cv => (
-                                                <div key={cv.id} className="flex items-center bg-teal-900/30 border border-teal-500/30 rounded-lg overflow-hidden">
+                                            {(settings?.customVariables || []).map((cv, idx) => (
+                                                <div key={cv.id} className="flex items-center bg-teal-900/30 border border-teal-500/30 rounded-lg overflow-hidden transition-all duration-200 hover:bg-teal-900/50 hover:border-teal-500/50 hover:shadow-[0_0_12px_rgba(20,184,166,0.15)] animate-in fade-in zoom-in-95 duration-200" style={{ animationDelay: `${idx * 50}ms` }}>
                                                     <button onClick={() => addBlock({ type: 'customVar', id: cv.id, label: cv.name })} className="px-3 py-1.5 text-sm font-bold text-teal-400 hover:bg-teal-500/20 transition-colors">
                                                         {cv.name}: {cv.value}
                                                     </button>
@@ -465,8 +467,8 @@ export default function OffsetPresetsPage() {
                                                     </button>
                                                 </div>
                                             ))}
-                                            <button onClick={openAddCustomModal} className="bg-gray-800 text-gray-300 hover:text-white hover:bg-gray-700 border border-gray-700 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-1.5 transition-colors">
-                                                <Plus size={14} /> Add New
+                                            <button onClick={openAddCustomModal} className="bg-gray-800 text-gray-300 hover:text-white hover:bg-gray-700 border border-gray-700 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-1.5 transition-all duration-200 hover:scale-105 active:scale-95 hover:border-teal-500/40">
+                                                <Plus size={14} /> {t('common.add')}
                                             </button>
                                         </div>
                                     </div>
@@ -475,15 +477,15 @@ export default function OffsetPresetsPage() {
                                 {/* Formula Display Canvas */}
                                 <div className="flex-1 p-6 flex flex-col bg-[#0B1121] overflow-y-auto">
                                     <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Formula Canvas</h3>
+                                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('offsetPresets.formulaCanvas')}</h3>
                                         <button onClick={clearFormula} className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 transition-colors">
-                                            <RotateCcw size={12} /> Clear Canvas
+                                            <RotateCcw size={12} /> {t('offsetPresets.clearCanvas')}
                                         </button>
                                     </div>
 
                                     {formula.length === 0 ? (
                                         <div className="flex-1 flex items-center justify-center border-2 border-dashed border-gray-800 rounded-xl">
-                                            <span className="text-gray-600 text-sm font-medium">Click buttons above to add blocks here</span>
+                                            <span className="text-gray-600 text-sm font-medium">{t('offsetPresets.canvasEmpty')}</span>
                                         </div>
                                     ) : (
                                         <div className="flex flex-wrap items-center content-start gap-2 flex-1 p-4 bg-gray-900/50 rounded-xl border border-gray-800/80 shadow-inner">
@@ -525,7 +527,7 @@ export default function OffsetPresetsPage() {
                                                 <Play size={20} className={targetLevel !== null ? 'text-emerald-400' : 'text-gray-600'} />
                                             </div>
                                             <div className="flex-1">
-                                                <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-1">Formula Result</div>
+                                                <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-1">{t('offsetPresets.formulaResult')}</div>
                                                 {evaluation.error ? (
                                                     <div className="text-red-400 text-sm font-bold flex items-center gap-1.5"><AlertTriangle size={14} /> {evaluation.error}</div>
                                                 ) : (
@@ -551,7 +553,7 @@ export default function OffsetPresetsPage() {
                                                 <>
                                                     <div className="hidden lg:block h-10 w-px bg-gray-700 mx-4"></div>
                                                     <div className="hidden lg:block">
-                                                        <div className="text-[9px] uppercase tracking-widest text-gray-500 font-bold mb-1">System Offset</div>
+                                                        <div className="text-[9px] uppercase tracking-widest text-gray-500 font-bold mb-1">{t('offsetPresets.systemOffset')}</div>
                                                         <div className="text-sm text-gray-400 font-mono bg-gray-800/50 px-2 py-1 rounded">
                                                             {requiredOffset > 0 ? '+' : ''}{requiredOffset.toFixed(3)}
                                                         </div>
@@ -573,7 +575,7 @@ export default function OffsetPresetsPage() {
                                                             : 'bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 hover:border-red-500/40'
                                                         }
                                                     `}
-                                                    title="Remove Calibration entirely"
+                                                    title={t('offsetPresets.removeCalibration')}
                                                 >
                                                     {resetting ? <div className="w-5 h-5 border-2 border-red-500/30 border-t-red-500 rounded-full animate-spin" /> : <Trash2 size={20} />}
                                                 </button>
@@ -590,9 +592,9 @@ export default function OffsetPresetsPage() {
                                                 `}
                                             >
                                                 {saving ? (
-                                                    <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving...</>
+                                                    <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t('common.saving')}</>
                                                 ) : (
-                                                    <><Save size={18} /> Apply Calibration</>
+                                                    <><Save size={18} /> {t('offsetPresets.applyCalibration')}</>
                                                 )}
                                             </button>
                                         </div>
@@ -610,11 +612,11 @@ export default function OffsetPresetsPage() {
                     <div className="bg-gray-900 rounded-xl p-6 w-full max-w-sm border border-gray-700 shadow-2xl">
                         <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-teal-400">
                             <Activity size={20} />
-                            {editingCustomVarId ? 'Edit Global Variable' : 'Add Global Variable'}
+                            {editingCustomVarId ? t('offsetPresets.editGlobalVar') : t('offsetPresets.addGlobalVar')}
                         </h3>
                         <div className="space-y-4 mb-6">
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Variable Name</label>
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">{t('offsetPresets.variableName')}</label>
                                 <input
                                     type="text"
                                     value={customName}
@@ -624,7 +626,7 @@ export default function OffsetPresetsPage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Value (m)</label>
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">{t('offsetPresets.variableValue')}</label>
                                 <input
                                     type="number"
                                     step="0.001"
@@ -637,11 +639,11 @@ export default function OffsetPresetsPage() {
                         </div>
                         <div className="flex justify-between gap-2">
                             {editingCustomVarId ? (
-                                <button onClick={() => handleDeleteCustomVar(editingCustomVarId)} className="px-4 py-2 bg-red-900/30 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors font-bold text-sm">Delete</button>
+                                <button onClick={() => handleDeleteCustomVar(editingCustomVarId)} className="px-4 py-2 bg-red-900/30 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors font-bold text-sm">{t('common.delete')}</button>
                             ) : <div></div>}
                             <div className="flex gap-2">
-                                <button onClick={() => setShowCustomModal(false)} className="px-4 py-2 text-gray-400 hover:text-white transition-colors text-sm font-bold">Cancel</button>
-                                <button onClick={handleSaveCustomVar} className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg transition-colors text-sm font-bold">Save</button>
+                                <button onClick={() => setShowCustomModal(false)} className="px-4 py-2 text-gray-400 hover:text-white transition-colors text-sm font-bold">{t('common.cancel')}</button>
+                                <button onClick={handleSaveCustomVar} className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg transition-colors text-sm font-bold">{t('common.save')}</button>
                             </div>
                         </div>
                     </div>

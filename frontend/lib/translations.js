@@ -354,6 +354,26 @@ export const translations = {
       saveApply: 'Save & Apply Offsets',
       unsavedChanges: 'Unsaved changes',
       level: 'Level',
+
+      // Formula Builder
+      selectStation: 'Select Station',
+      rawLevel: 'Raw Level',
+      currentOffset: 'Current Offset',
+      currentDisplay: 'Current Display',
+      variables: 'Variables',
+      operators: 'Operators',
+      globalCustomVariables: 'Global Custom Variables',
+      formulaCanvas: 'Formula Canvas',
+      clearCanvas: 'Clear Canvas',
+      canvasEmpty: 'Click buttons above to add blocks here',
+      formulaResult: 'Formula Result',
+      systemOffset: 'System Offset',
+      applyCalibration: 'Apply Calibration',
+      removeCalibration: 'Remove Calibration entirely',
+      addGlobalVar: 'Add Global Variable',
+      editGlobalVar: 'Edit Global Variable',
+      variableName: 'Variable Name',
+      variableValue: 'Value (m)',
     },
 
     // ─── Parameters (app/parameters/page.js) ──────────────────────────────
@@ -823,6 +843,26 @@ export const translations = {
       saveApply: 'บันทึกและใช้ค่าชดเชย',
       unsavedChanges: 'มีการเปลี่ยนแปลง',
       level: 'ระดับ',
+
+      // Formula Builder
+      selectStation: 'เลือกสถานี',
+      rawLevel: 'ค่าดิบ',
+      currentOffset: 'ค่าชดเชยปัจจุบัน',
+      currentDisplay: 'ค่าที่แสดงปัจจุบัน',
+      variables: 'ตัวแปร',
+      operators: 'ตัวดำเนินการ',
+      globalCustomVariables: 'ตัวแปรส่วนกลาง',
+      formulaCanvas: 'พื้นที่สร้างสูตร',
+      clearCanvas: 'ล้างทั้งหมด',
+      canvasEmpty: 'คลิกปุ่มด้านบนเพื่อเพิ่มบล็อก',
+      formulaResult: 'ผลลัพธ์สูตร',
+      systemOffset: 'ค่าชดเชยระบบ',
+      applyCalibration: 'บันทึกการปรับเทียบ',
+      removeCalibration: 'ลบการปรับเทียบทั้งหมด',
+      addGlobalVar: 'เพิ่มตัวแปร',
+      editGlobalVar: 'แก้ไขตัวแปร',
+      variableName: 'ชื่อตัวแปร',
+      variableValue: 'ค่า (ม.)',
     },
 
     // ─── Parameters (app/parameters/page.js) ──────────────────────────────
